@@ -5,7 +5,8 @@
 import { useState, useEffect } from 'react'
 
 // Данные подгружаются из public/prices.json
-const PRICES_URL = '/prices.json'
+// import.meta.env.BASE_URL правильно разрешается и локально (/), и на GitHub Pages (/repo-name/)
+const PRICES_URL = `${import.meta.env.BASE_URL}prices.json`
 
 export function usePrices() {
     const [categories, setCategories] = useState([])
