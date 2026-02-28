@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Секреты — НИКОГДА не пушить!
+backend/.env
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Логи
+*.log
+logs/
+
+# Данные пользователей — не пушить
+data/orders_backup.json
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

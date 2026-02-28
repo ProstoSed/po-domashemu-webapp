@@ -1,0 +1,58 @@
+.success-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 70vh;
+    padding: var(--space-xl);
+    position: relative;
+    overflow: hidden;
+}
+
+.success-icon {
+    font-size: 5rem;
+    margin-bottom: var(--space-lg);
+}
+
+.success-title {
+    font-size: var(--font-size-2xl);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: var(--space-sm);
+}
+
+.success-text {
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+    max-width: 280px;
+    margin-bottom: var(--space-xl);
+    line-height: 1.6;
+}
+
+.success-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    width: 100%;
+    max-width: 260px;
+}
+
+/* Конфетти */
+.confetti-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 300;
+    overflow: hidden;
+}
+
+.confetti-piece {
+    position: absolute;
+    top: -10px;
+    border-radius: 2px;
+    animation: confetti-fall linear forwards;
+}

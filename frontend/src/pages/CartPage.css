@@ -1,0 +1,100 @@
+.cart-page {
+    padding-top: var(--space-xs);
+}
+
+.cart-title {
+    font-size: var(--font-size-2xl);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: var(--space-md);
+}
+
+.cart-items {
+    margin-bottom: var(--space-lg);
+}
+
+.cart-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-sm);
+    padding: var(--space-md);
+    overflow: hidden;
+}
+
+.cart-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.cart-item-name {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: 2px;
+}
+
+.cart-item-weight {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.cart-item-price {
+    font-size: var(--font-size-base);
+}
+
+.cart-item-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-shrink: 0;
+}
+
+.cart-item-remove {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: var(--radius-full);
+    background: rgba(229, 115, 115, 0.15);
+    color: var(--color-danger);
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Итог */
+.cart-summary {
+    margin-bottom: var(--space-lg);
+    padding: var(--space-lg);
+}
+
+.cart-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.cart-summary-total {
+    font-size: var(--font-size-2xl);
+    font-weight: 800;
+    color: var(--color-primary);
+}
+
+.cart-summary-note {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    margin-top: var(--space-xs);
+}
+
+/* Кнопки */
+.cart-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}

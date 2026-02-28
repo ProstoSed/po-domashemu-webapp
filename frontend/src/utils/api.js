@@ -1,0 +1,62 @@
+/**
+ * api.js — обёртка для fetch-запросов к backend API.
+ * Автоматически добавляет Telegram initData для admin-запросов.
+ */
+
+const API_BASE = import.meta.env.VITE_API_URL || ''
+
+/**
+ * Получить Telegram initData (для авторизации как админ)
+ */
+function getInitData() {
+    return window.Telegram?.WebApp?.initData || ''
+}
+
+/**
+ * Базовый fetch с обработкой ошибок
+ */
+async function apiFetch(path, options = {}) {
+    const res = await fetch(`${API_BASE}${path}`, options)
+    if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.detail || `HTTP ${res.status}`)
+    }
+    return res.json()
+}
+
+// ── Публичные ──────────────────────────────
+
+export async function fetchPrices() {
+    // Цены берём из статичного public/prices.json
+    // Работает везде: локально (Vite отдаёт public/) и на GitHub Pages
+    const res = await fetch(`${import.meta.env.BASE_URL}prices.json`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return res.json()
+}
+
+// ── Админ (требуют initData мамы) ──────────
+
+function adminHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'x-init-data': getInitData(),
+    }
+}
+
+export async function fetchOrders() {
+    return apiFetch('/api/admin/orders', { headers: adminHeaders() })
+}
+
+export async function closeOrder(orderId) {
+    return apiFetch(`/api/admin/orders/${orderId}/close`, {
+        method: 'POST',
+        headers: adminHeaders(),
+    })
+}
+
+export async function deleteOrder(orderId) {
+    return apiFetch(`/api/admin/orders/${orderId}`, {
+        method: 'DELETE',
+        headers: adminHeaders(),
+    })
+}
