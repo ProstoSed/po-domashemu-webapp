@@ -28,3 +28,9 @@ PRICES_FILE: Path = (BASE_DIR / _prices_path).resolve()
 
 _orders_path = os.getenv('ORDERS_FILE', '../../data/orders_backup.json')
 ORDERS_FILE: Path = (BASE_DIR / _orders_path).resolve()
+
+_users_path = os.getenv('USERS_FILE', '../../data/users.json')
+USERS_FILE: Path = (BASE_DIR / _users_path).resolve()
+
+_photo_requests_path = os.getenv('PHOTO_REQUESTS_FILE', '../../data/photo_requests.json')
+PHOTO_REQUESTS_FILE: Path = (BASE_DIR / _photo_requests_path).resolve()

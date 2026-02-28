@@ -60,3 +60,31 @@ export async function deleteOrder(orderId) {
         headers: adminHeaders(),
     })
 }
+
+export async function updateOrderStatus(orderId, status) {
+    return apiFetch(`/api/admin/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: adminHeaders(),
+        body: JSON.stringify({ status }),
+    })
+}
+
+export async function fetchStats() {
+    return apiFetch('/api/admin/stats', { headers: adminHeaders() })
+}
+
+export async function fetchUsers() {
+    return apiFetch('/api/admin/users', { headers: adminHeaders() })
+}
+
+export async function fetchPhotoRequests() {
+    return apiFetch('/api/admin/photo-requests', { headers: adminHeaders() })
+}
+
+export async function sendBroadcast(text) {
+    return apiFetch('/api/admin/broadcast', {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify({ text }),
+    })
+}
