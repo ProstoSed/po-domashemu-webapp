@@ -26,6 +26,14 @@ async function apiFetch(path, options = {}) {
 
 // ── Публичные ──────────────────────────────
 
+export async function geocodeAddress(address) {
+    return apiFetch('/api/geocode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address }),
+    })
+}
+
 export async function fetchPrices() {
     // Цены берём из статичного public/prices.json
     // Работает везде: локально (Vite отдаёт public/) и на GitHub Pages
@@ -86,5 +94,30 @@ export async function sendBroadcast(text) {
         method: 'POST',
         headers: adminHeaders(),
         body: JSON.stringify({ text }),
+    })
+}
+
+// ── Клиент (требуют initData пользователя) ──
+
+function userHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'x-init-data': getInitData(),
+    }
+}
+
+export async function fetchMyOrders() {
+    return apiFetch('/api/orders/my', { headers: userHeaders() })
+}
+
+export async function fetchMyPhotoRequests() {
+    return apiFetch('/api/photo-requests/my', { headers: userHeaders() })
+}
+
+export async function createPhotoRequest(itemKey, itemId, itemName) {
+    return apiFetch('/api/photo-requests', {
+        method: 'POST',
+        headers: userHeaders(),
+        body: JSON.stringify({ item_key: itemKey, item_id: itemId, item_name: itemName }),
     })
 }

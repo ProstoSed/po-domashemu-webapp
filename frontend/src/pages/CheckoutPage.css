@@ -104,3 +104,61 @@
     font-weight: 800;
     color: var(--color-primary);
 }
+
+/* Геокодирование */
+.geo-status {
+    margin-top: var(--space-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.geo-result {
+    margin-top: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(212, 163, 115, 0.12);
+    border: 1px solid rgba(212, 163, 115, 0.3);
+    border-radius: var(--radius-sm);
+}
+
+.geo-address {
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+    margin-bottom: 4px;
+}
+
+.geo-meta {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.geo-meta b {
+    color: var(--color-primary);
+}
+
+.geo-error {
+    margin-top: var(--space-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-warning);
+}
+
+/* Разбивка итога */
+.checkout-breakdown {
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+}
+
+.checkout-sub-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: 4px;
+}
+
+.checkout-delivery-hint {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-md);
+    text-align: center;
+}

@@ -53,3 +53,36 @@
 .header-admin-btn:active {
     transform: scale(0.9);
 }
+
+/* Клиентская навигация */
+.header-nav {
+    display: flex;
+    gap: 0.4rem;
+    padding: 0.35rem 0 0.15rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+.header-nav::-webkit-scrollbar { display: none; }
+
+.header-nav-btn {
+    flex-shrink: 0;
+    padding: 0.3rem 0.75rem;
+    border-radius: var(--radius-full);
+    border: 1.5px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s;
+    white-space: nowrap;
+    font-family: var(--font-family);
+}
+
+.header-nav-btn.active,
+.header-nav-btn:active {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}

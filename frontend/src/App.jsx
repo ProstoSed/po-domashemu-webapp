@@ -8,6 +8,9 @@ import CartPage from './pages/CartPage'
 import CheckoutPage from './pages/CheckoutPage'
 import SuccessPage from './pages/SuccessPage'
 import AdminPage from './pages/AdminPage'
+import SearchPage from './pages/SearchPage'
+import MyOrdersPage from './pages/MyOrdersPage'
+import MyPhotosPage from './pages/MyPhotosPage'
 
 export default function App() {
     return (
@@ -23,6 +26,9 @@ export default function App() {
                             <Route path="/checkout" element={<CheckoutPage />} />
                             <Route path="/success" element={<SuccessPage />} />
                             <Route path="/admin" element={<AdminPage />} />
+                            <Route path="/search" element={<SearchPage />} />
+                            <Route path="/my-orders" element={<MyOrdersPage />} />
+                            <Route path="/my-photos" element={<MyPhotosPage />} />
                         </Routes>
                     </main>
                     <CartButton />

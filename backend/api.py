@@ -4,23 +4,31 @@ webapp-bot/backend/api.py
 FastAPI сервер.
 
 Публичные эндпоинты:
-  GET /health
-  GET /api/prices
+  GET  /health
+  GET  /api/prices
+  POST /api/geocode             — геокодирование адреса + цена доставки
 
-Админ-эндпоинты (требуют заголовок X-Init-Data с Telegram initData):
-  GET  /api/admin/orders                       — все заказы
-  PATCH /api/admin/orders/{id}/status          — изменить статус заказа
-  POST /api/admin/orders/{id}/close            — закрыть заказ (status → closed)
-  DELETE /api/admin/orders/{id}                — удалить заказ
-  GET  /api/admin/stats                        — статистика
-  GET  /api/admin/users                        — список клиентов
-  GET  /api/admin/photo-requests               — запросы на фото
-  POST /api/admin/broadcast                    — рассылка всем клиентам
+Авторизованные (X-Init-Data):
+  GET  /api/orders/my                         — мои заказы
+  GET  /api/photo-requests/my                 — мои запросы на фото
+  POST /api/photo-requests                    — создать запрос на фото
+
+Админ (X-Init-Data от мамы):
+  GET  /api/admin/orders
+  PATCH /api/admin/orders/{id}/status
+  POST /api/admin/orders/{id}/close
+  DELETE /api/admin/orders/{id}
+  GET  /api/admin/stats
+  GET  /api/admin/users
+  GET  /api/admin/photo-requests
+  POST /api/admin/broadcast
 """
 import hashlib
 import hmac
 import json
 import logging
+import math
+from datetime import datetime
 from urllib.parse import parse_qsl
 
 import httpx
@@ -31,7 +39,7 @@ from pydantic import BaseModel
 from config import PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE, PHOTO_REQUESTS_FILE
 
 log = logging.getLogger(__name__)
-app = FastAPI(title='По-домашнему API', version='1.2')
+app = FastAPI(title='По-домашнему API', version='1.3')
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,6 +47,13 @@ app.add_middleware(
     allow_methods=['GET', 'POST', 'DELETE', 'PATCH'],
     allow_headers=['*'],
 )
+
+# ── Координаты д. Зимёнки ──────────────────────────────────────────────────
+ZIMENKI_LAT = 56.1569
+ZIMENKI_LON = 44.2646
+
+# ── Допустимые статусы заказов ─────────────────────────────────────────────
+VALID_STATUSES = {'new', 'accepted', 'cooking', 'delivery', 'ready', 'closed'}
 
 
 # ──────────────────────────────────────────────
@@ -53,22 +68,41 @@ class BroadcastBody(BaseModel):
     text: str
 
 
-# ──────────────────────────────────────────────
-# Константы
-# ──────────────────────────────────────────────
+class GeocodeBody(BaseModel):
+    address: str
 
-VALID_STATUSES = {'new', 'accepted', 'cooking', 'delivery', 'ready', 'closed'}
+
+class PhotoRequestBody(BaseModel):
+    item_key: str
+    item_id: str
+    item_name: str
 
 
 # ──────────────────────────────────────────────
 # Вспомогательные функции
 # ──────────────────────────────────────────────
 
+def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Расстояние по прямой между двумя точками (км)."""
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2) ** 2
+         + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))
+         * math.sin(dlon / 2) ** 2)
+    return R * 2 * math.asin(math.sqrt(max(0.0, a)))
+
+
+def calc_delivery_price(distance_km: float) -> int:
+    """20 ₽/км, минимум 100 ₽, округление до 50 ₽."""
+    raw = max(100, round(distance_km * 20))
+    return int(round(raw / 50) * 50)
+
+
 def verify_initdata(init_data: str) -> dict | None:
     """
     Проверяет Telegram initData (HMAC-SHA256).
     Возвращает dict пользователя или None если подпись неверна.
-    Docs: https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
     """
     try:
         parsed = dict(parse_qsl(init_data, keep_blank_values=True))
@@ -100,7 +134,7 @@ def verify_initdata(init_data: str) -> dict | None:
 
 
 def require_admin(x_init_data: str | None) -> None:
-    """Проверяет что запрос от мамы. Кидает 403 если нет."""
+    """Кидает 403 если запрос не от мамы."""
     if not x_init_data:
         raise HTTPException(status_code=403, detail='Нет initData')
     user = verify_initdata(x_init_data)
@@ -108,6 +142,16 @@ def require_admin(x_init_data: str | None) -> None:
         raise HTTPException(status_code=403, detail='Неверная подпись')
     if user.get('id') not in ADMIN_IDS:
         raise HTTPException(status_code=403, detail='Доступ запрещён')
+
+
+def require_user(x_init_data: str | None) -> dict:
+    """Возвращает dict пользователя или кидает 403."""
+    if not x_init_data:
+        raise HTTPException(status_code=403, detail='Нет initData')
+    user = verify_initdata(x_init_data)
+    if not user:
+        raise HTTPException(status_code=403, detail='Неверная подпись')
+    return user
 
 
 def load_orders() -> list:
@@ -138,6 +182,18 @@ def load_photo_requests() -> dict:
     return json.loads(PHOTO_REQUESTS_FILE.read_text(encoding='utf-8')).get('requests', {})
 
 
+def save_photo_requests(requests: dict) -> None:
+    if PHOTO_REQUESTS_FILE.exists():
+        data = json.loads(PHOTO_REQUESTS_FILE.read_text(encoding='utf-8'))
+    else:
+        data = {'requests': {}}
+    data['requests'] = requests
+    PHOTO_REQUESTS_FILE.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding='utf-8'
+    )
+
+
 # ──────────────────────────────────────────────
 # Публичные эндпоинты
 # ──────────────────────────────────────────────
@@ -158,13 +214,138 @@ async def get_prices() -> dict:
         raise HTTPException(status_code=500, detail='Ошибка сервера')
 
 
+@app.post('/api/geocode')
+async def geocode_address(body: GeocodeBody) -> dict:
+    """
+    Геокодирует адрес через Nominatim.
+    Возвращает координаты, расстояние от Зимёнок и цену доставки.
+    """
+    addr = body.address.strip()
+    if not addr:
+        raise HTTPException(status_code=400, detail='Адрес пустой')
+
+    async with httpx.AsyncClient(timeout=8.0) as client:
+        try:
+            r = await client.get(
+                'https://nominatim.openstreetmap.org/search',
+                params={'q': addr, 'format': 'json', 'limit': 1, 'addressdetails': 0},
+                headers={'User-Agent': 'po-domashemu-webapp/1.0 contact@example.com'},
+            )
+            results = r.json()
+        except Exception as exc:
+            log.warning('Geocode error: %s', exc)
+            return {'found': False, 'error': 'Сервис геокодирования недоступен'}
+
+    if not results:
+        return {'found': False}
+
+    item = results[0]
+    lat = float(item['lat'])
+    lon = float(item['lon'])
+    dist = haversine(ZIMENKI_LAT, ZIMENKI_LON, lat, lon)
+    price = calc_delivery_price(dist)
+
+    # Короткий адрес (первые 3 части через запятую)
+    display = item.get('display_name', addr)
+    short_address = ', '.join(p.strip() for p in display.split(',')[:3])
+
+    return {
+        'found': True,
+        'lat': lat,
+        'lon': lon,
+        'address': short_address,
+        'distance_km': round(dist, 1),
+        'delivery_price': price,
+    }
+
+
+# ──────────────────────────────────────────────
+# Пользователь: Мои заказы
+# ──────────────────────────────────────────────
+
+@app.get('/api/orders/my')
+async def get_my_orders(x_init_data: str | None = Header(default=None)) -> dict:
+    """Заказы текущего пользователя (по user_id из initData)."""
+    user = require_user(x_init_data)
+    user_id = user.get('id')
+
+    orders = load_orders()
+    my = [
+        o for o in orders
+        if (o.get('customer', {}).get('user_id') == user_id
+            or o.get('user', {}).get('id') == user_id)
+    ]
+    my.sort(key=lambda o: o.get('created_at', ''), reverse=True)
+    return {'orders': my, 'total': len(my)}
+
+
+# ──────────────────────────────────────────────
+# Пользователь: Запросы на фото
+# ──────────────────────────────────────────────
+
+@app.get('/api/photo-requests/my')
+async def get_my_photo_requests(x_init_data: str | None = Header(default=None)) -> dict:
+    """Запросы на фото текущего пользователя."""
+    user = require_user(x_init_data)
+    user_id = user.get('id')
+
+    requests = load_photo_requests()
+    mine = [r for r in requests.values() if r.get('user_id') == user_id]
+    mine.sort(key=lambda r: r.get('created_at', ''), reverse=True)
+    return {'requests': mine, 'total': len(mine)}
+
+
+@app.post('/api/photo-requests')
+async def create_photo_request(
+    body: PhotoRequestBody,
+    x_init_data: str | None = Header(default=None)
+) -> dict:
+    """Создать запрос на фото товара."""
+    user = require_user(x_init_data)
+    user_id = user.get('id')
+
+    requests = load_photo_requests()
+
+    # Не создавать дубликаты для одного и того же товара
+    for req in requests.values():
+        if (req.get('user_id') == user_id
+                and req.get('item_id') == body.item_id
+                and req.get('status') == 'open'):
+            return {'ok': True, 'req_id': req['req_id'], 'already_exists': True}
+
+    now = datetime.now()
+    date_str = now.strftime('%y%m%d')
+
+    # Уникальный ID с учётом существующих
+    counter = sum(1 for rid in requests if date_str in rid) + 1
+    req_id = f'REQ-{date_str}-{counter:03d}'
+    while req_id in requests:
+        counter += 1
+        req_id = f'REQ-{date_str}-{counter:03d}'
+
+    new_req = {
+        'req_id': req_id,
+        'user_id': user_id,
+        'username': user.get('username', ''),
+        'first_name': user.get('first_name', ''),
+        'item_key': body.item_key,
+        'item_id': body.item_id,
+        'item_name': body.item_name,
+        'status': 'open',
+        'created_at': now.strftime('%Y-%m-%d %H:%M:%S'),
+    }
+    requests[req_id] = new_req
+    save_photo_requests(requests)
+
+    return {'ok': True, 'req_id': req_id}
+
+
 # ──────────────────────────────────────────────
 # Админ: Заказы
 # ──────────────────────────────────────────────
 
 @app.get('/api/admin/orders')
 async def admin_get_orders(x_init_data: str | None = Header(default=None)) -> dict:
-    """Возвращает все заказы из orders_backup.json."""
     require_admin(x_init_data)
     orders = load_orders()
     orders_sorted = sorted(orders, key=lambda o: o.get('created_at', ''), reverse=True)
@@ -177,7 +358,6 @@ async def admin_update_order_status(
     body: StatusUpdate,
     x_init_data: str | None = Header(default=None)
 ) -> dict:
-    """Изменяет статус заказа."""
     require_admin(x_init_data)
     if body.status not in VALID_STATUSES:
         raise HTTPException(status_code=400, detail=f'Неверный статус: {body.status}')
@@ -199,7 +379,6 @@ async def admin_close_order(
     order_id: str,
     x_init_data: str | None = Header(default=None)
 ) -> dict:
-    """Закрывает заказ (status → closed)."""
     require_admin(x_init_data)
     orders = load_orders()
     found = False
@@ -219,7 +398,6 @@ async def admin_delete_order(
     order_id: str,
     x_init_data: str | None = Header(default=None)
 ) -> dict:
-    """Удаляет заказ из orders_backup.json."""
     require_admin(x_init_data)
     orders = load_orders()
     new_orders = [o for o in orders if o.get('order_id') != order_id]
@@ -235,17 +413,16 @@ async def admin_delete_order(
 
 @app.get('/api/admin/stats')
 async def admin_get_stats(x_init_data: str | None = Header(default=None)) -> dict:
-    """Сводная статистика."""
     require_admin(x_init_data)
     orders = load_orders()
     users = load_users()
 
-    closed_orders = [o for o in orders if o.get('status') == 'closed']
+    closed = [o for o in orders if o.get('status') == 'closed']
     total_revenue = sum(
         o.get('totals', {}).get('grand_total') or o.get('total') or 0
-        for o in closed_orders
+        for o in closed
     )
-    avg_check = round(total_revenue / len(closed_orders)) if closed_orders else 0
+    avg_check = round(total_revenue / len(closed)) if closed else 0
 
     status_counts: dict = {}
     for o in orders:
@@ -276,7 +453,6 @@ async def admin_get_stats(x_init_data: str | None = Header(default=None)) -> dic
 
 @app.get('/api/admin/users')
 async def admin_get_users(x_init_data: str | None = Header(default=None)) -> dict:
-    """Список всех зарегистрированных клиентов."""
     require_admin(x_init_data)
     users = load_users()
     users_list = list(users.values())
@@ -290,7 +466,6 @@ async def admin_get_users(x_init_data: str | None = Header(default=None)) -> dic
 
 @app.get('/api/admin/photo-requests')
 async def admin_get_photo_requests(x_init_data: str | None = Header(default=None)) -> dict:
-    """Список запросов на фото товаров."""
     require_admin(x_init_data)
     requests = load_photo_requests()
     requests_list = list(requests.values())
@@ -307,7 +482,6 @@ async def admin_broadcast(
     body: BroadcastBody,
     x_init_data: str | None = Header(default=None)
 ) -> dict:
-    """Отправляет сообщение всем клиентам через Telegram Bot API."""
     require_admin(x_init_data)
     if not body.text.strip():
         raise HTTPException(status_code=400, detail='Текст не может быть пустым')

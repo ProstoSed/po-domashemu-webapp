@@ -1,0 +1,147 @@
+.search-page {
+    padding: 1rem;
+    padding-bottom: 6rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.search-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--color-text);
+}
+
+/* Поле поиска */
+.search-input-wrap {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.search-input {
+    width: 100%;
+    padding: 14px 40px 14px 16px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-family: var(--font-family);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.search-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(212, 163, 115, 0.2);
+}
+
+.search-input::placeholder {
+    color: var(--color-text-muted);
+}
+
+/* Safari/Chrome убирает встроенный крестик */
+.search-input::-webkit-search-cancel-button { display: none; }
+
+.search-clear {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+}
+
+/* Подсказки */
+.search-hint {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+}
+.search-hint b { color: var(--color-text); }
+.search-hint-sub {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.search-count {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.75rem;
+}
+.search-count b { color: var(--color-text); }
+
+/* Список результатов */
+.search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.search-result-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+
+.search-result-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.search-result-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 2px;
+}
+
+.search-result-cat {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 2px;
+}
+
+.search-result-price {
+    font-size: 0.82rem;
+    color: var(--color-primary);
+    font-weight: 500;
+}
+
+.search-add-btn {
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    border: 2px solid var(--color-primary);
+    background: transparent;
+    color: var(--color-primary);
+    font-size: 1.3rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.search-add-btn.added {
+    background: var(--color-primary);
+    color: white;
+}
+
+.search-add-btn:active {
+    transform: scale(0.9);
+}
