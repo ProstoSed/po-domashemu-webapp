@@ -35,6 +35,8 @@ jobs:
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
           # URL backend API на Claw Cloud
           VITE_API_URL: https://fcfizckprrgh.eu-central-1.clawcloudrun.com
+          # Доп. админы (Святослав + другие)
+          VITE_ADMIN_IDS: 5541118089,2102796101,117762100
 
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4

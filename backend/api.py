@@ -742,3 +742,32 @@ async def admin_broadcast(
                 log.warning('Broadcast exception for %s: %s', user_id_str, exc)
 
     return {'ok': True, 'sent': sent, 'failed': failed}
+
+
+# ── Импорт данных (админ) ───────────────────────────────────────────────────
+
+class ImportDataBody(BaseModel):
+    file_key: str       # "orders" | "users" | "photo_requests"
+    data: dict | list   # содержимое JSON-файла
+
+
+@app.post('/api/admin/import-data')
+async def admin_import_data(
+    body: ImportDataBody,
+    x_init_data: str | None = Header(default=None),
+) -> dict:
+    """Импорт JSON-данных (заказы, пользователи, фото-запросы) на сервер."""
+    require_admin(x_init_data)
+
+    file_map = {
+        'orders': ORDERS_FILE,
+        'users': USERS_FILE,
+        'photo_requests': PHOTO_REQUESTS_FILE,
+    }
+    target = file_map.get(body.file_key)
+    if not target:
+        raise HTTPException(status_code=400, detail=f'Неизвестный file_key: {body.file_key}')
+
+    target.write_text(json.dumps(body.data, ensure_ascii=False, indent=2), encoding='utf-8')
+    log.info('Imported %s → %s', body.file_key, target)
+    return {'ok': True, 'file': body.file_key}
