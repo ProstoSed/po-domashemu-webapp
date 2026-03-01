@@ -15,7 +15,7 @@ function getInitData() {
 /**
  * Базовый fetch с обработкой ошибок и retry при сетевых сбоях
  */
-async function apiFetch(path, options = {}, retries = 1) {
+async function apiFetch(path, options = {}, retries = 2) {
     try {
         const res = await fetch(`${API_BASE}${path}`, options)
         if (!res.ok) {

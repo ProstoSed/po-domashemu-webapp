@@ -118,6 +118,13 @@
     margin-top: 0.3rem;
 }
 
+.my-order-repeat-btn {
+    margin-top: 0.7rem;
+    width: 100%;
+    padding: 0.55rem;
+    font-size: 0.9rem;
+}
+
 /* Переиспользуем статусы из AdminPage */
 .status-new      { background: #e3f5e1; color: #2e7d32; font-size: 0.78rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 8px; width: fit-content; }
 .status-accepted { background: #e8f5e9; color: #1b5e20; font-size: 0.78rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 8px; width: fit-content; }

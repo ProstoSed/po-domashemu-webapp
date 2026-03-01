@@ -32,7 +32,7 @@
 
 .invite-bonus {
     font-size: var(--font-size-sm);
-    color: var(--color-text);
+    color: #1a1a1a;
     line-height: 1.5;
     background: #fef3c7;
     padding: 0.5rem 0.75rem;

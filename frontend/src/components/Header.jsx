@@ -69,31 +69,21 @@ export default function Header() {
                 </div>
             )}
 
-            {/* Клиентский sub-nav: два ряда */}
+            {/* Клиентский sub-nav */}
             {!isAdmin && !hideClientNav && (
                 <div className="header-nav-wrap">
-                    <nav className="header-nav">
-                        {CLIENT_NAV_ROW1.map(item => (
+                    <div className="header-panel-title">Панель управления</div>
+                    <div className="header-nav-grid">
+                        {[...CLIENT_NAV_ROW1, ...CLIENT_NAV_ROW2].map(item => (
                             <button
                                 key={item.path}
-                                className={`header-nav-btn ${location.pathname === item.path ? 'active' : ''}`}
+                                className={`header-grid-btn ${location.pathname === item.path ? 'active' : ''}`}
                                 onClick={() => navigate(item.path)}
                             >
                                 {item.label}
                             </button>
                         ))}
-                    </nav>
-                    <nav className="header-nav header-nav--row2">
-                        {CLIENT_NAV_ROW2.map(item => (
-                            <button
-                                key={item.path}
-                                className={`header-nav-btn ${location.pathname === item.path ? 'active' : ''}`}
-                                onClick={() => navigate(item.path)}
-                            >
-                                {item.label}
-                            </button>
-                        ))}
-                    </nav>
+                    </div>
                 </div>
             )}
         </header>

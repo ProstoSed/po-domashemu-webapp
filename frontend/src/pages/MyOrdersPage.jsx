@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTelegram } from '../hooks/useTelegram'
+import { useCart } from '../hooks/useCart'
 import { fetchMyOrders } from '../utils/api'
 import { formatPrice } from '../utils/formatPrice'
 import './MyOrdersPage.css'
@@ -19,7 +20,7 @@ const STATUS_LABEL = {
     closed:   { text: 'Закрыт',     cls: 'status-closed' },
 }
 
-function OrderHistoryCard({ order }) {
+function OrderHistoryCard({ order, onRepeat }) {
     const [expanded, setExpanded] = useState(false)
     const status = order.status || 'new'
     const info = STATUS_LABEL[status] || { text: status, cls: '' }
@@ -92,6 +93,13 @@ function OrderHistoryCard({ order }) {
                                 💬 {order.comment}
                             </div>
                         )}
+
+                        <button
+                            className="btn btn-primary my-order-repeat-btn"
+                            onClick={(e) => { e.stopPropagation(); onRepeat(order) }}
+                        >
+                            🔄 Повторить заказ
+                        </button>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -101,6 +109,7 @@ function OrderHistoryCard({ order }) {
 
 export default function MyOrdersPage() {
     const { user } = useTelegram()
+    const { addItem, clearCart } = useCart()
     const navigate = useNavigate()
     const [orders, setOrders] = useState([])
     const [loading, setLoading] = useState(true)
@@ -112,6 +121,24 @@ export default function MyOrdersPage() {
             .catch(e => setError(e.message))
             .finally(() => setLoading(false))
     }, [])
+
+    const handleRepeat = (order) => {
+        clearCart()
+        for (const item of (order.items || [])) {
+            const cartItem = {
+                id: item.id || item.name,
+                name: item.name,
+                categoryKey: item.category_key || 'other',
+                unit: item.unit || 'шт',
+                price_item: item.price_per_unit || 0,
+                price_kg: item.unit === 'кг' ? (item.price_per_unit || 0) : undefined,
+            }
+            const qty = item.quantity ?? 1
+            const weight = item.unit === 'кг' ? qty : null
+            addItem(cartItem, weight ? 1 : qty, weight)
+        }
+        navigate('/cart')
+    }
 
     const active = orders.filter(o => o.status !== 'closed')
     const closed = orders.filter(o => o.status === 'closed')
@@ -167,7 +194,7 @@ export default function MyOrdersPage() {
                             <h3 className="my-orders-section-title">В работе ({active.length})</h3>
                             <div className="my-orders-list">
                                 {active.map(o => (
-                                    <OrderHistoryCard key={o.order_id} order={o} />
+                                    <OrderHistoryCard key={o.order_id} order={o} onRepeat={handleRepeat} />
                                 ))}
                             </div>
                         </section>
@@ -178,7 +205,7 @@ export default function MyOrdersPage() {
                             <h3 className="my-orders-section-title">Выполненные ({closed.length})</h3>
                             <div className="my-orders-list">
                                 {closed.map(o => (
-                                    <OrderHistoryCard key={o.order_id} order={o} />
+                                    <OrderHistoryCard key={o.order_id} order={o} onRepeat={handleRepeat} />
                                 ))}
                             </div>
                         </section>
