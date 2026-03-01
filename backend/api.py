@@ -756,9 +756,14 @@ class ImportDataBody(BaseModel):
 async def admin_import_data(
     body: ImportDataBody,
     x_init_data: str | None = Header(default=None),
+    x_import_secret: str | None = Header(default=None),
 ) -> dict:
     """Импорт JSON-данных (заказы, пользователи, фото-запросы) на сервер."""
-    require_admin(x_init_data)
+    # Авторизация: либо initData админа, либо секретный ключ (BOT_TOKEN)
+    if x_import_secret == BOT_TOKEN:
+        pass  # OK — авторизован по секрету
+    else:
+        require_admin(x_init_data)
 
     file_map = {
         'orders': ORDERS_FILE,
