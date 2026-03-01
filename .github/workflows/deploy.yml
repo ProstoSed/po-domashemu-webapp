@@ -33,6 +33,8 @@ jobs:
         env:
           # Base path = /имя-репозитория/ — подставляется автоматически
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
+          # URL backend API на Render
+          VITE_API_URL: https://po-domashemu-webapp.onrender.com
 
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
