@@ -34,5 +34,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/po-domashemu-backend:latest
-            ghcr.io/${{ github.repository_owner }}/po-domashemu-backend:${{ github.sha }}
+            ghcr.io/prostosed/po-domashemu-backend:latest
+            ghcr.io/prostosed/po-domashemu-backend:${{ github.sha }}
