@@ -1,4 +1,5 @@
 """Конфигурация webapp-bot backend."""
+import json
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -37,6 +38,18 @@ PHOTO_REQUESTS_FILE: Path = (BASE_DIR / _photo_requests_path).resolve()
 
 _holidays_path = os.getenv('HOLIDAYS_FILE', '../../data/holidays.json')
 HOLIDAYS_FILE: Path = (BASE_DIR / _holidays_path).resolve()
+
+# Автосоздание папки data/ и пустых JSON-файлов (для Render и свежих серверов)
+_DATA_FILES = {
+    ORDERS_FILE: [],
+    USERS_FILE: {'users': {}},
+    PHOTO_REQUESTS_FILE: {'requests': {}},
+    HOLIDAYS_FILE: {'holidays': {}},
+}
+for _path, _default in _DATA_FILES.items():
+    _path.parent.mkdir(parents=True, exist_ok=True)
+    if not _path.exists():
+        _path.write_text(json.dumps(_default, ensure_ascii=False, indent=2), encoding='utf-8')
 
 # Режим локальной разработки: пропускает HMAC-проверку initData.
 # Включить: добавить DEV_MODE=true в .env

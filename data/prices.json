@@ -1,0 +1,683 @@
+{
+  "_comment": "Синхронизировано из Google Sheets",
+  "_last_updated": "2026-03-01 14:40",
+  "categories": [
+    {
+      "key": "pirgi_bolshie",
+      "name": "🥧 Пироги большие (d=30-33см)",
+      "items": [
+        {
+          "id": "meat_chicken_fish",
+          "name": "Пирог большой (мясо, курица, рыба минтай)",
+          "unit": "кг",
+          "price_kg": 1200,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "forel",
+          "name": "Пирог большой (форель)",
+          "unit": "кг",
+          "price_kg": 2000,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "keta",
+          "name": "Пирог большой (кета)",
+          "unit": "кг",
+          "price_kg": 1800,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "apple_pear_berry",
+          "name": "Пирог большой (яблоки, груши, ягоды)",
+          "unit": "кг",
+          "price_kg": 1000,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "kapusta_yaytso",
+          "name": "Пирог большой (капуста + яйцо)",
+          "unit": "кг",
+          "price_kg": 1000,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "govyadina_tykva",
+          "name": "Пирог (томлёная говядина с тыквой)",
+          "unit": "кг",
+          "price_kg": 1500,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "svinina_govyadina",
+          "name": "Пирог с мясом (свинина/говядина)",
+          "unit": "кг",
+          "price_kg_min": 1100,
+          "price_kg_max": 1400,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "kuritsa_luk",
+          "name": "Пирог (курица с жареным луком)",
+          "unit": "кг",
+          "price_kg": 1000,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "luk_yaytso",
+          "name": "Пирог (зелёный лук + яйцо)",
+          "unit": "кг",
+          "price_kg": 1000,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "shhavel_yaytso",
+          "name": "Пирог со щавелем и яйцом",
+          "unit": "кг/шт",
+          "price_item": 1000,
+          "min_order": null,
+          "note": "Акция: 1000р"
+        },
+        {
+          "id": "postny_razny",
+          "name": "Пирог постный (различные начинки)",
+          "unit": "кг",
+          "price_kg": 1000,
+          "min_order": null,
+          "note": ""
+        }
+      ]
+    },
+    {
+      "key": "pesochnye_pirogi",
+      "name": "🥧 Песочные пироги в сметанной заливке",
+      "items": [
+        {
+          "id": "yagoda_frukt",
+          "name": "Песочный пирог с ягодами/фруктами",
+          "unit": "шт",
+          "price_item": 2000,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "persik_malina",
+          "name": "Песочный пирог с персиками и малиной",
+          "unit": "шт",
+          "price_item_min": 1700,
+          "price_item_max": 2000,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "vishnya",
+          "name": "Песочный пирог с вишней",
+          "unit": "шт",
+          "price_item": 2000,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "klyukva",
+          "name": "Песочный пирог с клюквой",
+          "unit": "шт",
+          "price_item": 2000,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "mandarin_oblepikha",
+          "name": "Песочный пирог с мандаринами и облепихой",
+          "unit": "шт",
+          "price_item": 2000,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "tvorog_yagoda",
+          "name": "Песочный пирог с творожной прослойкой + ягоды",
+          "unit": "шт",
+          "price_item": 2200,
+          "min_order": null,
+          "note": "ягоды по чеку"
+        }
+      ]
+    },
+    {
+      "key": "torty",
+      "name": "🎂 Торты",
+      "items": [
+        {
+          "id": "baza",
+          "name": "Торт (базовая цена)",
+          "unit": "кг",
+          "price_kg": 2300,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "medovik",
+          "name": "Медовик",
+          "unit": "кг",
+          "price_kg_min": 2000,
+          "price_kg_max": 2500,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "napoleon",
+          "name": "Наполеон",
+          "unit": "кг",
+          "price_kg_min": 2300,
+          "price_kg_max": 2500,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "napoleon_shokolad_fistashki",
+          "name": "Шоколадный Наполеон с фисташковым кремом",
+          "unit": "кг",
+          "price_kg": 2500,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "molochnaya_devochka",
+          "name": "Молочная девочка",
+          "unit": "кг",
+          "price_kg_min": 2300,
+          "price_kg_max": 2500,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "pancho",
+          "name": "Панчо",
+          "unit": "кг",
+          "price_kg": 2300,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "snikers",
+          "name": "Сникерс",
+          "unit": "кг",
+          "price_kg": 2500,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "morkovny_cream_cheese",
+          "name": "Морковный торт с крем-чиз",
+          "unit": "кг",
+          "price_kg": 2300,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "apfelmuss",
+          "name": "Апфельмусс (яблочный мусс)",
+          "unit": "кг",
+          "price_kg": 2500,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "3d_tort",
+          "name": "3D-торты (индивидуально)",
+          "unit": "шт",
+          "price_item_min": 3000,
+          "price_item_max": 3000,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "saharnaya_kartinka",
+          "name": "Сахарная картинка",
+          "unit": "доп.",
+          "price_note": "договорная",
+          "min_order": null,
+          "note": ""
+        }
+      ]
+    },
+    {
+      "key": "zakusochnye_torty",
+      "name": "🥮 Закусочные торты",
+      "items": [
+        {
+          "id": "pechenochny",
+          "name": "Печёночный тортик",
+          "unit": "кг",
+          "price_kg": 1200,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "prazdnichny_forel",
+          "name": "Закусочный торт «Праздничный» (форель/огурец)",
+          "unit": "кг",
+          "price_kg": 2200,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "seledka_pod_shuboy",
+          "name": "Селедочка под шубой",
+          "unit": "кг",
+          "price_kg": 2000,
+          "min_order": null,
+          "note": ""
+        }
+      ]
+    },
+    {
+      "key": "bulochki_pirozhki",
+      "name": "🧁 Булочки и пирожки",
+      "items": [
+        {
+          "id": "plyushka_sdobnaya",
+          "name": "Плюшки сахарные, булочки сдобные без начинки",
+          "unit": "шт",
+          "price_item": 50,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "bulochka_yagoda_tvorog",
+          "name": "Булочки с ягодной/творожной начинкой, ватрушки",
+          "unit": "шт",
+          "price_item": 60,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "bulochka_kapusta",
+          "name": "Булочки с капустой",
+          "unit": "шт",
+          "price_item": 60,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "pirozhok_myasnoy",
+          "name": "Пирожки духовые с мясной начинкой",
+          "unit": "шт",
+          "price_item": 80,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "sosiska_v_teste",
+          "name": "Сосиски в тесте",
+          "unit": "шт",
+          "price_item": 80,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "pirozhok_myaso",
+          "name": "Пирожки с мясом",
+          "unit": "шт",
+          "price_item": 70,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "pirozhok_sggushenka",
+          "name": "Пирожки с варёной сгущенкой",
+          "unit": "шт",
+          "price_item": 60,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "pirozhok_yabloki",
+          "name": "Пирожки с яблоками",
+          "unit": "шт",
+          "price_item": 60,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "pirozhok_kapusta_yaytso",
+          "name": "Пирожки с капустой и яйцом",
+          "unit": "шт",
+          "price_item": 60,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "furshetnye",
+          "name": "Фуршетные пирожки",
+          "unit": "шт",
+          "price_item": 50,
+          "min_order": null,
+          "note": "~45гр"
+        }
+      ]
+    },
+    {
+      "key": "bliny",
+      "name": "🥞 Блины и блинчики",
+      "items": [
+        {
+          "id": "pustye",
+          "name": "Блины пустые",
+          "unit": "шт",
+          "price_item": 25,
+          "min_order": null,
+          "note": "мин. 20 шт"
+        },
+        {
+          "id": "sladkie_nachinki",
+          "name": "Блинчики со сладкими начинками",
+          "unit": "шт",
+          "price_item": 70,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "myasnye_nachinki",
+          "name": "Блинчики с мясной начинкой",
+          "unit": "шт",
+          "price_item": 80,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "shokoladnye_tvorog_vishnya",
+          "name": "Шоколадные блинчики с творожным кремом и вишней",
+          "unit": "шт",
+          "price_item": 90,
+          "min_order": null,
+          "note": "мин. 5 шт"
+        },
+        {
+          "id": "shokoladnye_nutella_banan",
+          "name": "Шоколадные блинчики с Нутеллой и бананом",
+          "unit": "шт",
+          "price_item": 90,
+          "min_order": null,
+          "note": "мин. 5 шт"
+        }
+      ]
+    },
+    {
+      "key": "picca",
+      "name": "🍕 Пицца",
+      "items": [
+        {
+          "id": "domashnyaya",
+          "name": "Пицца «Домашняя» (d=33см)",
+          "unit": "шт",
+          "price_item": 800,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "syrnaya",
+          "name": "Пицца «Сырная»",
+          "unit": "шт",
+          "price_item": 700,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "myasnoe_assorti",
+          "name": "Пицца «Мясное ассорти»",
+          "unit": "шт",
+          "price_item_min": 700,
+          "price_item_max": 800,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "kuritsa_griby",
+          "name": "Пицца «Курица с грибами»",
+          "unit": "шт",
+          "price_item": 700,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "pepperoni",
+          "name": "Пицца «Пепперони»",
+          "unit": "шт",
+          "price_item": 700,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "porcionnaya",
+          "name": "Пицца порционная",
+          "unit": "шт",
+          "price_item": 180,
+          "min_order": null,
+          "note": "~200гр"
+        }
+      ]
+    },
+    {
+      "key": "deserty",
+      "name": "🍪 Десерты",
+      "items": [
+        {
+          "id": "persik",
+          "name": "Пироженое «Персики»",
+          "unit": "шт",
+          "price_item": 200,
+          "min_order": null,
+          "note": "~125гр"
+        },
+        {
+          "id": "limon",
+          "name": "Пироженое «Лимоны»",
+          "unit": "шт",
+          "price_item": 200,
+          "min_order": null,
+          "note": "~125гр"
+        },
+        {
+          "id": "merengovy_rulet",
+          "name": "Меренговый рулет с ягодным конфитюром",
+          "unit": "кг",
+          "price_kg": 1700,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "krokembush",
+          "name": "Крокембуш (профитроли)",
+          "unit": "заказ",
+          "price_item": 2500,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "trayfly_krasny_barhat",
+          "name": "Трайфлы «Красный бархат»",
+          "unit": "шт",
+          "price_item": 300,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "kapkeiki_krasny_barhat",
+          "name": "Капкейки «Красный бархат»",
+          "unit": "шт",
+          "price_item": 250,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "hachapuri_adzharski",
+          "name": "Хачапури по-аджарски",
+          "unit": "шт",
+          "price_item": 500,
+          "min_order": null,
+          "note": "~300гр"
+        }
+      ]
+    },
+    {
+      "key": "salaty",
+      "name": "🥗 Салаты",
+      "items": [
+        {
+          "id": "olive_govyadina",
+          "name": "Оливье с говядиной",
+          "unit": "кг",
+          "price_kg": 2000,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "krabovy_pekinskaya",
+          "name": "Крабовый с пекинской капустой",
+          "unit": "кг",
+          "price_kg": 1500,
+          "min_order": null,
+          "note": ""
+        }
+      ]
+    },
+    {
+      "key": "zapekanki_drugoe",
+      "name": "🥘 Запеканки и другое",
+      "items": [
+        {
+          "id": "tvorog_zapekanka",
+          "name": "Творожная запеканка",
+          "unit": "шт",
+          "price_item": 2000,
+          "min_order": null,
+          "note": "~1200гр"
+        },
+        {
+          "id": "sharlotka",
+          "name": "Шарлотка яблочная",
+          "unit": "шт",
+          "price_item": 800,
+          "min_order": null,
+          "note": "~1кг"
+        },
+        {
+          "id": "lazanya_svinina_govyadina",
+          "name": "Лазанья (свино-говяжий фарш)",
+          "unit": "шт",
+          "price_item": 3800,
+          "min_order": null,
+          "note": "~1.5кг"
+        },
+        {
+          "id": "lazanya_govyadina",
+          "name": "Лазанья (говяжий фарш)",
+          "unit": "шт",
+          "price_item": 5400,
+          "min_order": null,
+          "note": "~1.5кг"
+        },
+        {
+          "id": "zapekanka_kartofel_myaso",
+          "name": "Запеканка картофельная с мясом",
+          "unit": "шт",
+          "price_item": 1800,
+          "min_order": null,
+          "note": "~1500гр"
+        }
+      ]
+    },
+    {
+      "key": "chebureki",
+      "name": "🥟 Чебуреки (постные, заморозка)",
+      "items": [
+        {
+          "id": "kartofel_luk",
+          "name": "Чебуреки с картофелем и луком",
+          "unit": "кг",
+          "price_kg": 400,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "kartofel_griby",
+          "name": "Чебуреки с картофелем и грибами",
+          "unit": "кг",
+          "price_kg": 450,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "kapusta_luk",
+          "name": "Чебуреки с капустой и луком",
+          "unit": "кг",
+          "price_kg": 350,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "kapusta_griby",
+          "name": "Чебуреки с капустой и грибами",
+          "unit": "кг",
+          "price_kg": 450,
+          "min_order": null,
+          "note": ""
+        }
+      ]
+    },
+    {
+      "key": "svadebnaya_vypechka",
+      "name": "💒 Свадебная выпечка",
+      "items": [
+        {
+          "id": "karavay",
+          "name": "Свадебный каравай",
+          "unit": "кг",
+          "price_kg": 1200,
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "svadebny_tort",
+          "name": "Свадебный торт",
+          "unit": "кг",
+          "price_kg": 2300,
+          "min_order": null,
+          "note": "При заказе от 2кг — каравай в подарок"
+        }
+      ]
+    },
+    {
+      "key": "dopolnitelno",
+      "name": "➕ Дополнительно",
+      "items": [
+        {
+          "id": "mnogo_yagod",
+          "name": "Много ягод",
+          "unit": "доп.",
+          "price_note": "по чеку",
+          "min_order": null,
+          "note": ""
+        },
+        {
+          "id": "blinny_tort",
+          "name": "Блинный торт с клубникой и бананом",
+          "unit": "заказ",
+          "price_note": "индивидуально",
+          "min_order": null,
+          "note": ""
+        }
+      ]
+    }
+  ]
+}
