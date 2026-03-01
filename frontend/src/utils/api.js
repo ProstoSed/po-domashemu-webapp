@@ -13,15 +13,23 @@ function getInitData() {
 }
 
 /**
- * Базовый fetch с обработкой ошибок
+ * Базовый fetch с обработкой ошибок и retry при сетевых сбоях
  */
-async function apiFetch(path, options = {}) {
-    const res = await fetch(`${API_BASE}${path}`, options)
-    if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.detail || `HTTP ${res.status}`)
+async function apiFetch(path, options = {}, retries = 1) {
+    try {
+        const res = await fetch(`${API_BASE}${path}`, options)
+        if (!res.ok) {
+            const body = await res.json().catch(() => ({}))
+            throw new Error(body.detail || `HTTP ${res.status}`)
+        }
+        return res.json()
+    } catch (err) {
+        if (retries > 0 && (err.name === 'TypeError' || err.message === 'Failed to fetch')) {
+            await new Promise(r => setTimeout(r, 800))
+            return apiFetch(path, options, retries - 1)
+        }
+        throw err
     }
-    return res.json()
 }
 
 // ── Публичные ──────────────────────────────
