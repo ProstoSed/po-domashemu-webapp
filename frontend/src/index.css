@@ -139,6 +139,9 @@ body {
   max-width: 480px;
   margin: 0 auto;
   width: 100%;
+  /* clip вместо hidden: обрезает лишний пиксель по X
+     без создания нового scroll container (не ломает sticky) */
+  overflow-x: clip;
 }
 
 .app-main {

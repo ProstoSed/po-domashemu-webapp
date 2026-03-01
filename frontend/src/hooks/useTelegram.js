@@ -15,7 +15,11 @@ export function useTelegram() {
         }
     }, [tg])
 
-    const user = tg?.initDataUnsafe?.user || null
+    // В браузере (не в Telegram) используем мок-пользователя из .env.local
+    const _devId = import.meta.env.VITE_DEV_USER_ID
+        ? parseInt(import.meta.env.VITE_DEV_USER_ID, 10) : null
+    const _devUser = _devId ? { id: _devId, first_name: 'Dev', username: 'dev' } : null
+    const user = tg?.initDataUnsafe?.user || _devUser
     const colorScheme = tg?.colorScheme || 'dark'
 
     /** Отправить данные заказа обратно в бота */

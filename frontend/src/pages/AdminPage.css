@@ -201,12 +201,17 @@
 }
 
 /* ── Навигация по разделам ── */
+.admin-sections-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1.25rem;
+}
+
 .admin-sections {
     display: flex;
     gap: 0.4rem;
-    margin-bottom: 1.25rem;
     overflow-x: auto;
-    padding-bottom: 0.25rem;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
 }
@@ -409,6 +414,156 @@
 .photo-card-date {
     font-size: 0.8rem;
     color: var(--color-text-secondary);
+}
+
+.photo-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+    flex-wrap: wrap;
+}
+
+/* ── Напоминалки ── */
+.reminders-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-top: 0.25rem;
+}
+
+.reminders-card {
+    padding: 1rem;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.reminders-card-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.reminders-empty {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+.reminders-hint {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+.holiday-card {
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.holiday-text {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.holiday-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.holiday-row-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.holiday-date {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    font-family: monospace;
+}
+
+.holiday-theme {
+    font-size: 0.875rem;
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+.holiday-today-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: #fde68a;
+    color: #92400e;
+    padding: 0.1rem 0.4rem;
+    border-radius: 6px;
+}
+
+.holiday-soon-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 0.1rem 0.4rem;
+    border-radius: 6px;
+}
+
+.sleeping-badge {
+    background: var(--color-primary);
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.1rem 0.45rem;
+    border-radius: 10px;
+    min-width: 1.4rem;
+    text-align: center;
+}
+
+.sleeping-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 0.25rem;
+}
+
+.sleeping-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--color-surface);
+    border-radius: 8px;
+}
+
+.sleeping-name {
+    color: var(--color-text);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 60%;
+}
+
+.sleeping-meta {
+    color: var(--color-text-secondary);
+    font-size: 0.77rem;
+    white-space: nowrap;
+}
+
+.sleeping-more {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    text-align: center;
+    margin: 0.25rem 0 0;
 }
 
 /* ── Рассылка ── */

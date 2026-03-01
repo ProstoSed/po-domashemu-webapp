@@ -7,12 +7,14 @@ webapp-bot/backend/run.py
     python run.py
 
 Бот работает через long-polling.
-FastAPI слушает на порту 8000 (нужен только если хотите живой /api/prices).
+FastAPI слушает на порту (по умолчанию 8000, или $PORT от Render).
 """
 import asyncio
 import logging
+import os
 import threading
 
+import httpx
 import uvicorn
 
 from api import app as fastapi_app
@@ -21,10 +23,29 @@ from bot import main as bot_main
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger(__name__)
 
+PORT = int(os.getenv('PORT', '8000'))
+
 
 def run_api() -> None:
     """Запустить FastAPI в отдельном потоке."""
-    uvicorn.run(fastapi_app, host='0.0.0.0', port=8000, log_level='info')
+    uvicorn.run(fastapi_app, host='0.0.0.0', port=PORT, log_level='info')
+
+
+async def keep_alive() -> None:
+    """Пинг самого себя каждые 10 мин, чтобы Render не усыпил сервис."""
+    render_url = os.getenv('RENDER_EXTERNAL_URL')
+    if not render_url:
+        return  # Локально — пинг не нужен
+    url = f'{render_url}/health'
+    log.info('Keep-alive включён: %s каждые 10 мин', url)
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        while True:
+            await asyncio.sleep(600)  # 10 минут
+            try:
+                r = await client.get(url)
+                log.debug('Keep-alive ping: %s', r.status_code)
+            except Exception as exc:
+                log.warning('Keep-alive error: %s', exc)
 
 
 async def run_all() -> None:
@@ -33,7 +54,10 @@ async def run_all() -> None:
     # FastAPI в фоновом потоке
     api_thread = threading.Thread(target=run_api, daemon=True)
     api_thread.start()
-    log.info('FastAPI запущен на http://0.0.0.0:8000')
+    log.info('FastAPI запущен на http://0.0.0.0:%s', PORT)
+
+    # Keep-alive пинг (только на Render)
+    asyncio.create_task(keep_alive())
 
     # Бот в основном event loop
     await bot_main()

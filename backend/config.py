@@ -34,3 +34,13 @@ USERS_FILE: Path = (BASE_DIR / _users_path).resolve()
 
 _photo_requests_path = os.getenv('PHOTO_REQUESTS_FILE', '../../data/photo_requests.json')
 PHOTO_REQUESTS_FILE: Path = (BASE_DIR / _photo_requests_path).resolve()
+
+_holidays_path = os.getenv('HOLIDAYS_FILE', '../../data/holidays.json')
+HOLIDAYS_FILE: Path = (BASE_DIR / _holidays_path).resolve()
+
+# Режим локальной разработки: пропускает HMAC-проверку initData.
+# Включить: добавить DEV_MODE=true в .env
+# В продакшне (Telegram) НЕ включать!
+DEV_MODE: bool = os.getenv('DEV_MODE', '').lower() in ('1', 'true', 'yes')
+# Какой user_id подставлять в DEV_MODE (свой или мамин для теста админки)
+DEV_USER_ID: int = int(os.getenv('DEV_USER_ID', '5541118089'))

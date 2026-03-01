@@ -21,6 +21,10 @@ FastAPI сервер.
   GET  /api/admin/stats
   GET  /api/admin/users
   GET  /api/admin/photo-requests
+  POST /api/admin/photo-requests/{id}/fulfill — выполнить (загрузить фото)
+  POST /api/admin/photo-requests/{id}/reject  — отклонить
+  GET  /api/admin/reminders                   — праздники + «спящие» клиенты
+  POST /api/admin/remind-sleeping             — напомнить спящим
   POST /api/admin/broadcast
 """
 import hashlib
@@ -28,15 +32,15 @@ import hmac
 import json
 import logging
 import math
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl
 
 import httpx
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from config import PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE, PHOTO_REQUESTS_FILE
+from config import PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE, PHOTO_REQUESTS_FILE, HOLIDAYS_FILE, DEV_MODE, DEV_USER_ID
 
 log = logging.getLogger(__name__)
 app = FastAPI(title='По-домашнему API', version='1.3')
@@ -78,6 +82,10 @@ class PhotoRequestBody(BaseModel):
     item_name: str
 
 
+class RemindBody(BaseModel):
+    text: str
+
+
 # ──────────────────────────────────────────────
 # Вспомогательные функции
 # ──────────────────────────────────────────────
@@ -103,7 +111,11 @@ def verify_initdata(init_data: str) -> dict | None:
     """
     Проверяет Telegram initData (HMAC-SHA256).
     Возвращает dict пользователя или None если подпись неверна.
+    В DEV_MODE при пустом init_data возвращает мок-пользователя.
     """
+    if DEV_MODE and not init_data:
+        log.debug('DEV_MODE: пропуск проверки initData, user_id=%s', DEV_USER_ID)
+        return {'id': DEV_USER_ID, 'first_name': 'Dev', 'username': 'dev'}
     try:
         parsed = dict(parse_qsl(init_data, keep_blank_values=True))
         received_hash = parsed.pop('hash', None)
@@ -135,6 +147,10 @@ def verify_initdata(init_data: str) -> dict | None:
 
 def require_admin(x_init_data: str | None) -> None:
     """Кидает 403 если запрос не от мамы."""
+    if DEV_MODE and not x_init_data:
+        if DEV_USER_ID not in ADMIN_IDS:
+            raise HTTPException(status_code=403, detail='Доступ запрещён')
+        return
     if not x_init_data:
         raise HTTPException(status_code=403, detail='Нет initData')
     user = verify_initdata(x_init_data)
@@ -146,6 +162,8 @@ def require_admin(x_init_data: str | None) -> None:
 
 def require_user(x_init_data: str | None) -> dict:
     """Возвращает dict пользователя или кидает 403."""
+    if DEV_MODE and not x_init_data:
+        return {'id': DEV_USER_ID, 'first_name': 'Dev', 'username': 'dev'}
     if not x_init_data:
         raise HTTPException(status_code=403, detail='Нет initData')
     user = verify_initdata(x_init_data)
@@ -174,6 +192,60 @@ def load_users() -> dict:
     if not USERS_FILE.exists():
         return {}
     return json.loads(USERS_FILE.read_text(encoding='utf-8')).get('users', {})
+
+
+def load_holidays() -> dict:
+    if not HOLIDAYS_FILE.exists():
+        return {}
+    return json.loads(HOLIDAYS_FILE.read_text(encoding='utf-8')).get('holidays', {})
+
+
+def get_upcoming_holidays(days_ahead: int = 14) -> list:
+    """Возвращает праздники из holidays.json, попадающие в ближайшие days_ahead дней."""
+    holidays = load_holidays()
+    today = datetime.now()
+    result = []
+    for offset in range(days_ahead + 1):
+        day = today + timedelta(days=offset)
+        key = day.strftime('%m-%d')
+        if key in holidays:
+            h = holidays[key]
+            result.append({
+                'key': key,
+                'date': day.strftime('%Y-%m-%d'),
+                'days_left': offset,
+                'theme': h.get('theme', ''),
+                'text': h.get('text', ''),
+            })
+    return result
+
+
+def get_sleeping_users(days: int = 30) -> list:
+    """Пользователи, у которых есть заказы, но нет активности более `days` дней."""
+    users = load_users()
+    cutoff = datetime.now() - timedelta(days=days)
+    sleeping = []
+    for uid, u in users.items():
+        if not u.get('orders_count', 0):
+            continue
+        last_seen_str = u.get('last_seen', '')
+        if not last_seen_str:
+            continue
+        try:
+            # Поддерживаем форматы: '2025-01-15 10:30:00' и '2025-01-15'
+            fmt = '%Y-%m-%d %H:%M:%S' if ' ' in last_seen_str else '%Y-%m-%d'
+            last_seen = datetime.strptime(last_seen_str[:19], fmt)
+        except ValueError:
+            continue
+        if last_seen < cutoff:
+            sleeping.append({
+                'user_id': int(uid),
+                'first_name': u.get('first_name', ''),
+                'username': u.get('username', ''),
+                'orders_count': u.get('orders_count', 0),
+                'last_seen': last_seen_str[:10],
+            })
+    return sleeping
 
 
 def load_photo_requests() -> dict:
@@ -277,6 +349,23 @@ async def get_my_orders(x_init_data: str | None = Header(default=None)) -> dict:
     ]
     my.sort(key=lambda o: o.get('created_at', ''), reverse=True)
     return {'orders': my, 'total': len(my)}
+
+
+# ──────────────────────────────────────────────
+# Пользователь: Реферальная информация
+# ──────────────────────────────────────────────
+
+@app.get('/api/referral/my')
+async def get_my_referral(x_init_data: str | None = Header(default=None)) -> dict:
+    """Реферальная ссылка и кол-во приглашённых друзей."""
+    user = require_user(x_init_data)
+    user_id = user.get('id')
+    users = load_users()
+    u = users.get(str(user_id), {})
+    return {
+        'referrals_count': u.get('referrals_count', 0),
+        'bot_username': 'VypechkaNadezhda_App_bot',
+    }
 
 
 # ──────────────────────────────────────────────
@@ -471,6 +560,146 @@ async def admin_get_photo_requests(x_init_data: str | None = Header(default=None
     requests_list = list(requests.values())
     requests_list.sort(key=lambda r: r.get('created_at', ''), reverse=True)
     return {'requests': requests_list, 'total': len(requests_list)}
+
+
+# ──────────────────────────────────────────────
+# Админ: Запросы на фото — выполнить / отклонить
+# ──────────────────────────────────────────────
+
+@app.post('/api/admin/photo-requests/{req_id}/fulfill')
+async def admin_fulfill_photo(
+    req_id: str,
+    file: UploadFile = File(...),
+    x_init_data: str | None = Header(default=None),
+) -> dict:
+    """Выполнить запрос на фото: загрузить файл и отправить пользователю через Telegram."""
+    require_admin(x_init_data)
+
+    requests = load_photo_requests()
+    if req_id not in requests:
+        raise HTTPException(status_code=404, detail='Запрос не найден')
+
+    req = requests[req_id]
+    if req.get('status') != 'open':
+        raise HTTPException(status_code=400, detail='Запрос уже закрыт')
+
+    user_id = req.get('user_id')
+    item_name = req.get('item_name', '')
+
+    photo_bytes = await file.read()
+
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        r = await client.post(
+            f'https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto',
+            data={
+                'chat_id': user_id,
+                'caption': f'📷 Фото товара «{item_name}»\n\nЕсли хотите заказать — нажмите кнопку меню в боте!',
+            },
+            files={'photo': (file.filename or 'photo.jpg', photo_bytes, file.content_type or 'image/jpeg')},
+        )
+
+    if r.status_code != 200:
+        log.error('sendPhoto failed: %s', r.text)
+        raise HTTPException(status_code=502, detail='Ошибка отправки фото в Telegram')
+
+    req['status'] = 'fulfilled'
+    req['fulfilled_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    requests[req_id] = req
+    save_photo_requests(requests)
+
+    return {'ok': True, 'req_id': req_id}
+
+
+@app.post('/api/admin/photo-requests/{req_id}/reject')
+async def admin_reject_photo(
+    req_id: str,
+    x_init_data: str | None = Header(default=None),
+) -> dict:
+    """Отклонить запрос на фото и уведомить пользователя."""
+    require_admin(x_init_data)
+
+    requests = load_photo_requests()
+    if req_id not in requests:
+        raise HTTPException(status_code=404, detail='Запрос не найден')
+
+    req = requests[req_id]
+    if req.get('status') != 'open':
+        raise HTTPException(status_code=400, detail='Запрос уже закрыт')
+
+    user_id = req.get('user_id')
+    item_name = req.get('item_name', '')
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        await client.post(
+            f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage',
+            json={
+                'chat_id': user_id,
+                'text': f'К сожалению, фото товара «{item_name}» сейчас недоступно. Если хотите узнать подробнее — напишите нам напрямую! 🙏',
+            },
+        )
+
+    req['status'] = 'rejected'
+    req['rejected_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    requests[req_id] = req
+    save_photo_requests(requests)
+
+    return {'ok': True, 'req_id': req_id}
+
+
+# ──────────────────────────────────────────────
+# Админ: Напоминалки (праздники + спящие клиенты)
+# ──────────────────────────────────────────────
+
+@app.get('/api/admin/reminders')
+async def admin_get_reminders(x_init_data: str | None = Header(default=None)) -> dict:
+    """Ближайшие праздники + «спящие» клиенты (нет активности 7+ дней)."""
+    require_admin(x_init_data)
+    holidays = get_upcoming_holidays(days_ahead=14)
+    sleeping = get_sleeping_users(days=30)
+    return {
+        'holidays': holidays,
+        'sleeping': sleeping,
+        'sleeping_count': len(sleeping),
+    }
+
+
+@app.post('/api/admin/remind-sleeping')
+async def admin_remind_sleeping(
+    body: RemindBody,
+    x_init_data: str | None = Header(default=None),
+) -> dict:
+    """Отправить напоминание только «спящим» клиентам."""
+    require_admin(x_init_data)
+    if not body.text.strip():
+        raise HTTPException(status_code=400, detail='Текст не может быть пустым')
+
+    sleeping = get_sleeping_users(days=30)
+    if not sleeping:
+        return {'ok': True, 'sent': 0, 'failed': 0}
+
+    sent = 0
+    failed = 0
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        for u in sleeping:
+            try:
+                r = await client.post(
+                    f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage',
+                    json={
+                        'chat_id': u['user_id'],
+                        'text': body.text,
+                        'parse_mode': 'HTML',
+                    },
+                )
+                if r.status_code == 200:
+                    sent += 1
+                else:
+                    failed += 1
+                    log.warning('remind-sleeping failed for %s: %s', u['user_id'], r.text)
+            except Exception as exc:
+                failed += 1
+                log.warning('remind-sleeping exception for %s: %s', u['user_id'], exc)
+
+    return {'ok': True, 'sent': sent, 'failed': failed}
 
 
 # ──────────────────────────────────────────────

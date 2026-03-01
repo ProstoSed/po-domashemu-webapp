@@ -1,0 +1,99 @@
+.invite-page {
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.invite-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--space-lg) var(--space-md);
+    text-align: center;
+    gap: 0.5rem;
+}
+
+.invite-hero-emoji {
+    font-size: 3.5rem;
+}
+
+.invite-title {
+    font-size: var(--font-size-xl);
+    font-weight: 800;
+    color: var(--color-primary);
+}
+
+.invite-desc {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+.invite-bonus {
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+    line-height: 1.5;
+    background: #fef3c7;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1.5px solid #fcd34d;
+}
+
+.invite-link-card {
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.invite-link-label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.invite-link-box {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.6rem 0.75rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.invite-link-box::-webkit-scrollbar { display: none; }
+
+.invite-link-text {
+    font-size: var(--font-size-xs);
+    font-family: monospace;
+    color: var(--color-primary-dark);
+    white-space: nowrap;
+    user-select: all;
+}
+
+.invite-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.invite-btn {
+    flex: 1;
+    padding: 0.6rem 0.5rem;
+    font-size: var(--font-size-sm);
+}
+
+.invite-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.85rem var(--space-md);
+}
+
+.invite-stats-emoji {
+    font-size: 1.3rem;
+}
+
+.invite-stats-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}

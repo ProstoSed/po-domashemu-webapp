@@ -11,6 +11,9 @@ import AdminPage from './pages/AdminPage'
 import SearchPage from './pages/SearchPage'
 import MyOrdersPage from './pages/MyOrdersPage'
 import MyPhotosPage from './pages/MyPhotosPage'
+import DeliveryPage from './pages/DeliveryPage'
+import AboutPage from './pages/AboutPage'
+import InvitePage from './pages/InvitePage'
 
 export default function App() {
     return (
@@ -29,6 +32,9 @@ export default function App() {
                             <Route path="/search" element={<SearchPage />} />
                             <Route path="/my-orders" element={<MyOrdersPage />} />
                             <Route path="/my-photos" element={<MyPhotosPage />} />
+                            <Route path="/delivery" element={<DeliveryPage />} />
+                            <Route path="/about" element={<AboutPage />} />
+                            <Route path="/invite" element={<InvitePage />} />
                         </Routes>
                     </main>
                     <CartButton />

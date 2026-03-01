@@ -1,0 +1,113 @@
+.delivery-page {
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.delivery-title {
+    font-size: var(--font-size-xl);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.delivery-card {
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.delivery-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.delivery-card-header h3 {
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    flex: 1;
+}
+
+.delivery-icon {
+    font-size: 1.4rem;
+}
+
+.delivery-badge {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius-full);
+}
+
+.delivery-badge--free {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.delivery-card-desc {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.delivery-address {
+    display: flex;
+    gap: 0.4rem;
+    align-items: flex-start;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    background: var(--color-surface);
+    padding: 0.6rem 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--color-border);
+}
+
+.delivery-formula {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    color: var(--color-primary);
+    background: var(--color-surface);
+    padding: 0.6rem 0.75rem;
+    border-radius: var(--radius-md);
+}
+
+.delivery-formula-sep {
+    color: var(--color-text-muted);
+}
+
+.delivery-zones {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.delivery-zone-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--font-size-sm);
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.delivery-zone-row:last-child {
+    border-bottom: none;
+}
+
+.delivery-zone-dist {
+    color: var(--color-text-secondary);
+}
+
+.delivery-zone-price {
+    font-weight: 600;
+}
+
+.delivery-hint {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    line-height: 1.5;
+}

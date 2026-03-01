@@ -8,6 +8,10 @@
             transparent);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    /* Принудительный GPU-слой — фикс артефакта правого края
+       при backdrop-filter + position:sticky на iOS WebKit */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
 }
 
 .header-content {
@@ -25,10 +29,13 @@
     font-size: var(--font-size-xl);
     font-weight: 800;
     letter-spacing: -0.03em;
-    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    /* Фикс обрезания градиента у правого края в composited layer */
+    display: inline-block;
+    padding-right: 2px;
 }
 
 .header-subtitle {
@@ -38,30 +45,55 @@
     letter-spacing: 0.02em;
 }
 
-.header-admin-btn {
-    margin-left: auto;
-    background: none;
-    border: none;
-    font-size: 1.4rem;
-    cursor: pointer;
-    padding: 0.25rem;
-    border-radius: 8px;
-    transition: transform 0.15s;
-    line-height: 1;
+/* Главные вкладки: Админка | Клиентское */
+.header-main-tabs {
+    display: flex;
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    padding: 3px;
+    margin: 0.4rem 0 0.1rem;
+    border: 1.5px solid var(--color-border);
+    gap: 3px;
 }
 
-.header-admin-btn:active {
-    transform: scale(0.9);
+.header-main-tab {
+    flex: 1;
+    padding: 0.35rem 0.5rem;
+    border-radius: calc(var(--radius-md) - 4px);
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s;
+    font-family: var(--font-family);
+    white-space: nowrap;
+}
+
+.header-main-tab.active {
+    background: var(--color-primary);
+    color: white;
 }
 
 /* Клиентская навигация */
+.header-nav-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
 .header-nav {
     display: flex;
     gap: 0.4rem;
-    padding: 0.35rem 0 0.15rem;
+    padding: 0.35rem 0 0.1rem;
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+}
+.header-nav--row2 {
+    padding-top: 0;
+    padding-bottom: 0.2rem;
 }
 .header-nav::-webkit-scrollbar { display: none; }
 

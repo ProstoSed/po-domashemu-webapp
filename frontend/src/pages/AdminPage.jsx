@@ -2,13 +2,14 @@
  * AdminPage — панель управления для мамы.
  * Разделы: Заказы | Статистика | Клиенты | Фото-запросы | Рассылка
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTelegram } from '../hooks/useTelegram'
 import {
     fetchOrders, deleteOrder, updateOrderStatus,
     fetchStats, fetchUsers, fetchPhotoRequests, sendBroadcast,
+    fetchReminders, remindSleeping, fulfillPhotoRequest, rejectPhotoRequest,
 } from '../utils/api'
 import './AdminPage.css'
 
@@ -16,6 +17,7 @@ const MAMA_ID = 5513112898
 const _extraIds = (import.meta.env.VITE_ADMIN_IDS || '')
     .split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
 const ADMIN_IDS = new Set([MAMA_ID, ..._extraIds])
+const IS_DEV = import.meta.env.DEV
 
 const STATUS_LABEL = {
     new:      { text: 'Новый',      cls: 'status-new' },
@@ -26,13 +28,17 @@ const STATUS_LABEL = {
     closed:   { text: 'Закрыт',     cls: 'status-closed' },
 }
 
-const SECTIONS = [
+const SECTIONS_ROW1 = [
     { key: 'orders',    label: '📋 Заказы' },
     { key: 'stats',     label: '📊 Статистика' },
     { key: 'users',     label: '👥 Клиенты' },
+]
+const SECTIONS_ROW2 = [
     { key: 'photos',    label: '📷 Фото' },
+    { key: 'reminders', label: '⏰ Напоминалки' },
     { key: 'broadcast', label: '📨 Рассылка' },
 ]
+const SECTIONS = [...SECTIONS_ROW1, ...SECTIONS_ROW2]
 
 // ──────────────────────────────────────────
 // Вспомогательные компоненты
@@ -133,10 +139,14 @@ function OrderCard({ order, onStatusChange, onDelete }) {
                             <span>📞 Телефон:</span>
                             <a href={`tel:${phone}`} className="order-phone">{phone}</a>
                         </div>
-                        {(order.delivery?.address || order.address) && (
+                        <div className="order-detail-row">
+                            <span>{order.delivery?.type === 'delivery' ? '🚗 Доставка:' : '🏠 Получение:'}</span>
+                            <span>{order.delivery?.type === 'delivery' ? 'Доставка' : 'Самовывоз'}</span>
+                        </div>
+                        {order.delivery?.address && (
                             <div className="order-detail-row">
                                 <span>📍 Адрес:</span>
-                                <span>{order.delivery?.address || order.address}</span>
+                                <span>{order.delivery.address}</span>
                             </div>
                         )}
                         {orderDate && (
@@ -160,14 +170,21 @@ function OrderCard({ order, onStatusChange, onDelete }) {
 
                         {/* Состав заказа */}
                         <div className="order-items-list">
-                            {(order.items || []).map((item, i) => (
-                                <div key={i} className="order-item-row">
-                                    <span>{item.name}</span>
-                                    <span className="order-item-qty">
-                                        {item.quantity} {item.unit || 'шт'}
-                                    </span>
-                                </div>
-                            ))}
+                            {(order.items || []).map((item, i) => {
+                                const qty = item.quantity ?? 1
+                                const ppu = item.price_per_unit ?? 0
+                                const lineTotal = item.total ?? (ppu * qty)
+                                return (
+                                    <div key={i} className="order-item-row">
+                                        <span className="order-item-name">{item.name}</span>
+                                        <span className="order-item-qty">
+                                            {qty} {item.unit || 'шт'}
+                                            {ppu > 0 && ` × ${ppu.toLocaleString('ru')} ₽`}
+                                            {lineTotal > 0 && ` = ${lineTotal.toLocaleString('ru')} ₽`}
+                                        </span>
+                                    </div>
+                                )
+                            })}
                         </div>
 
                         {/* Кнопки действий */}
@@ -374,6 +391,9 @@ function PhotoRequestsSection() {
     const [requests, setRequests] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [acting, setActing] = useState({}) // reqId → 'fulfilling'|'rejecting'
+    const fileInputRef = useRef(null)
+    const pendingReqId = useRef(null)
 
     const load = () => {
         setLoading(true)
@@ -385,6 +405,45 @@ function PhotoRequestsSection() {
     }
     useEffect(load, [])
 
+    const handleFulfillClick = (reqId) => {
+        pendingReqId.current = reqId
+        fileInputRef.current?.click()
+    }
+
+    const handleFileChosen = async (e) => {
+        const file = e.target.files?.[0]
+        const reqId = pendingReqId.current
+        e.target.value = ''
+        if (!file || !reqId) return
+
+        setActing(prev => ({ ...prev, [reqId]: 'fulfilling' }))
+        try {
+            await fulfillPhotoRequest(reqId, file)
+            setRequests(prev => prev.map(r =>
+                r.req_id === reqId ? { ...r, status: 'fulfilled' } : r
+            ))
+        } catch (err) {
+            alert(`Ошибка: ${err.message}`)
+        } finally {
+            setActing(prev => ({ ...prev, [reqId]: null }))
+        }
+    }
+
+    const handleReject = async (reqId) => {
+        if (!window.confirm('Отклонить этот запрос? Пользователь получит уведомление.')) return
+        setActing(prev => ({ ...prev, [reqId]: 'rejecting' }))
+        try {
+            await rejectPhotoRequest(reqId)
+            setRequests(prev => prev.map(r =>
+                r.req_id === reqId ? { ...r, status: 'rejected' } : r
+            ))
+        } catch (err) {
+            alert(`Ошибка: ${err.message}`)
+        } finally {
+            setActing(prev => ({ ...prev, [reqId]: null }))
+        }
+    }
+
     if (loading) return <Spinner text="Загружаем запросы..." />
     if (error) return <ErrorBox msg={error} onRetry={load} />
     if (requests.length === 0) return <EmptyBox emoji="📷" text="Запросов на фото нет" />
@@ -394,6 +453,9 @@ function PhotoRequestsSection() {
 
     const RequestCard = ({ r }) => {
         const ps = PHOTO_STATUS[r.status] || { text: r.status, cls: '' }
+        const isOpen = r.status === 'open'
+        const busy = acting[r.req_id]
+
         return (
             <div className="photo-card glass-card">
                 <div className="photo-card-header">
@@ -407,12 +469,39 @@ function PhotoRequestsSection() {
                 <div className="photo-card-date">
                     🕐 {(r.created_at || '').slice(0, 10)}
                 </div>
+                {isOpen && (
+                    <div className="photo-card-actions">
+                        <button
+                            className="btn btn-success btn-sm"
+                            onClick={() => handleFulfillClick(r.req_id)}
+                            disabled={!!busy}
+                        >
+                            {busy === 'fulfilling' ? '⏳ Отправка...' : '📤 Отправить фото'}
+                        </button>
+                        <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleReject(r.req_id)}
+                            disabled={!!busy}
+                        >
+                            {busy === 'rejecting' ? '⏳...' : '❌ Отклонить'}
+                        </button>
+                    </div>
+                )}
             </div>
         )
     }
 
     return (
         <div className="photos-section">
+            {/* Скрытый input для выбора файла */}
+            <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                onChange={handleFileChosen}
+            />
+
             <p className="section-count">
                 Запросов: <b>{requests.length}</b> · открытых: <b>{open.length}</b>
             </p>
@@ -431,6 +520,175 @@ function PhotoRequestsSection() {
         </div>
     )
 }
+
+// ──────────────────────────────────────────
+// Секция: Напоминалки
+// ──────────────────────────────────────────
+
+function RemindersSection() {
+    const [data, setData] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+    const [remindText, setRemindText] = useState('')
+    const [sending, setSending] = useState(false)
+    const [result, setResult] = useState(null)
+    const [holidaySending, setHolidaySending] = useState(null)
+    const [holidayResult, setHolidayResult] = useState(null)
+
+    const handleHolidayBroadcast = async (holiday) => {
+        if (!window.confirm(`Отправить всем клиентам поздравление с "${holiday.theme}"?`)) return
+        setHolidaySending(holiday.key)
+        setHolidayResult(null)
+        try {
+            const r = await sendBroadcast(holiday.text)
+            setHolidayResult({ key: holiday.key, ok: true, ...r })
+        } catch (e) {
+            setHolidayResult({ key: holiday.key, ok: false, error: e.message })
+        } finally {
+            setHolidaySending(null)
+        }
+    }
+
+    const load = () => {
+        setLoading(true)
+        setError(null)
+        fetchReminders()
+            .then(setData)
+            .catch(e => setError(e.message))
+            .finally(() => setLoading(false))
+    }
+    useEffect(load, [])
+
+    const handleRemind = async () => {
+        if (!remindText.trim()) {
+            alert('Напишите текст напоминания')
+            return
+        }
+        const count = data?.sleeping_count || 0
+        if (!window.confirm(`Отправить напоминание ${count} «спящим» клиентам?`)) return
+
+        setSending(true)
+        setResult(null)
+        try {
+            const r = await remindSleeping(remindText.trim())
+            setResult({ ok: true, ...r })
+        } catch (e) {
+            setResult({ ok: false, error: e.message })
+        } finally {
+            setSending(false)
+        }
+    }
+
+    if (loading) return <Spinner text="Загружаем напоминалки..." />
+    if (error) return <ErrorBox msg={error} onRetry={load} />
+
+    const { holidays = [], sleeping = [], sleeping_count = 0 } = data || {}
+
+    return (
+        <div className="reminders-section">
+            {/* Ближайшие праздники */}
+            <div className="glass-card reminders-card">
+                <div className="reminders-card-title">🎉 Ближайшие праздники (14 дней)</div>
+                {holidays.length === 0 ? (
+                    <p className="reminders-empty">Праздников нет</p>
+                ) : (
+                    holidays.map(h => (
+                        <div key={h.key} className="holiday-card glass-card">
+                            <div className="holiday-row">
+                                <div className="holiday-row-left">
+                                    <span className="holiday-date">{h.date}</span>
+                                    {h.days_left === 0 && (
+                                        <span className="holiday-today-badge">Сегодня!</span>
+                                    )}
+                                    {h.days_left === 1 && (
+                                        <span className="holiday-soon-badge">Завтра</span>
+                                    )}
+                                </div>
+                                <div className="holiday-theme">{h.theme}</div>
+                            </div>
+                            {h.text && (
+                                <p className="holiday-text">{h.text}</p>
+                            )}
+                            <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => handleHolidayBroadcast(h)}
+                                disabled={holidaySending === h.key}
+                            >
+                                {holidaySending === h.key ? '⏳ Отправляем...' : '📬 Отправить всем'}
+                            </button>
+                            {holidayResult?.key === h.key && (
+                                <div className={`broadcast-result ${holidayResult.ok ? 'broadcast-result--ok' : 'broadcast-result--err'}`}>
+                                    {holidayResult.ok
+                                        ? `✅ Отправлено: ${holidayResult.sent}, не доставлено: ${holidayResult.failed}`
+                                        : `❌ ${holidayResult.error}`}
+                                </div>
+                            )}
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* Спящие клиенты */}
+            <div className="glass-card reminders-card">
+                <div className="reminders-card-title">
+                    😴 Спящие клиенты
+                    <span className="sleeping-badge">{sleeping_count}</span>
+                </div>
+                <p className="reminders-hint">
+                    Не заказывали 30+ дней, но делали заказы раньше
+                </p>
+                {sleeping.length > 0 && (
+                    <div className="sleeping-list">
+                        {sleeping.slice(0, 5).map(u => (
+                            <div key={u.user_id} className="sleeping-row">
+                                <span className="sleeping-name">
+                                    {u.first_name}{u.username ? ` @${u.username}` : ''}
+                                </span>
+                                <span className="sleeping-meta">
+                                    📦 {u.orders_count} · 🕐 {u.last_seen}
+                                </span>
+                            </div>
+                        ))}
+                        {sleeping.length > 5 && (
+                            <p className="sleeping-more">... и ещё {sleeping.length - 5}</p>
+                        )}
+                    </div>
+                )}
+
+                {sleeping_count > 0 && (
+                    <>
+                        <textarea
+                            className="form-input form-textarea"
+                            style={{ marginTop: '0.75rem' }}
+                            placeholder="Текст напоминания..."
+                            value={remindText}
+                            onChange={e => setRemindText(e.target.value)}
+                            rows={3}
+                        />
+                        <button
+                            className="btn btn-primary btn-block"
+                            style={{ marginTop: '0.5rem' }}
+                            onClick={handleRemind}
+                            disabled={sending || !remindText.trim()}
+                        >
+                            {sending
+                                ? '⏳ Отправляем...'
+                                : `📬 Напомнить ${sleeping_count} клиентам`}
+                        </button>
+                        {result && (
+                            <div className={`broadcast-result ${result.ok ? 'broadcast-result--ok' : 'broadcast-result--err'}`}>
+                                {result.ok
+                                    ? `✅ Отправлено: ${result.sent}, не доставлено: ${result.failed}`
+                                    : `❌ Ошибка: ${result.error}`}
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        </div>
+    )
+}
+
 
 // ──────────────────────────────────────────
 // Секция: Рассылка
@@ -509,7 +767,7 @@ export default function AdminPage() {
     const [error, setError] = useState(null)
     const [filter, setFilter] = useState('active')
 
-    const isMama = !user || ADMIN_IDS.has(user.id)
+    const isMama = IS_DEV || !user || ADMIN_IDS.has(user.id)
 
     useEffect(() => {
         if (!isMama) return
@@ -542,7 +800,7 @@ export default function AdminPage() {
     }
 
     // Не мама — заглушка
-    if (user && !ADMIN_IDS.has(user.id)) {
+    if (!IS_DEV && user && !ADMIN_IDS.has(user.id)) {
         return (
             <div className="empty-state">
                 <span className="empty-state-emoji">🔒</span>
@@ -578,17 +836,30 @@ export default function AdminPage() {
                 )}
             </div>
 
-            {/* Навигация по разделам */}
-            <div className="admin-sections">
-                {SECTIONS.map(s => (
-                    <button
-                        key={s.key}
-                        className={`admin-section-btn ${section === s.key ? 'active' : ''}`}
-                        onClick={() => setSection(s.key)}
-                    >
-                        {s.label}
-                    </button>
-                ))}
+            {/* Навигация по разделам: два ряда */}
+            <div className="admin-sections-wrap">
+                <div className="admin-sections">
+                    {SECTIONS_ROW1.map(s => (
+                        <button
+                            key={s.key}
+                            className={`admin-section-btn ${section === s.key ? 'active' : ''}`}
+                            onClick={() => setSection(s.key)}
+                        >
+                            {s.label}
+                        </button>
+                    ))}
+                </div>
+                <div className="admin-sections">
+                    {SECTIONS_ROW2.map(s => (
+                        <button
+                            key={s.key}
+                            className={`admin-section-btn ${section === s.key ? 'active' : ''}`}
+                            onClick={() => setSection(s.key)}
+                        >
+                            {s.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Раздел: Заказы */}
@@ -638,6 +909,7 @@ export default function AdminPage() {
             {section === 'stats'     && <StatsSection />}
             {section === 'users'     && <UsersSection />}
             {section === 'photos'    && <PhotoRequestsSection />}
+            {section === 'reminders' && <RemindersSection />}
             {section === 'broadcast' && <BroadcastSection />}
         </div>
     )

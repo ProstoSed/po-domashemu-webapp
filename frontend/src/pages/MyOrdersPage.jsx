@@ -59,14 +59,21 @@ function OrderHistoryCard({ order }) {
                     >
                         {/* Состав */}
                         <div className="my-order-items">
-                            {(order.items || []).map((item, i) => (
-                                <div key={i} className="my-order-item-row">
-                                    <span className="my-order-item-name">{item.name}</span>
-                                    <span className="my-order-item-qty">
-                                        {item.quantity} {item.unit || 'шт'}
-                                    </span>
-                                </div>
-                            ))}
+                            {(order.items || []).map((item, i) => {
+                                const qty = item.quantity ?? 1
+                                const ppu = item.price_per_unit ?? 0
+                                const lineTotal = item.total ?? (ppu * qty)
+                                return (
+                                    <div key={i} className="my-order-item-row">
+                                        <span className="my-order-item-name">{item.name}</span>
+                                        <span className="my-order-item-qty">
+                                            {qty} {item.unit || 'шт'}
+                                            {ppu > 0 && ` × ${ppu.toLocaleString('ru')} ₽`}
+                                            {lineTotal > 0 && ` = ${lineTotal.toLocaleString('ru')} ₽`}
+                                        </span>
+                                    </div>
+                                )
+                            })}
                         </div>
 
                         {/* Детали */}

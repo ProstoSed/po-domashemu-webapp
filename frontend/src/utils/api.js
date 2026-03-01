@@ -97,6 +97,36 @@ export async function sendBroadcast(text) {
     })
 }
 
+export async function fetchReminders() {
+    return apiFetch('/api/admin/reminders', { headers: adminHeaders() })
+}
+
+export async function remindSleeping(text) {
+    return apiFetch('/api/admin/remind-sleeping', {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify({ text }),
+    })
+}
+
+export async function fulfillPhotoRequest(reqId, file) {
+    const form = new FormData()
+    form.append('file', file)
+    // Content-Type не указываем — браузер сам ставит с boundary
+    return apiFetch(`/api/admin/photo-requests/${reqId}/fulfill`, {
+        method: 'POST',
+        headers: { 'x-init-data': getInitData() },
+        body: form,
+    })
+}
+
+export async function rejectPhotoRequest(reqId) {
+    return apiFetch(`/api/admin/photo-requests/${reqId}/reject`, {
+        method: 'POST',
+        headers: adminHeaders(),
+    })
+}
+
 // ── Клиент (требуют initData пользователя) ──
 
 function userHeaders() {
@@ -120,4 +150,8 @@ export async function createPhotoRequest(itemKey, itemId, itemName) {
         headers: userHeaders(),
         body: JSON.stringify({ item_key: itemKey, item_id: itemId, item_name: itemName }),
     })
+}
+
+export async function fetchMyReferral() {
+    return apiFetch('/api/referral/my', { headers: userHeaders() })
 }

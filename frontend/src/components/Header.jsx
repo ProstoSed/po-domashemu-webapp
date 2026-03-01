@@ -7,20 +7,31 @@ const _extraIds = (import.meta.env.VITE_ADMIN_IDS || '')
     .split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
 const ADMIN_IDS = new Set([MAMA_ID, ..._extraIds])
 
-const CLIENT_NAV = [
+// В dev-режиме (npm run dev) всегда показываем вкладки без проверки прав
+const IS_DEV = import.meta.env.DEV
+
+const CLIENT_NAV_ROW1 = [
     { path: '/search',    label: '🔍 Поиск' },
-    { path: '/my-orders', label: '📦 Заказы' },
+    { path: '/cart',      label: '🛒 Корзина' },
+    { path: '/my-orders', label: '📦 Мои заказы' },
     { path: '/my-photos', label: '📷 Фото' },
+]
+
+const CLIENT_NAV_ROW2 = [
+    { path: '/delivery',  label: '🚗 Доставка' },
+    { path: '/about',     label: 'ℹ️ О нас' },
+    { path: '/invite',    label: '🎁 Пригласить' },
 ]
 
 export default function Header() {
     const { user } = useTelegram()
     const navigate = useNavigate()
     const location = useLocation()
-    const isMama = user && ADMIN_IDS.has(user.id)
+    const isMama = IS_DEV || (user && ADMIN_IDS.has(user.id))
+    const isAdmin = location.pathname.startsWith('/admin')
 
-    // Скрыть навигацию на служебных страницах
-    const hideNav = ['/cart', '/checkout', '/success', '/admin'].some(
+    // Скрыть клиентский sub-nav на служебных страницах
+    const hideClientNav = ['/cart', '/checkout', '/success'].some(
         p => location.pathname.startsWith(p)
     )
 
@@ -38,30 +49,52 @@ export default function Header() {
                     <h1 className="header-title">По-домашнему</h1>
                     <p className="header-subtitle">Домашняя выпечка на заказ</p>
                 </div>
-                {isMama && (
-                    <button
-                        className="header-admin-btn"
-                        onClick={() => navigate('/admin')}
-                        title="Панель управления"
-                    >
-                        ⚙️
-                    </button>
-                )}
             </div>
 
-            {/* Клиентская навигация (только для обычных пользователей) */}
-            {!isMama && !hideNav && (
-                <nav className="header-nav">
-                    {CLIENT_NAV.map(item => (
-                        <button
-                            key={item.path}
-                            className={`header-nav-btn ${location.pathname === item.path ? 'active' : ''}`}
-                            onClick={() => navigate(item.path)}
-                        >
-                            {item.label}
-                        </button>
-                    ))}
-                </nav>
+            {/* Главные вкладки: Админка | Клиентское */}
+            {isMama && (
+                <div className="header-main-tabs">
+                    <button
+                        className={`header-main-tab ${isAdmin ? 'active' : ''}`}
+                        onClick={() => navigate('/admin')}
+                    >
+                        ⚙️ Админка
+                    </button>
+                    <button
+                        className={`header-main-tab ${!isAdmin ? 'active' : ''}`}
+                        onClick={() => navigate('/')}
+                    >
+                        🥧 Клиентское
+                    </button>
+                </div>
+            )}
+
+            {/* Клиентский sub-nav: два ряда */}
+            {!isAdmin && !hideClientNav && (
+                <div className="header-nav-wrap">
+                    <nav className="header-nav">
+                        {CLIENT_NAV_ROW1.map(item => (
+                            <button
+                                key={item.path}
+                                className={`header-nav-btn ${location.pathname === item.path ? 'active' : ''}`}
+                                onClick={() => navigate(item.path)}
+                            >
+                                {item.label}
+                            </button>
+                        ))}
+                    </nav>
+                    <nav className="header-nav header-nav--row2">
+                        {CLIENT_NAV_ROW2.map(item => (
+                            <button
+                                key={item.path}
+                                className={`header-nav-btn ${location.pathname === item.path ? 'active' : ''}`}
+                                onClick={() => navigate(item.path)}
+                            >
+                                {item.label}
+                            </button>
+                        ))}
+                    </nav>
+                </div>
             )}
         </header>
     )
