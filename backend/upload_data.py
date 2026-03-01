@@ -25,6 +25,7 @@ FILES = {
     'orders': DATA_DIR / 'orders_backup.json',
     'users': DATA_DIR / 'users.json',
     'photo_requests': DATA_DIR / 'photo_requests.json',
+    'holidays': DATA_DIR / 'holidays.json',
 }
 
 

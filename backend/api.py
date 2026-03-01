@@ -769,6 +769,7 @@ async def admin_import_data(
         'orders': ORDERS_FILE,
         'users': USERS_FILE,
         'photo_requests': PHOTO_REQUESTS_FILE,
+        'holidays': HOLIDAYS_FILE,
     }
     target = file_map.get(body.file_key)
     if not target:
