@@ -131,7 +131,14 @@ def normalize_address(address: str) -> str:
                  'балахна', 'бор', 'семёнов', 'арзамас']:
         s = re.sub(r'\b' + city + r'\b', city.capitalize(), s, flags=re.IGNORECASE)
 
-    # 3. Точки после сокращений: «д 39» → «д. 39»
+    # 3. Вставить пробел между сокращением и числом: «д15» → «д 15»
+    s = re.sub(
+        r'\b(ул|пр|пр-т|пл|д|кв|кор|стр|мкр|б-р|пер|ш|наб|туп|г|с|пос|р-н)(\d)',
+        r'\1 \2',
+        s, flags=re.IGNORECASE
+    )
+
+    # 3b. Точки после сокращений: «д 39» → «д. 39»
     s = re.sub(
         r'\b(ул|пр|пр-т|пл|д|кв|кор|стр|мкр|б-р|пер|ш|наб|туп|г|с|пос|р-н)\s+',
         lambda m: m.group(1) + '. ',
@@ -392,18 +399,55 @@ async def geocode_address(body: GeocodeBody) -> dict:
     else:
         search_query = f'{normalized}, Нижегородская область, Россия'
 
+    nominatim_headers = {'User-Agent': 'po-domashemu-webapp/1.0 contact@example.com'}
+    nominatim_url = 'https://nominatim.openstreetmap.org/search'
+
     async with httpx.AsyncClient(timeout=8.0) as client:
+        # Попытка 1: полный нормализованный запрос
         try:
             r = await client.get(
-                'https://nominatim.openstreetmap.org/search',
-                params={'q': search_query, 'format': 'json', 'limit': 1,
+                nominatim_url,
+                params={'q': search_query, 'format': 'json', 'limit': 5,
                         'addressdetails': 1, 'accept-language': 'ru'},
-                headers={'User-Agent': 'po-domashemu-webapp/1.0 contact@example.com'},
+                headers=nominatim_headers,
             )
             results = r.json()
         except Exception as exc:
             log.warning('Geocode error: %s', exc)
             return {'found': False, 'error': 'Сервис геокодирования недоступен'}
+
+        # Попытка 2: если не нашёл — ищем без номера дома (только город/улица)
+        if not results:
+            import re as _re
+            simplified = _re.sub(r',?\s*д\.?\s*\d+\w?', '', search_query).strip(', ')
+            if simplified != search_query:
+                try:
+                    r = await client.get(
+                        nominatim_url,
+                        params={'q': simplified, 'format': 'json', 'limit': 5,
+                                'addressdetails': 1, 'accept-language': 'ru'},
+                        headers=nominatim_headers,
+                    )
+                    results = r.json()
+                except Exception:
+                    pass
+
+        # Попытка 3: если и это не помогло — ищем только город
+        if not results:
+            # Извлекаем первое слово (город) и ищем в регионе
+            city_match = _re.match(r'([А-Яа-яёЁ\-]+)', normalized)
+            if city_match:
+                city_query = f'{city_match.group(1)}, Нижегородская область, Россия'
+                try:
+                    r = await client.get(
+                        nominatim_url,
+                        params={'q': city_query, 'format': 'json', 'limit': 1,
+                                'addressdetails': 1, 'accept-language': 'ru'},
+                        headers=nominatim_headers,
+                    )
+                    results = r.json()
+                except Exception:
+                    pass
 
     if not results:
         return {'found': False}
