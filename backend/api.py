@@ -40,7 +40,9 @@ from fastapi import FastAPI, HTTPException, Header, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from config import PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE, PHOTO_REQUESTS_FILE, HOLIDAYS_FILE, DEV_MODE, DEV_USER_ID
+from fastapi.responses import FileResponse
+
+from config import PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE, PHOTO_REQUESTS_FILE, HOLIDAYS_FILE, PHOTOS_DIR, GOOGLE_SHEET_ID, DEV_MODE, DEV_USER_ID
 
 log = logging.getLogger(__name__)
 app = FastAPI(title='По-домашнему API', version='1.3')
@@ -779,3 +781,47 @@ async def admin_import_data(
     target.write_text(json.dumps(body.data, ensure_ascii=False, indent=2), encoding='utf-8')
     log.info('Imported %s → %s', body.file_key, target)
     return {'ok': True, 'file': body.file_key}
+
+
+# ── Синхронизация цен из Google Sheets ────────────────────────────────────────
+
+@app.post('/api/admin/sync-prices')
+async def admin_sync_prices(x_init_data: str | None = Header(default=None)) -> dict:
+    """Синхронизация цен из Google Sheets + кеширование фото."""
+    require_admin(x_init_data)
+    from sheets_sync import sync_prices as do_sync
+    success, message = await do_sync(GOOGLE_SHEET_ID, PRICES_FILE, PHOTOS_DIR)
+    return {'ok': success, 'message': message}
+
+
+# ── Раздача кешированных фото товаров ─────────────────────────────────────────
+
+@app.get('/api/photos/{filename}')
+async def get_photo(filename: str):
+    """Отдать кешированное фото товара."""
+    # Защита от path traversal
+    if '/' in filename or '\\' in filename or '..' in filename:
+        raise HTTPException(status_code=400, detail='Invalid filename')
+    filepath = PHOTOS_DIR / filename
+    if not filepath.exists() or not filepath.is_file():
+        raise HTTPException(status_code=404, detail='Photo not found')
+    return FileResponse(filepath)
+
+
+# ── Заказы конкретного пользователя (для админки) ─────────────────────────────
+
+@app.get('/api/admin/users/{user_id}/orders')
+async def admin_get_user_orders(
+    user_id: int,
+    x_init_data: str | None = Header(default=None),
+) -> dict:
+    """Все заказы конкретного пользователя."""
+    require_admin(x_init_data)
+    orders = load_orders()
+    user_orders = [
+        o for o in orders
+        if (o.get('customer', {}).get('user_id') == user_id
+            or o.get('user', {}).get('id') == user_id)
+    ]
+    user_orders.sort(key=lambda o: o.get('created_at', ''), reverse=True)
+    return {'orders': user_orders, 'total': len(user_orders)}

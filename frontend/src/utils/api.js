@@ -136,6 +136,19 @@ export async function rejectPhotoRequest(reqId) {
     })
 }
 
+export async function syncPrices() {
+    return apiFetch('/api/admin/sync-prices', {
+        method: 'POST',
+        headers: adminHeaders(),
+    })
+}
+
+export async function fetchUserOrders(userId) {
+    return apiFetch(`/api/admin/users/${userId}/orders`, {
+        headers: adminHeaders(),
+    })
+}
+
 // ── Клиент (требуют initData пользователя) ──
 
 function userHeaders() {

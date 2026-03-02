@@ -1,12 +1,11 @@
 /**
  * usePrices — загрузка каталога товаров.
- * Пока читает из статического JSON (в будущем — из API).
+ * Сначала пробует API (свежие данные с photo_filename), fallback на статический JSON.
  */
 import { useState, useEffect } from 'react'
 
-// Данные подгружаются из public/prices.json
-// import.meta.env.BASE_URL правильно разрешается и локально (/), и на GitHub Pages (/repo-name/)
-const PRICES_URL = `${import.meta.env.BASE_URL}prices.json`
+const API_URL = import.meta.env.VITE_API_URL || ''
+const STATIC_URL = `${import.meta.env.BASE_URL}prices.json`
 
 export function usePrices() {
     const [categories, setCategories] = useState([])
@@ -14,20 +13,29 @@ export function usePrices() {
     const [error, setError] = useState(null)
 
     useEffect(() => {
-        fetch(PRICES_URL)
-            .then(res => {
+        const load = async () => {
+            try {
+                // Сначала пробуем API (имеет photo_filename после sync)
+                const res = await fetch(`${API_URL}/api/prices`)
                 if (!res.ok) throw new Error(`HTTP ${res.status}`)
-                return res.json()
-            })
-            .then(data => {
+                const data = await res.json()
                 setCategories(data.categories || [])
-                setLoading(false)
-            })
-            .catch(err => {
-                console.error('Ошибка загрузки цен:', err)
-                setError(err.message)
-                setLoading(false)
-            })
+            } catch (apiErr) {
+                console.warn('API prices failed, trying static:', apiErr.message)
+                try {
+                    // Fallback на статический prices.json
+                    const res = await fetch(STATIC_URL)
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                    const data = await res.json()
+                    setCategories(data.categories || [])
+                } catch (staticErr) {
+                    console.error('Ошибка загрузки цен:', staticErr)
+                    setError(staticErr.message)
+                }
+            }
+            setLoading(false)
+        }
+        load()
     }, [])
 
     /** Получить категорию по ключу */

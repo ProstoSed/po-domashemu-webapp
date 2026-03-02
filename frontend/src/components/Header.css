@@ -95,7 +95,7 @@
 
 .header-nav-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 5px;
     background: var(--color-surface);
     border-radius: var(--radius-md);

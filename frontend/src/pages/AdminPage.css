@@ -598,3 +598,152 @@
 }
 .broadcast-result--ok  { background: #e3f5e1; color: #2e7d32; }
 .broadcast-result--err { background: #fdecea; color: #c62828; }
+
+/* ── Кнопка синхронизации ── */
+.admin-sync-btn {
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1.5px solid var(--color-primary);
+    color: var(--color-primary);
+    border-radius: 10px;
+    padding: 0.4rem 0.75rem;
+    cursor: pointer;
+    font-family: var(--font-family);
+    font-weight: 600;
+    transition: all 0.18s;
+}
+.btn-outline:active { opacity: 0.7; }
+.btn-outline:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Дерево клиентов ── */
+.user-tree-node {
+    margin-bottom: 0.65rem;
+}
+
+.user-card--expanded {
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+.user-chevron {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+    margin-left: auto;
+    padding-left: 0.5rem;
+}
+
+.user-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 500;
+    margin-left: 0.3rem;
+}
+
+.user-phone-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    margin-left: 0.4rem;
+}
+
+.user-orders-tree {
+    overflow: hidden;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+    padding: 0.5rem 0;
+}
+
+.tree-loading, .tree-empty {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    text-align: center;
+}
+
+.tree-order-node {
+    padding: 0 0.5rem;
+}
+
+.tree-order-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.5rem;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.15s;
+    font-size: 0.85rem;
+}
+
+.tree-order-header:active {
+    background: rgba(0,0,0,0.04);
+}
+
+.tree-line {
+    width: 2.5px;
+    height: 1.2rem;
+    background: white;
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+    border-radius: 2px;
+}
+
+.tree-line--deep {
+    margin-left: 1.5rem;
+    height: 1rem;
+}
+
+.tree-order-id {
+    font-family: monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+.tree-order-total {
+    margin-left: auto;
+    font-weight: 600;
+    color: var(--color-primary-dark);
+    font-size: 0.85rem;
+}
+
+.tree-chevron {
+    font-size: 0.65rem;
+    color: var(--color-text-secondary);
+}
+
+.tree-order-details {
+    overflow: hidden;
+    padding: 0.25rem 0;
+}
+
+.tree-item-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.82rem;
+    color: var(--color-text);
+}
+
+.tree-item-qty {
+    margin-left: auto;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.tree-detail-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}

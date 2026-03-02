@@ -10,6 +10,7 @@ import {
     fetchOrders, deleteOrder, updateOrderStatus,
     fetchStats, fetchUsers, fetchPhotoRequests, sendBroadcast,
     fetchReminders, remindSleeping, fulfillPhotoRequest, rejectPhotoRequest,
+    syncPrices, fetchUserOrders,
 } from '../utils/api'
 import './AdminPage.css'
 
@@ -331,6 +332,10 @@ function UsersSection() {
     const [users, setUsers] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [expandedUser, setExpandedUser] = useState(null)
+    const [expandedOrder, setExpandedOrder] = useState(null)
+    const [userOrders, setUserOrders] = useState({})
+    const [ordersLoading, setOrdersLoading] = useState(null)
 
     const load = () => {
         setLoading(true)
@@ -342,6 +347,27 @@ function UsersSection() {
     }
     useEffect(load, [])
 
+    const handleUserClick = async (userId) => {
+        if (expandedUser === userId) {
+            setExpandedUser(null)
+            setExpandedOrder(null)
+            return
+        }
+        setExpandedUser(userId)
+        setExpandedOrder(null)
+        if (!userOrders[userId]) {
+            setOrdersLoading(userId)
+            try {
+                const data = await fetchUserOrders(userId)
+                setUserOrders(prev => ({ ...prev, [userId]: data.orders || [] }))
+            } catch {
+                setUserOrders(prev => ({ ...prev, [userId]: [] }))
+            } finally {
+                setOrdersLoading(null)
+            }
+        }
+    }
+
     if (loading) return <Spinner text="Загружаем клиентов..." />
     if (error) return <ErrorBox msg={error} onRetry={load} />
     if (users.length === 0) return <EmptyBox emoji="👥" text="Клиентов пока нет" />
@@ -349,30 +375,140 @@ function UsersSection() {
     return (
         <div className="users-section">
             <p className="section-count">Клиентов: <b>{users.length}</b></p>
-            {users.map(u => (
-                <div key={u.user_id} className="user-card glass-card">
-                    <div className="user-avatar">
-                        {(u.first_name || '?')[0].toUpperCase()}
-                    </div>
-                    <div className="user-info">
-                        <div className="user-name">
-                            {u.first_name} {u.last_name || ''}
-                            {u.username && (
-                                <span className="user-username"> @{u.username}</span>
-                            )}
-                        </div>
-                        <div className="user-meta">
-                            <span>📦 {u.orders_count || 0} заказов</span>
-                            {u.phone && <span> · 📞 {u.phone}</span>}
-                        </div>
-                        {u.last_seen && (
-                            <div className="user-last-seen">
-                                🕐 {u.last_seen.slice(0, 10)}
+            {users.map(u => {
+                const isExpanded = expandedUser === u.user_id
+                const orders = userOrders[u.user_id] || []
+                const isLoadingOrders = ordersLoading === u.user_id
+
+                return (
+                    <div key={u.user_id} className="user-tree-node">
+                        <div
+                            className={`user-card glass-card ${isExpanded ? 'user-card--expanded' : ''}`}
+                            onClick={() => handleUserClick(u.user_id)}
+                            style={{ cursor: 'pointer' }}
+                        >
+                            <div className="user-avatar">
+                                {(u.first_name || '?')[0].toUpperCase()}
                             </div>
-                        )}
+                            <div className="user-info">
+                                <div className="user-name">
+                                    {u.first_name} {u.last_name || ''}
+                                    {u.username && (
+                                        <a
+                                            href={`https://t.me/${u.username}`}
+                                            className="user-link"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={e => e.stopPropagation()}
+                                        >
+                                            @{u.username}
+                                        </a>
+                                    )}
+                                </div>
+                                <div className="user-meta">
+                                    <span>📦 {u.orders_count || 0} заказов</span>
+                                    {u.phone && (
+                                        <a
+                                            href={`tel:${u.phone}`}
+                                            className="user-phone-link"
+                                            onClick={e => e.stopPropagation()}
+                                        >
+                                            📞 {u.phone}
+                                        </a>
+                                    )}
+                                </div>
+                                {u.last_seen && (
+                                    <div className="user-last-seen">
+                                        🕐 {u.last_seen.slice(0, 10)}
+                                    </div>
+                                )}
+                            </div>
+                            <span className="user-chevron">{isExpanded ? '▲' : '▼'}</span>
+                        </div>
+
+                        <AnimatePresence>
+                            {isExpanded && (
+                                <motion.div
+                                    className="user-orders-tree"
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.25 }}
+                                >
+                                    {isLoadingOrders ? (
+                                        <div className="tree-loading">Загрузка заказов...</div>
+                                    ) : orders.length === 0 ? (
+                                        <div className="tree-empty">Заказов нет</div>
+                                    ) : (
+                                        orders.map(order => {
+                                            const isOrderExp = expandedOrder === order.order_id
+                                            const st = STATUS_LABEL[order.status] || { text: order.status, cls: '' }
+                                            const total = order.totals?.grand_total ?? order.total ?? 0
+
+                                            return (
+                                                <div key={order.order_id} className="tree-order-node">
+                                                    <div
+                                                        className="tree-order-header"
+                                                        onClick={() => setExpandedOrder(isOrderExp ? null : order.order_id)}
+                                                    >
+                                                        <span className="tree-line" />
+                                                        <span className="tree-order-id">{order.order_id}</span>
+                                                        <span className={`order-status ${st.cls}`}>{st.text}</span>
+                                                        <span className="tree-order-total">
+                                                            {typeof total === 'number' ? `${total.toLocaleString('ru')} ₽` : '—'}
+                                                        </span>
+                                                        <span className="tree-chevron">{isOrderExp ? '▲' : '▼'}</span>
+                                                    </div>
+
+                                                    <AnimatePresence>
+                                                        {isOrderExp && (
+                                                            <motion.div
+                                                                className="tree-order-details"
+                                                                initial={{ height: 0, opacity: 0 }}
+                                                                animate={{ height: 'auto', opacity: 1 }}
+                                                                exit={{ height: 0, opacity: 0 }}
+                                                            >
+                                                                {(order.items || []).map((it, i) => (
+                                                                    <div key={i} className="tree-item-row">
+                                                                        <span className="tree-line tree-line--deep" />
+                                                                        <span>{it.name}</span>
+                                                                        <span className="tree-item-qty">
+                                                                            {it.quantity || 1} {it.unit || 'шт'}
+                                                                            {it.total ? ` = ${it.total.toLocaleString('ru')} ₽` : ''}
+                                                                        </span>
+                                                                    </div>
+                                                                ))}
+                                                                {order.schedule?.date && (
+                                                                    <div className="tree-detail-row">
+                                                                        <span className="tree-line tree-line--deep" />
+                                                                        📅 {order.schedule.date}
+                                                                    </div>
+                                                                )}
+                                                                {order.delivery?.address && (
+                                                                    <div className="tree-detail-row">
+                                                                        <span className="tree-line tree-line--deep" />
+                                                                        📍 {order.delivery.address}
+                                                                    </div>
+                                                                )}
+                                                                {order.payment?.method && (
+                                                                    <div className="tree-detail-row">
+                                                                        <span className="tree-line tree-line--deep" />
+                                                                        💳 {order.payment.method === 'cash' ? 'Наличные' : 'Перевод'}
+                                                                    </div>
+                                                                )}
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </div>
+                                            )
+                                        })
+                                    )}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
-                </div>
-            ))}
+                )
+            })}
         </div>
     )
 }
@@ -766,6 +902,8 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [filter, setFilter] = useState('active')
+    const [syncing, setSyncing] = useState(false)
+    const [syncResult, setSyncResult] = useState(null)
 
     const isMama = IS_DEV || !user || ADMIN_IDS.has(user.id)
 
@@ -833,6 +971,27 @@ export default function AdminPage() {
                     <p className="admin-subtitle">
                         Активных: <b>{activeCount}</b> / всего: <b>{orders.length}</b>
                     </p>
+                )}
+                <button
+                    className="btn btn-outline btn-sm admin-sync-btn"
+                    onClick={async () => {
+                        if (!window.confirm('Синхронизировать цены из Google Таблицы?')) return
+                        setSyncing(true); setSyncResult(null)
+                        try {
+                            const r = await syncPrices()
+                            setSyncResult({ ok: r.ok, message: r.message })
+                        } catch (e) {
+                            setSyncResult({ ok: false, message: e.message })
+                        } finally { setSyncing(false) }
+                    }}
+                    disabled={syncing}
+                >
+                    {syncing ? '⏳ Синхронизация...' : '🔄 Синхронизировать цены'}
+                </button>
+                {syncResult && (
+                    <div className={`broadcast-result ${syncResult.ok ? 'broadcast-result--ok' : 'broadcast-result--err'}`}>
+                        {syncResult.message}
+                    </div>
                 )}
             </div>
 

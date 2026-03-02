@@ -14,7 +14,6 @@ const CLIENT_NAV_ROW1 = [
     { path: '/search',    label: '🔍 Поиск' },
     { path: '/cart',      label: '🛒 Корзина' },
     { path: '/my-orders', label: '📦 Мои заказы' },
-    { path: '/my-photos', label: '📷 Фото' },
 ]
 
 const CLIENT_NAV_ROW2 = [
