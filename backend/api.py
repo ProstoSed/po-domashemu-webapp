@@ -399,7 +399,7 @@ async def geocode_address(body: GeocodeBody) -> dict:
     else:
         search_query = f'{normalized}, Нижегородская область, Россия'
 
-    nominatim_headers = {'User-Agent': 'po-domashemu-webapp/1.0 contact@example.com'}
+    nominatim_headers = {'User-Agent': 'po-domashemu-webapp/2.0 (sn17518@gmail.com)'}
     nominatim_url = 'https://nominatim.openstreetmap.org/search'
 
     async with httpx.AsyncClient(timeout=8.0) as client:
