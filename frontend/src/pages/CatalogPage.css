@@ -1,5 +1,5 @@
 .catalog-page {
-    padding-top: var(--space-sm);
+    padding-top: 4px;
 }
 
 .catalog-title {
@@ -13,7 +13,7 @@
 .catalog-subtitle {
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--space-md);
     animation: fadeInUp var(--duration-slow) var(--ease-out) 0.1s both;
 }
 
