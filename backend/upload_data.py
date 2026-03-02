@@ -15,8 +15,8 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / '.env')
 BOT_TOKEN = os.environ['BOT_TOKEN']
 
-# URL сервера на Claw Cloud
-SERVER = 'https://fcfizckprrgh.eu-central-1.clawcloudrun.com'
+# URL сервера на VPS
+SERVER = 'https://po-domashemu.duckdns.org'
 
 # Локальные файлы данных
 DATA_DIR = Path(__file__).parent.parent.parent / 'data'

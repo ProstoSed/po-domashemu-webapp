@@ -33,8 +33,8 @@ jobs:
         env:
           # Base path = /имя-репозитория/ — подставляется автоматически
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
-          # URL backend API на Claw Cloud
-          VITE_API_URL: https://fcfizckprrgh.eu-central-1.clawcloudrun.com
+          # URL backend API на VPS
+          VITE_API_URL: https://po-domashemu.duckdns.org
           # Доп. админы (Святослав + другие)
           VITE_ADMIN_IDS: 5541118089,2102796101,117762100
 
