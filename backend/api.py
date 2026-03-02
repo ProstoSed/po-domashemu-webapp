@@ -48,8 +48,9 @@ app = FastAPI(title='По-домашнему API', version='1.3')
 app.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
-    allow_methods=['GET', 'POST', 'DELETE', 'PATCH'],
+    allow_methods=['*'],
     allow_headers=['*'],
+    expose_headers=['*'],
 )
 
 # ── Координаты д. Зимёнки ──────────────────────────────────────────────────

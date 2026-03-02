@@ -15,7 +15,7 @@ function getInitData() {
 /**
  * Базовый fetch с обработкой ошибок и retry при сетевых сбоях
  */
-async function apiFetch(path, options = {}, retries = 2) {
+async function apiFetch(path, options = {}, retries = 3) {
     try {
         const res = await fetch(`${API_BASE}${path}`, options)
         if (!res.ok) {
@@ -25,7 +25,8 @@ async function apiFetch(path, options = {}, retries = 2) {
         return res.json()
     } catch (err) {
         if (retries > 0 && (err.name === 'TypeError' || err.message === 'Failed to fetch')) {
-            await new Promise(r => setTimeout(r, 800))
+            const delay = (4 - retries) * 1000  // 1с, 2с, 3с
+            await new Promise(r => setTimeout(r, delay))
             return apiFetch(path, options, retries - 1)
         }
         throw err
