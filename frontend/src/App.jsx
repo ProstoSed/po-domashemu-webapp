@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { CartProvider } from './hooks/useCart.jsx'
 import Header from './components/Header'
 import CartButton from './components/CartButton'
@@ -35,6 +35,7 @@ export default function App() {
                             <Route path="/delivery" element={<DeliveryPage />} />
                             <Route path="/about" element={<AboutPage />} />
                             <Route path="/invite" element={<InvitePage />} />
+                            <Route path="*" element={<Navigate to="/" replace />} />
                         </Routes>
                     </main>
                     <CartButton />
