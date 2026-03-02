@@ -110,6 +110,87 @@ def calc_delivery_price(distance_km: float) -> int:
     return int(round(raw / 50) * 50)
 
 
+def normalize_address(address: str) -> str:
+    """
+    Нормализует адрес: исправляет типичные ошибки пользователей.
+    Портировано из src/geo_utils.py.
+    """
+    import re
+
+    s = address.strip()
+
+    # 1. Замена «нижний новгород» и сокращений
+    nn = 'Нижний Новгород'
+    s = re.sub(r'\bн\.?\s*н(?:овгород)?\b', nn, s, flags=re.IGNORECASE)
+    s = re.sub(r'\bниж(?:ний)?\s+новгород\b', nn, s, flags=re.IGNORECASE)
+    s = re.sub(r'\bнижний\b(?!\s+Новгород)', nn, s, flags=re.IGNORECASE)
+    s = re.sub(r'Нижний\s+Новгород\s+Новгород', nn, s)
+
+    # 2. Капитализация известных городов
+    for city in ['кстово', 'зимёнки', 'зименки', 'богородск', 'дзержинск',
+                 'балахна', 'бор', 'семёнов', 'арзамас']:
+        s = re.sub(r'\b' + city + r'\b', city.capitalize(), s, flags=re.IGNORECASE)
+
+    # 3. Точки после сокращений: «д 39» → «д. 39»
+    s = re.sub(
+        r'\b(ул|пр|пр-т|пл|д|кв|кор|стр|мкр|б-р|пер|ш|наб|туп|г|с|пос|р-н)\s+',
+        lambda m: m.group(1) + '. ',
+        s, flags=re.IGNORECASE
+    )
+
+    # 4. Уборка множественных точек и пробелов
+    s = re.sub(r'\.{2,}', '.', s)
+    s = re.sub(r'\s{2,}', ' ', s)
+    s = re.sub(r',\s*,', ',', s)
+
+    # 5. Добавляем запятые между частями
+    parts = re.split(r'\s*,\s*', s)
+    parts = [p.strip() for p in parts if p.strip()]
+    result = []
+    for part in parts:
+        part = re.sub(
+            r'(ул\.|пр\.|пр-т\.|пл\.)\s+([А-Яа-яёЁA-Za-z0-9\-]+)\s+(\d+)',
+            r'\1 \2, д. \3', part
+        )
+        result.append(part)
+    s = ', '.join(result)
+
+    # 6. Капитализация первого символа каждой части
+    parts = s.split(', ')
+    parts = [p[0].upper() + p[1:] if p else p for p in parts]
+    s = ', '.join(parts)
+
+    return s.strip(' ,')
+
+
+async def get_road_distance_osrm(
+    lat1: float, lon1: float,
+    lat2: float, lon2: float,
+    timeout: float = 5.0
+) -> float | None:
+    """
+    Расстояние по дороге через OSRM (бесплатно, без ключа).
+    Портировано из src/geo_utils.py.
+    """
+    url = (
+        f"http://router.project-osrm.org/route/v1/driving/"
+        f"{lon1},{lat1};{lon2},{lat2}"
+    )
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            r = await client.get(url, params={"overview": "false", "steps": "false"})
+            data = r.json()
+            if data.get("code") != "Ok":
+                return None
+            routes = data.get("routes", [])
+            if not routes:
+                return None
+            return round(routes[0].get("distance", 0) / 1000, 1)
+    except Exception as exc:
+        log.debug('OSRM недоступен: %s', exc)
+        return None
+
+
 def verify_initdata(init_data: str) -> dict | None:
     """
     Проверяет Telegram initData (HMAC-SHA256).
@@ -293,18 +374,30 @@ async def get_prices() -> dict:
 @app.post('/api/geocode')
 async def geocode_address(body: GeocodeBody) -> dict:
     """
-    Геокодирует адрес через Nominatim.
-    Возвращает координаты, расстояние от Зимёнок и цену доставки.
+    Геокодирует адрес через Nominatim + расстояние по дорогам через OSRM.
+    Нормализует ввод, добавляет «Нижегородская область» для точности.
     """
     addr = body.address.strip()
     if not addr:
         raise HTTPException(status_code=400, detail='Адрес пустой')
 
+    # Нормализация адреса (исправление ошибок ввода)
+    normalized = normalize_address(addr)
+
+    # Специальная обработка для Зимёнок
+    if 'зимёнки' in normalized.lower() or 'зименки' in normalized.lower():
+        search_query = 'Зимёнки, Кстовский район, Нижегородская область, Россия'
+    elif 'кстово' in normalized.lower():
+        search_query = f'{normalized}, Нижегородская область, Россия'
+    else:
+        search_query = f'{normalized}, Нижегородская область, Россия'
+
     async with httpx.AsyncClient(timeout=8.0) as client:
         try:
             r = await client.get(
                 'https://nominatim.openstreetmap.org/search',
-                params={'q': addr, 'format': 'json', 'limit': 1, 'addressdetails': 0},
+                params={'q': search_query, 'format': 'json', 'limit': 1,
+                        'addressdetails': 1, 'accept-language': 'ru'},
                 headers={'User-Agent': 'po-domashemu-webapp/1.0 contact@example.com'},
             )
             results = r.json()
@@ -318,7 +411,15 @@ async def geocode_address(body: GeocodeBody) -> dict:
     item = results[0]
     lat = float(item['lat'])
     lon = float(item['lon'])
-    dist = haversine(ZIMENKI_LAT, ZIMENKI_LON, lat, lon)
+
+    # Расстояние по прямой (fallback)
+    straight_dist = haversine(ZIMENKI_LAT, ZIMENKI_LON, lat, lon)
+
+    # Расстояние по дорогам через OSRM
+    road_dist = await get_road_distance_osrm(ZIMENKI_LAT, ZIMENKI_LON, lat, lon)
+
+    # Используем дорожное расстояние если доступно, иначе по прямой
+    dist = road_dist if road_dist is not None else straight_dist
     price = calc_delivery_price(dist)
 
     # Короткий адрес (первые 3 части через запятую)
@@ -331,6 +432,7 @@ async def geocode_address(body: GeocodeBody) -> dict:
         'lon': lon,
         'address': short_address,
         'distance_km': round(dist, 1),
+        'road_distance': road_dist is not None,
         'delivery_price': price,
     }
 

@@ -193,7 +193,7 @@ export default function CheckoutPage() {
                         <div className="geo-result">
                             <div className="geo-address">📍 {geoInfo.address}</div>
                             <div className="geo-meta">
-                                📏 ~{geoInfo.distance_km} км от Зимёнок
+                                📏 ~{geoInfo.distance_km} км {geoInfo.road_distance ? 'по дороге' : 'по прямой'}
                                 &nbsp;·&nbsp;
                                 🚗 Доставка: <b>{formatPrice(geoInfo.delivery_price)}</b>
                             </div>
