@@ -55,7 +55,7 @@ export default function ProductCard({ item, categoryKey, index }) {
                                 className="btn-show-photo"
                                 onClick={() => { setShowPhoto(p => !p); setPhotoError(false) }}
                             >
-                                {showPhoto ? '🖼 Скрыть фото' : '🖼 Показать фото'}
+                                {showPhoto ? '🖼 Скрыть' : '🖼 Фото'}
                             </button>
                         )}
                         {hasDesc && (

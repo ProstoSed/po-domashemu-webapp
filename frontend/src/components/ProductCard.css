@@ -101,6 +101,7 @@
     cursor: pointer;
     transition: background 0.2s;
     font-family: var(--font-family);
+    white-space: nowrap;
 }
 
 .btn-show-photo:active {
@@ -118,6 +119,7 @@
     cursor: pointer;
     transition: background 0.2s;
     font-family: var(--font-family);
+    white-space: nowrap;
 }
 
 .btn-show-desc:active {
@@ -135,8 +137,6 @@
 .product-photo-img {
     width: 100%;
     display: block;
-    object-fit: cover;
-    max-height: 300px;
 }
 
 .product-photo-error {
