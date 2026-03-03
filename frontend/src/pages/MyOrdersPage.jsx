@@ -158,7 +158,7 @@ export default function MyOrdersPage() {
             {loading && (
                 <div className="catalog-loading">
                     <div className="loading-spinner" />
-                    <p>Загружаем заказы...</p>
+                    <p>Загружаем заказы<span className="bouncing-dots"><span>.</span><span>.</span><span>.</span></span></p>
                 </div>
             )}
 

@@ -105,8 +105,8 @@ def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 
 def calc_delivery_price(distance_km: float) -> int:
-    """20 ₽/км, минимум 100 ₽, округление до 50 ₽."""
-    raw = max(100, round(distance_km * 20))
+    """20 ₽/км, минимум 200 ₽, округление до 50 ₽."""
+    raw = max(200, round(distance_km * 20))
     return int(round(raw / 50) * 50)
 
 
@@ -507,6 +507,7 @@ async def geocode_address(body: GeocodeBody) -> dict:
 
     # Короткий адрес: убираем почтовый индекс, страну, область, округ
     display = item.get('display_name', addr)
+    addr_details = item.get('address', {})
     skip_patterns = {'Россия', 'Нижегородская область', 'Приволжский федеральный округ',
                      'городской округ Нижний Новгород', 'городской округ Кстово'}
     parts_clean = []
@@ -516,6 +517,10 @@ async def geocode_address(body: GeocodeBody) -> dict:
             continue
         parts_clean.append(p)
     short_address = ', '.join(parts_clean[:4])
+
+    # Если пользователь ввёл номер дома, а Nominatim его не вернул — добавляем
+    if house and not addr_details.get('house_number'):
+        short_address = f'{short_address}, уч. {house}'
 
     return {
         'found': True,

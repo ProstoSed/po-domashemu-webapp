@@ -7,8 +7,7 @@ import './DeliveryPage.css'
 const PICKUP_ADDRESS = 'д. Зимёнки, Нижегородская область'
 
 const DELIVERY_ZONES = [
-    { distance: 'до 5 км',   price: '100 ₽' },
-    { distance: '5 – 10 км', price: '100–200 ₽' },
+    { distance: 'до 10 км',   price: '200 ₽' },
     { distance: '10 – 20 км', price: '200–400 ₽' },
     { distance: '20 – 30 км', price: '400–600 ₽' },
 ]
@@ -87,7 +86,7 @@ export default function DeliveryPage() {
                 <div className="delivery-formula">
                     <span>20 ₽ × км</span>
                     <span className="delivery-formula-sep">·</span>
-                    <span>минимум 100 ₽</span>
+                    <span>минимум 200 ₽</span>
                 </div>
                 <div className="delivery-zones">
                     {DELIVERY_ZONES.map(z => (
