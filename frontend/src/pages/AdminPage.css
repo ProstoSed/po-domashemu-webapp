@@ -101,6 +101,23 @@
     width: fit-content;
 }
 
+.order-client-name {
+    font-size: 0.8rem;
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+.order-tg-link {
+    color: #1e88e5;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.order-item-weight {
+    font-weight: 700;
+    color: var(--color-primary-dark);
+}
+
 .status-new       { background: #e3f5e1; color: #2e7d32; }
 .status-accepted  { background: #e8f5e9; color: #1b5e20; }
 .status-cooking   { background: #fff8e1; color: #f57f17; }

@@ -99,6 +99,7 @@ function OrderCard({ order, onStatusChange, onDelete }) {
 
     const customer = order.customer || {}
     const clientName = customer.first_name || order.user?.first_name || '—'
+    const username = customer.username || order.user?.username || null
     const phone = order.phone || customer.phone || '—'
     const orderDate = order.schedule?.date || order.date || null
 
@@ -114,6 +115,7 @@ function OrderCard({ order, onStatusChange, onDelete }) {
             <div className="order-header" onClick={() => setExpanded(e => !e)}>
                 <div className="order-header-left">
                     <span className="order-id">{order.order_id}</span>
+                    <span className="order-client-name">{clientName}</span>
                     <span className={`order-status ${statusInfo.cls}`}>{statusInfo.text}</span>
                 </div>
                 <div className="order-header-right">
@@ -134,7 +136,17 @@ function OrderCard({ order, onStatusChange, onDelete }) {
                     >
                         <div className="order-detail-row">
                             <span>👤 Клиент:</span>
-                            <span>{clientName}</span>
+                            <span>
+                                {clientName}
+                                {username && (
+                                    <>
+                                        {' '}
+                                        <a href={`https://t.me/${username}`}
+                                           target="_blank" rel="noopener noreferrer"
+                                           className="order-tg-link">@{username}</a>
+                                    </>
+                                )}
+                            </span>
                         </div>
                         <div className="order-detail-row">
                             <span>📞 Телефон:</span>
@@ -175,11 +187,16 @@ function OrderCard({ order, onStatusChange, onDelete }) {
                                 const qty = item.quantity ?? 1
                                 const ppu = item.price_per_unit ?? 0
                                 const lineTotal = item.total ?? (ppu * qty)
+                                const isKg = item.unit === 'кг'
                                 return (
                                     <div key={i} className="order-item-row">
                                         <span className="order-item-name">{item.name}</span>
                                         <span className="order-item-qty">
-                                            {qty} {item.unit || 'шт'}
+                                            {isKg && item.weight ? (
+                                                <><span className="order-item-weight">{item.weight} кг</span> × {qty} шт</>
+                                            ) : (
+                                                <>{qty} <span className={isKg ? 'order-item-weight' : ''}>{item.unit || 'шт'}</span></>
+                                            )}
                                             {ppu > 0 && ` × ${ppu.toLocaleString('ru')} ₽`}
                                             {lineTotal > 0 && ` = ${lineTotal.toLocaleString('ru')} ₽`}
                                         </span>

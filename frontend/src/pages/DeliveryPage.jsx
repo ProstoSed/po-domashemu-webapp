@@ -1,4 +1,7 @@
+import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
+import { geocodeAddress } from '../utils/api'
+import { formatPrice } from '../utils/formatPrice'
 import './DeliveryPage.css'
 
 const PICKUP_ADDRESS = 'д. Зимёнки, Нижегородская область'
@@ -11,6 +14,39 @@ const DELIVERY_ZONES = [
 ]
 
 export default function DeliveryPage() {
+    const [calcAddr, setCalcAddr] = useState('')
+    const [calcStatus, setCalcStatus] = useState('idle')
+    const [calcResult, setCalcResult] = useState(null)
+    const timerRef = useRef(null)
+
+    const handleCalcInput = (value) => {
+        setCalcAddr(value)
+        clearTimeout(timerRef.current)
+
+        if (!value.trim() || value.trim().length < 5) {
+            setCalcStatus('idle')
+            setCalcResult(null)
+            return
+        }
+
+        setCalcStatus('loading')
+        timerRef.current = setTimeout(async () => {
+            try {
+                const result = await geocodeAddress(value.trim())
+                if (result.found) {
+                    setCalcStatus('found')
+                    setCalcResult(result)
+                } else {
+                    setCalcStatus('error')
+                    setCalcResult(null)
+                }
+            } catch {
+                setCalcStatus('error')
+                setCalcResult(null)
+            }
+        }, 900)
+    }
+
     return (
         <motion.div
             className="delivery-page"
@@ -61,6 +97,43 @@ export default function DeliveryPage() {
                         </div>
                     ))}
                 </div>
+
+                {/* Калькулятор доставки */}
+                <div className="delivery-calc">
+                    <p className="delivery-calc-label">Рассчитать стоимость доставки:</p>
+                    <input
+                        className="delivery-calc-input"
+                        type="text"
+                        placeholder="Введите адрес..."
+                        value={calcAddr}
+                        onChange={(e) => handleCalcInput(e.target.value)}
+                    />
+                    {calcStatus === 'loading' && (
+                        <p className="delivery-calc-status">Определяем адрес...</p>
+                    )}
+                    {calcStatus === 'error' && (
+                        <p className="delivery-calc-status delivery-calc-error">
+                            Не удалось определить адрес. Попробуйте уточнить.
+                        </p>
+                    )}
+                    {calcStatus === 'found' && calcResult && (
+                        <div className="delivery-calc-result">
+                            <div className="delivery-calc-row">
+                                <span>📍</span>
+                                <span>{calcResult.address}</span>
+                            </div>
+                            <div className="delivery-calc-row">
+                                <span>📏</span>
+                                <span>~{calcResult.distance_km} км {calcResult.road_distance ? 'по дороге' : 'по прямой'}</span>
+                            </div>
+                            <div className="delivery-calc-row delivery-calc-price">
+                                <span>🚗</span>
+                                <span>Доставка: <b>{formatPrice(calcResult.delivery_price)}</b></span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 <p className="delivery-hint">
                     Точная цена считается автоматически при оформлении заказа — введите адрес и увидите стоимость.
                 </p>

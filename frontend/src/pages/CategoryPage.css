@@ -40,6 +40,16 @@
     line-height: 1.3;
 }
 
+.category-page-desc {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+    margin-top: var(--space-xs);
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .category-page-count {
     font-size: var(--font-size-xs);
     color: var(--color-text-muted);

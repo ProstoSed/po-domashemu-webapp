@@ -58,6 +58,9 @@ export default function CategoryPage() {
             >
                 <span className="category-page-emoji">{emoji}</span>
                 <h2 className="category-page-title">{cleanName}</h2>
+                {category.description && (
+                    <p className="category-page-desc">{category.description}</p>
+                )}
                 <p className="category-page-count">{category.items.length} позиций</p>
             </motion.div>
 

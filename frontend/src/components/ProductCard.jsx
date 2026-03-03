@@ -17,10 +17,12 @@ export default function ProductCard({ item, categoryKey, index }) {
     const [weight, setWeight] = useState(1)
     const [showPhoto, setShowPhoto] = useState(false)
     const [photoError, setPhotoError] = useState(false)
+    const [showDesc, setShowDesc] = useState(false)
 
     const isKg = item.unit === 'кг'
     const hasPrice = !item.price_note  // не «индивидуально»
     const hasPhoto = !!item.photo_filename
+    const hasDesc = !!item.description
 
     const handleAdd = () => {
         if (!hasPrice) return
@@ -47,14 +49,24 @@ export default function ProductCard({ item, categoryKey, index }) {
                     <div className="product-price-row">
                         <span className="price-tag">{formatItemPrice(item)}</span>
                     </div>
-                    {hasPhoto && (
-                        <button
-                            className="btn-show-photo"
-                            onClick={() => { setShowPhoto(p => !p); setPhotoError(false) }}
-                        >
-                            {showPhoto ? '🖼 Скрыть фото' : '🖼 Показать фото'}
-                        </button>
-                    )}
+                    <div className="product-btns-row">
+                        {hasPhoto && (
+                            <button
+                                className="btn-show-photo"
+                                onClick={() => { setShowPhoto(p => !p); setPhotoError(false) }}
+                            >
+                                {showPhoto ? '🖼 Скрыть фото' : '🖼 Показать фото'}
+                            </button>
+                        )}
+                        {hasDesc && (
+                            <button
+                                className="btn-show-desc"
+                                onClick={() => setShowDesc(d => !d)}
+                            >
+                                {showDesc ? 'Скрыть' : 'Подробнее'}
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {hasPrice && (
@@ -96,6 +108,20 @@ export default function ProductCard({ item, categoryKey, index }) {
                         ) : (
                             <p className="product-photo-error">Фото недоступно</p>
                         )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showDesc && hasDesc && (
+                    <motion.div
+                        className="product-desc-expand"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <p className="product-desc-text">{item.description}</p>
                     </motion.div>
                 )}
             </AnimatePresence>

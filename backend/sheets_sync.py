@@ -33,6 +33,8 @@ HEADER_MAP = {
     "примечание": "note",
     "фото url": "photo_url",
     "фото": "photo_url",
+    "описание": "description",
+    "описание категории": "category_description",
     # Английские заголовки (обратная совместимость)
     "category_key": "category_key",
     "category_name": "category_name",
@@ -43,6 +45,8 @@ HEADER_MAP = {
     "note": "note",
     "photo_url": "photo_url",
     "photo url": "photo_url",
+    "description": "description",
+    "category_description": "category_description",
 }
 
 
@@ -156,9 +160,11 @@ def _csv_to_prices_json(csv_text: str) -> dict:
             continue
 
         if cat_key not in categories:
+            cat_desc = normalized.get("category_description", "").strip()
             categories[cat_key] = {
                 "key": cat_key,
                 "name": normalized.get("category_name", cat_key),
+                "description": cat_desc if cat_desc else "",
                 "items": []
             }
 
@@ -169,6 +175,7 @@ def _csv_to_prices_json(csv_text: str) -> dict:
         raw_photo = normalized.get("photo_url", "").strip()
         photo_url = _normalize_photo_url(raw_photo)
 
+        item_desc = normalized.get("description", "").strip()
         item = {
             "id": item_id,
             "name": normalized.get("item_name", item_id),
@@ -176,6 +183,7 @@ def _csv_to_prices_json(csv_text: str) -> dict:
             **price_fields,
             "min_order": None,
             "note": normalized.get("note", ""),
+            "description": item_desc if item_desc else "",
         }
         if photo_url:
             item["photo_url"] = photo_url
