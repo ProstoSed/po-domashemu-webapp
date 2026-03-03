@@ -382,72 +382,102 @@ async def get_prices() -> dict:
 async def geocode_address(body: GeocodeBody) -> dict:
     """
     Геокодирует адрес через Nominatim + расстояние по дорогам через OSRM.
-    Нормализует ввод, добавляет «Нижегородская область» для точности.
+    Нормализует ввод. Использует structured query для точности.
     """
+    import re as _re
+
     addr = body.address.strip()
     if not addr:
         raise HTTPException(status_code=400, detail='Адрес пустой')
 
-    # Нормализация адреса (исправление ошибок ввода)
     normalized = normalize_address(addr)
-
-    # Специальная обработка для Зимёнок
-    if 'зимёнки' in normalized.lower() or 'зименки' in normalized.lower():
-        search_query = 'Зимёнки, Кстовский район, Нижегородская область, Россия'
-    elif 'кстово' in normalized.lower():
-        search_query = f'{normalized}, Нижегородская область, Россия'
-    else:
-        search_query = f'{normalized}, Нижегородская область, Россия'
 
     nominatim_headers = {'User-Agent': 'po-domashemu-webapp/2.0 (sn17518@gmail.com)'}
     nominatim_url = 'https://nominatim.openstreetmap.org/search'
+    base_params = {'format': 'json', 'limit': 5, 'addressdetails': 1, 'accept-language': 'ru'}
+
+    # Разбираем адрес на части: город, улицу, дом
+    parts = [p.strip() for p in normalized.split(',') if p.strip()]
+
+    city = ''
+    street_parts = []
+    house = ''
+    for part in parts:
+        house_match = _re.match(r'^(?:д\.?\s*)(\d+\w?)$', part, _re.IGNORECASE)
+        if house_match:
+            house = house_match.group(1)
+        elif _re.match(r'^\d+\w?$', part):
+            house = part
+        elif not city and _re.match(r'^[А-ЯЁA-Z]', part) and not _re.search(r'\b(?:ул|пр|пер|ш|наб|б-р|пл|мкр|туп|пр-т)\.', part, _re.IGNORECASE):
+            city = part
+        else:
+            street_parts.append(part)
+
+    street = ', '.join(street_parts)
+    if house and street:
+        street = f'{street}, {house}'
+
+    # Специальная обработка для Зимёнок
+    is_zimenki = 'зимёнки' in normalized.lower() or 'зименки' in normalized.lower()
+
+    results = []
 
     async with httpx.AsyncClient(timeout=8.0) as client:
-        # Попытка 1: полный нормализованный запрос
-        try:
-            r = await client.get(
-                nominatim_url,
-                params={'q': search_query, 'format': 'json', 'limit': 5,
-                        'addressdetails': 1, 'accept-language': 'ru'},
-                headers=nominatim_headers,
-            )
-            results = r.json()
-        except Exception as exc:
-            log.warning('Geocode error: %s', exc)
-            return {'found': False, 'error': 'Сервис геокодирования недоступен'}
+        # Попытка 1: structured query (город + улица + дом отдельно)
+        if city and street and not is_zimenki:
+            try:
+                r = await client.get(
+                    nominatim_url,
+                    params={**base_params, 'city': city, 'street': street,
+                            'state': 'Нижегородская область', 'country': 'Россия'},
+                    headers=nominatim_headers,
+                )
+                results = r.json()
+            except Exception as exc:
+                log.warning('Geocode structured error: %s', exc)
 
-        # Попытка 2: если не нашёл — ищем без номера дома (только город/улица)
+        # Попытка 2: free-form query
         if not results:
-            import re as _re
-            simplified = _re.sub(r',?\s*д\.?\s*\d+\w?', '', search_query).strip(', ')
-            if simplified != search_query:
+            if is_zimenki:
+                search_query = 'Зимёнки, Кстовский район, Нижегородская область, Россия'
+            else:
+                search_query = f'{normalized}, Нижегородская область, Россия'
+            try:
+                r = await client.get(
+                    nominatim_url,
+                    params={**base_params, 'q': search_query},
+                    headers=nominatim_headers,
+                )
+                results = r.json()
+            except Exception as exc:
+                log.warning('Geocode error: %s', exc)
+                return {'found': False, 'error': 'Сервис геокодирования недоступен'}
+
+        # Попытка 3: без номера дома
+        if not results:
+            simplified = _re.sub(r',?\s*(?:д\.?\s*)?\d+\w?\s*$', '', normalized).strip(', ')
+            if simplified != normalized:
                 try:
                     r = await client.get(
                         nominatim_url,
-                        params={'q': simplified, 'format': 'json', 'limit': 5,
-                                'addressdetails': 1, 'accept-language': 'ru'},
+                        params={**base_params, 'q': f'{simplified}, Нижегородская область, Россия'},
                         headers=nominatim_headers,
                     )
                     results = r.json()
                 except Exception:
                     pass
 
-        # Попытка 3: если и это не помогло — ищем только город
-        if not results:
-            # Извлекаем первое слово (город) и ищем в регионе
-            city_match = _re.match(r'([А-Яа-яёЁ\-]+)', normalized)
-            if city_match:
-                city_query = f'{city_match.group(1)}, Нижегородская область, Россия'
-                try:
-                    r = await client.get(
-                        nominatim_url,
-                        params={'q': city_query, 'format': 'json', 'limit': 1,
-                                'addressdetails': 1, 'accept-language': 'ru'},
-                        headers=nominatim_headers,
-                    )
-                    results = r.json()
-                except Exception:
-                    pass
+        # Попытка 4: только город
+        if not results and city:
+            try:
+                r = await client.get(
+                    nominatim_url,
+                    params={**base_params, 'limit': 1, 'q': f'{city}, Нижегородская область, Россия'},
+                    headers=nominatim_headers,
+                )
+                results = r.json()
+            except Exception:
+                pass
 
     if not results:
         return {'found': False}
