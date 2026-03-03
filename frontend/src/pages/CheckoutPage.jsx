@@ -187,7 +187,7 @@ export default function CheckoutPage() {
                     />
 
                     {geoStatus === 'loading' && (
-                        <div className="geo-status">📍 Определяем адрес...</div>
+                        <div className="geo-status">📍 Определяем адрес<span className="bouncing-dots"><span>.</span><span>.</span><span>.</span></span></div>
                     )}
                     {geoStatus === 'found' && geoInfo && (
                         <div className="geo-result">

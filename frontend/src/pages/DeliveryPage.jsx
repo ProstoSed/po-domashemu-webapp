@@ -109,7 +109,9 @@ export default function DeliveryPage() {
                         onChange={(e) => handleCalcInput(e.target.value)}
                     />
                     {calcStatus === 'loading' && (
-                        <p className="delivery-calc-status">Определяем адрес...</p>
+                        <p className="delivery-calc-status">
+                            Определяем адрес<span className="bouncing-dots"><span>.</span><span>.</span><span>.</span></span>
+                        </p>
                     )}
                     {calcStatus === 'error' && (
                         <p className="delivery-calc-status delivery-calc-error">

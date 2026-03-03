@@ -496,9 +496,17 @@ async def geocode_address(body: GeocodeBody) -> dict:
     dist = road_dist if road_dist is not None else straight_dist
     price = calc_delivery_price(dist)
 
-    # Короткий адрес (первые 3 части через запятую)
+    # Короткий адрес: убираем почтовый индекс, страну, область, округ
     display = item.get('display_name', addr)
-    short_address = ', '.join(p.strip() for p in display.split(',')[:3])
+    skip_patterns = {'Россия', 'Нижегородская область', 'Приволжский федеральный округ',
+                     'городской округ Нижний Новгород', 'городской округ Кстово'}
+    parts_clean = []
+    for p in display.split(','):
+        p = p.strip()
+        if not p or p in skip_patterns or _re.fullmatch(r'\d{5,6}', p):
+            continue
+        parts_clean.append(p)
+    short_address = ', '.join(parts_clean[:4])
 
     return {
         'found': True,

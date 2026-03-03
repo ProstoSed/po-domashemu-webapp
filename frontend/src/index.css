@@ -325,6 +325,19 @@ body {
 .stagger-7 { animation-delay: 0.35s; }
 .stagger-8 { animation-delay: 0.4s; }
 
+/* ---------- Bouncing dots animation ---------- */
+.bouncing-dots span {
+  display: inline-block;
+  animation: bounce-dot 1.4s infinite;
+}
+.bouncing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.bouncing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce-dot {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
+
 /* ---------- Page Transitions ---------- */
 
 .page-enter {

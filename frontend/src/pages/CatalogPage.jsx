@@ -2,18 +2,37 @@
  * CatalogPage — главная страница каталога.
  * Показывает все категории товаров из prices.json.
  */
+import { useState } from 'react'
 import { usePrices } from '../hooks/usePrices'
 import CategoryCard from '../components/CategoryCard'
 import './CatalogPage.css'
 
+const LOADING_PHRASES = [
+    'Достаём пироги из печи...',
+    'Замешиваем тесто...',
+    'Взбиваем крем...',
+    'Проверяем начинку...',
+    'Пробуем на вкус...',
+    'Раскатываем тесто...',
+    'Добавляем щепотку любви...',
+    'Накрываем стол...',
+    'Ставим чайник...',
+    'Готовим всё самое вкусное...',
+]
+
+function getRandomPhrase() {
+    return LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)]
+}
+
 export default function CatalogPage() {
     const { categories, loading, error } = usePrices()
+    const [loadingPhrase] = useState(getRandomPhrase)
 
     if (loading) {
         return (
             <div className="catalog-loading">
                 <div className="loading-spinner" />
-                <p>Загружаем меню...</p>
+                <p>{loadingPhrase}<span className="bouncing-dots"><span>.</span><span>.</span><span>.</span></span></p>
             </div>
         )
     }
