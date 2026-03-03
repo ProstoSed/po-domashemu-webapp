@@ -34,11 +34,8 @@
     margin-bottom: 2px;
 }
 
-.cart-item-weight {
-    font-size: var(--font-size-xs);
-    color: var(--color-text-muted);
-    display: block;
-    margin-bottom: 4px;
+.cart-item-weight-row {
+    margin: 4px 0;
 }
 
 .cart-item-price {

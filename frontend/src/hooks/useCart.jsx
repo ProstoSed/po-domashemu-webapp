@@ -54,6 +54,37 @@ function cartReducer(state, action) {
             }
         }
 
+        case 'UPDATE_WEIGHT': {
+            const { key, newWeight } = action.payload
+            const old = state.items.find(i => i.key === key)
+            if (!old) return state
+
+            const newKey = `${old.categoryKey}|${old.id}|${newWeight}`
+            const existing = state.items.find(i => i.key === newKey && i.key !== key)
+
+            if (existing) {
+                // Merge qty into existing item with same weight
+                return {
+                    ...state,
+                    items: state.items
+                        .filter(i => i.key !== key)
+                        .map(i => i.key === newKey
+                            ? { ...i, quantity: i.quantity + old.quantity }
+                            : i
+                        )
+                }
+            }
+
+            return {
+                ...state,
+                items: state.items.map(i =>
+                    i.key === key
+                        ? { ...i, key: newKey, weight: newWeight }
+                        : i
+                )
+            }
+        }
+
         case 'CLEAR':
             return { ...state, items: [] }
 
@@ -75,6 +106,10 @@ export function CartProvider({ children }) {
 
     const updateQuantity = (key, quantity) => {
         dispatch({ type: 'UPDATE_QUANTITY', payload: { key, quantity } })
+    }
+
+    const updateWeight = (key, newWeight) => {
+        dispatch({ type: 'UPDATE_WEIGHT', payload: { key, newWeight } })
     }
 
     const clearCart = () => {
@@ -101,6 +136,7 @@ export function CartProvider({ children }) {
         addItem,
         removeItem,
         updateQuantity,
+        updateWeight,
         clearCart,
         totalItems,
         totalPrice

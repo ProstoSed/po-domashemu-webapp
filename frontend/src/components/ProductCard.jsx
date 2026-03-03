@@ -4,6 +4,7 @@ import { useCart } from '../hooks/useCart'
 import { useTelegram } from '../hooks/useTelegram'
 import { formatItemPrice } from '../utils/formatPrice'
 import QuantityPicker from './QuantityPicker'
+import WeightPicker from './WeightPicker'
 import './ProductCard.css'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
@@ -13,6 +14,7 @@ export default function ProductCard({ item, categoryKey, index }) {
     const { haptic } = useTelegram()
     const [added, setAdded] = useState(false)
     const [qty, setQty] = useState(1)
+    const [weight, setWeight] = useState(1)
     const [showPhoto, setShowPhoto] = useState(false)
     const [photoError, setPhotoError] = useState(false)
 
@@ -22,7 +24,7 @@ export default function ProductCard({ item, categoryKey, index }) {
 
     const handleAdd = () => {
         if (!hasPrice) return
-        addItem({ ...item, categoryKey }, qty, isKg ? 1 : null)
+        addItem({ ...item, categoryKey }, qty, isKg ? weight : null)
         haptic('medium')
         setAdded(true)
         setTimeout(() => setAdded(false), 1200)
@@ -56,15 +58,20 @@ export default function ProductCard({ item, categoryKey, index }) {
                 </div>
 
                 {hasPrice && (
-                    <div className="product-actions">
-                        <QuantityPicker value={qty} onChange={setQty} min={1} max={20} />
-                        <motion.button
-                            className={`btn-add ${added ? 'btn-add--success' : ''}`}
-                            onClick={handleAdd}
-                            whileTap={{ scale: 0.9 }}
-                        >
-                            {added ? '✓' : '+'}
-                        </motion.button>
+                    <div className={`product-actions ${isKg ? 'product-actions--kg' : ''}`}>
+                        {isKg && (
+                            <WeightPicker value={weight} onChange={setWeight} />
+                        )}
+                        <div className="product-actions-row">
+                            <QuantityPicker value={qty} onChange={setQty} min={1} max={20} />
+                            <motion.button
+                                className={`btn-add ${added ? 'btn-add--success' : ''}`}
+                                onClick={handleAdd}
+                                whileTap={{ scale: 0.9 }}
+                            >
+                                {added ? '✓' : '+'}
+                            </motion.button>
+                        </div>
                     </div>
                 )}
             </motion.div>

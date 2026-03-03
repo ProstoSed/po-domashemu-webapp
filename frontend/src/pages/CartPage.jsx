@@ -7,10 +7,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../hooks/useCart'
 import { formatPrice, getUnitLabel } from '../utils/formatPrice'
 import QuantityPicker from '../components/QuantityPicker'
+import WeightPicker from '../components/WeightPicker'
 import './CartPage.css'
 
 export default function CartPage() {
-    const { items, updateQuantity, removeItem, clearCart, totalPrice } = useCart()
+    const { items, updateQuantity, updateWeight, removeItem, clearCart, totalPrice } = useCart()
     const navigate = useNavigate()
 
     if (items.length === 0) {
@@ -60,7 +61,12 @@ export default function CartPage() {
                                 <div className="cart-item-info">
                                     <h4 className="cart-item-name">{item.name}</h4>
                                     {item.weight && (
-                                        <span className="cart-item-weight">{item.weight} кг</span>
+                                        <div className="cart-item-weight-row">
+                                            <WeightPicker
+                                                value={item.weight}
+                                                onChange={(w) => updateWeight(item.key, w)}
+                                            />
+                                        </div>
                                     )}
                                     <span className="cart-item-price price-tag">
                                         {formatPrice(price)}
