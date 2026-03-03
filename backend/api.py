@@ -403,19 +403,28 @@ async def geocode_address(body: GeocodeBody) -> dict:
     street_parts = []
     house = ''
     for part in parts:
-        house_match = _re.match(r'^(?:д\.?\s*)(\d+\w?)$', part, _re.IGNORECASE)
+        # "д. 16А" или "д16А"
+        house_match = _re.match(r'^(?:д\.?\s*)(\d+\s*[а-яА-ЯёЁa-zA-Z]?\s*(?:/\s*\d+)?)$', part, _re.IGNORECASE)
         if house_match:
-            house = house_match.group(1)
-        elif _re.match(r'^\d+\w?$', part):
-            house = part
+            house = house_match.group(1).strip()
+        # Просто "16А" или "16" или "7/2"
+        elif _re.match(r'^\d+\s*[а-яА-ЯёЁa-zA-Z]?\s*(?:/\s*\d+)?$', part):
+            house = part.strip()
         elif not city and _re.match(r'^[А-ЯЁA-Z]', part) and not _re.search(r'\b(?:ул|пр|пер|ш|наб|б-р|пл|мкр|туп|пр-т)\.', part, _re.IGNORECASE):
             city = part
         else:
             street_parts.append(part)
 
-    street = ', '.join(street_parts)
-    if house and street:
-        street = f'{street}, {house}'
+    street_name = ' '.join(street_parts)
+    # Убираем сокращения для Nominatim: "ул." → ""
+    street_clean = _re.sub(r'\b(?:ул|пр|пер|ш|наб|б-р|пл|мкр|туп|пр-т)\.\s*', '', street_name, flags=_re.IGNORECASE).strip()
+    # Nominatim structured: street = "16А Мончегорская улица" (дом перед названием)
+    if house and street_clean:
+        street_for_nominatim = f'{house} {street_clean}'
+    elif street_clean:
+        street_for_nominatim = street_clean
+    else:
+        street_for_nominatim = ''
 
     # Специальная обработка для Зимёнок
     is_zimenki = 'зимёнки' in normalized.lower() or 'зименки' in normalized.lower()
@@ -424,11 +433,11 @@ async def geocode_address(body: GeocodeBody) -> dict:
 
     async with httpx.AsyncClient(timeout=8.0) as client:
         # Попытка 1: structured query (город + улица + дом отдельно)
-        if city and street and not is_zimenki:
+        if city and street_for_nominatim and not is_zimenki:
             try:
                 r = await client.get(
                     nominatim_url,
-                    params={**base_params, 'city': city, 'street': street,
+                    params={**base_params, 'city': city, 'street': street_for_nominatim,
                             'state': 'Нижегородская область', 'country': 'Россия'},
                     headers=nominatim_headers,
                 )
