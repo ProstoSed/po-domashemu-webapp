@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTelegram } from '../hooks/useTelegram'
 import './Header.css'
@@ -33,6 +34,27 @@ export default function Header() {
     const hideClientNav = ['/cart', '/checkout', '/success'].some(
         p => location.pathname.startsWith(p)
     )
+
+    // Скрытие навигации при скролле вниз
+    const [navHidden, setNavHidden] = useState(false)
+    const lastScrollY = useRef(0)
+
+    useEffect(() => {
+        const onScroll = () => {
+            const y = window.scrollY
+            // Скролл вниз более чем на 10px — скрываем
+            if (y > lastScrollY.current + 10 && y > 80) {
+                setNavHidden(true)
+            }
+            // Скролл вверх более чем на 10px — показываем
+            if (y < lastScrollY.current - 10) {
+                setNavHidden(false)
+            }
+            lastScrollY.current = y
+        }
+        window.addEventListener('scroll', onScroll, { passive: true })
+        return () => window.removeEventListener('scroll', onScroll)
+    }, [])
 
     return (
         <header className="header">
@@ -71,7 +93,7 @@ export default function Header() {
 
             {/* Клиентский sub-nav */}
             {!isAdmin && !hideClientNav && (
-                <div className="header-nav-wrap">
+                <div className={`header-nav-wrap ${navHidden ? 'nav-hidden' : ''}`}>
                     <div className="header-panel-title">Панель управления</div>
                     <div className="header-nav-grid">
                         {[...CLIENT_NAV_ROW1, ...CLIENT_NAV_ROW2].map(item => (

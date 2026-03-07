@@ -119,13 +119,16 @@ export default function CheckoutPage() {
             } : null,
         }
 
+        // Очищаем корзину ДО sendData, т.к. tg.sendData() закрывает WebApp мгновенно
+        clearCart()
+
+        // В Telegram: sendData отправляет данные боту и закрывает Mini App
+        // Бот обрабатывает заказ (сохраняет + уведомляет маму)
         sendData(orderData)
 
-        setTimeout(() => {
-            clearCart()
-            navigate('/success')
-            setSending(false)
-        }, 500)
+        // Если мы всё ещё здесь (браузер, не Telegram) — показываем success
+        navigate('/success')
+        setSending(false)
     }
 
     const card = (delay) => ({

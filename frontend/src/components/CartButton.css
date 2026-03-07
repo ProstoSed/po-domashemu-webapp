@@ -20,6 +20,8 @@
     cursor: pointer;
     box-shadow: 0 6px 30px rgba(212, 163, 115, 0.45);
     max-width: calc(100% - 32px);
+    width: auto;
+    white-space: nowrap;
 }
 
 .cart-fab-icon {
@@ -50,4 +52,28 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Маленькие экраны — компактная кнопка корзины */
+@media (max-width: 374px) {
+    .cart-fab {
+        padding: 10px 16px;
+        font-size: var(--font-size-sm);
+        gap: 6px;
+        max-width: calc(100% - 24px);
+        border-radius: var(--radius-lg);
+    }
+
+    .cart-fab-icon {
+        font-size: 1rem;
+    }
+
+    .cart-fab-badge {
+        min-width: 18px;
+        height: 18px;
+        padding: 0 4px;
+        font-size: 0.65rem;
+        top: -4px;
+        right: -4px;
+    }
 }
