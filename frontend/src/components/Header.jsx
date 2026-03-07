@@ -35,22 +35,31 @@ export default function Header() {
         p => location.pathname.startsWith(p)
     )
 
-    // Скрытие навигации при скролле вниз
+    // Скрытие навигации при скролле вниз, показ при скролле вверх
     const [navHidden, setNavHidden] = useState(false)
-    const lastScrollY = useRef(0)
+    const anchorY = useRef(0)       // точка последней смены направления
+    const wasGoingDown = useRef(false)
 
     useEffect(() => {
+        const THRESHOLD = 40  // px — порог для смены состояния
+
         const onScroll = () => {
             const y = window.scrollY
-            // Скролл вниз более чем на 10px — скрываем
-            if (y > lastScrollY.current + 10 && y > 80) {
-                setNavHidden(true)
+            const goingDown = y > anchorY.current
+
+            // Направление изменилось — запоминаем новую точку отсчёта
+            if (goingDown !== wasGoingDown.current) {
+                anchorY.current = y
+                wasGoingDown.current = goingDown
             }
-            // Скролл вверх более чем на 10px — показываем
-            if (y < lastScrollY.current - 10) {
+
+            const delta = Math.abs(y - anchorY.current)
+
+            if (goingDown && delta > THRESHOLD && y > 100) {
+                setNavHidden(true)
+            } else if (!goingDown && delta > THRESHOLD) {
                 setNavHidden(false)
             }
-            lastScrollY.current = y
         }
         window.addEventListener('scroll', onScroll, { passive: true })
         return () => window.removeEventListener('scroll', onScroll)
