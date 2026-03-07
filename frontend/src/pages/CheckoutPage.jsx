@@ -8,12 +8,12 @@ import { motion } from 'framer-motion'
 import { useCart } from '../hooks/useCart'
 import { useTelegram } from '../hooks/useTelegram'
 import { formatPrice } from '../utils/formatPrice'
-import { geocodeAddress } from '../utils/api'
+import { geocodeAddress, submitOrder } from '../utils/api'
 import './CheckoutPage.css'
 
 export default function CheckoutPage() {
     const { items, totalPrice, clearCart } = useCart()
-    const { sendData, haptic, user } = useTelegram()
+    const { haptic, user } = useTelegram()
     const navigate = useNavigate()
 
     const [delivery, setDelivery] = useState('pickup')
@@ -72,7 +72,7 @@ export default function CheckoutPage() {
         }
     }, [delivery])
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!phone.trim()) {
             alert('Укажите номер телефона')
             return
@@ -119,16 +119,15 @@ export default function CheckoutPage() {
             } : null,
         }
 
-        // Очищаем корзину ДО sendData, т.к. tg.sendData() закрывает WebApp мгновенно
-        clearCart()
-
-        // В Telegram: sendData отправляет данные боту и закрывает Mini App
-        // Бот обрабатывает заказ (сохраняет + уведомляет маму)
-        sendData(orderData)
-
-        // Если мы всё ещё здесь (браузер, не Telegram) — показываем success
-        navigate('/success')
-        setSending(false)
+        try {
+            // Отправляем заказ через HTTP API
+            await submitOrder(orderData)
+            clearCart()
+            navigate('/success')
+        } catch (err) {
+            alert('Ошибка отправки заказа. Попробуйте ещё раз.')
+            setSending(false)
+        }
     }
 
     const card = (delay) => ({

@@ -42,7 +42,7 @@ from pydantic import BaseModel
 
 from fastapi.responses import FileResponse
 
-from config import PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE, PHOTO_REQUESTS_FILE, HOLIDAYS_FILE, PHOTOS_DIR, GOOGLE_SHEET_ID, DEV_MODE, DEV_USER_ID
+from config import PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE, PHOTO_REQUESTS_FILE, HOLIDAYS_FILE, PHOTOS_DIR, GOOGLE_SHEET_ID, DEV_MODE, DEV_USER_ID, MAMA_CHAT_ID
 
 log = logging.getLogger(__name__)
 app = FastAPI(title='По-домашнему API', version='1.3')
@@ -582,6 +582,216 @@ async def geocode_address(body: GeocodeBody) -> dict:
         'road_distance': road_dist is not None,
         'delivery_price': price,
     }
+
+
+# ──────────────────────────────────────────────
+# Отправка заказа через HTTP (вместо tg.sendData)
+# ──────────────────────────────────────────────
+
+class OrderBody(BaseModel):
+    items: list
+    total: float = 0
+    items_total: float = 0
+    delivery_type: str = 'pickup'
+    delivery_price: float = 0
+    address: str = ''
+    geo: dict | None = None
+    phone: str = ''
+    date: str = ''
+    comment: str = ''
+    payment_method: str = 'cash'
+    user: dict | None = None
+
+
+def _save_order_api(order_data: dict, user_info: dict) -> str:
+    """Сохраняет заказ в orders_backup.json, возвращает order_id."""
+    orders = load_orders()
+
+    # Генерируем order_id
+    year = datetime.now().year
+    prefix = f'ORD-{year}-'
+    max_num = 0
+    for o in orders:
+        oid = o.get('order_id', '')
+        if oid.startswith(prefix):
+            try:
+                max_num = max(max_num, int(oid[len(prefix):]))
+            except ValueError:
+                pass
+    order_id = f'{prefix}{max_num + 1:04d}'
+
+    # Нормализуем товары
+    normalized_items = []
+    for item in order_data.get('items', []):
+        weight = item.get('weight')
+        qty = item.get('quantity', 1)
+        if weight:
+            price_per = item.get('price_kg') or item.get('price_kg_min') or 0
+            subtotal = price_per * weight * qty
+        else:
+            price_per = item.get('price_item') or item.get('price_item_min') or 0
+            subtotal = price_per * qty
+        normalized_items.append({
+            'name': item.get('name', ''),
+            'quantity': qty,
+            'unit': item.get('unit', 'шт'),
+            'weight': weight,
+            'price_per_unit': price_per,
+            'total': subtotal,
+        })
+
+    normalized = {
+        'order_id': order_id,
+        'status': 'new',
+        'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'customer': {
+            'user_id': user_info.get('id'),
+            'username': user_info.get('username', ''),
+            'first_name': user_info.get('first_name', ''),
+            'phone': order_data.get('phone', ''),
+        },
+        'items': normalized_items,
+        'delivery': {
+            'type': order_data.get('delivery_type', 'pickup'),
+            'address': order_data.get('address', ''),
+            'price': order_data.get('delivery_price', 0),
+        },
+        'payment': {
+            'method': order_data.get('payment_method', 'cash'),
+        },
+        'schedule': {
+            'date': order_data.get('date', ''),
+        },
+        'comment': order_data.get('comment', ''),
+        'totals': {
+            'items_total': order_data.get('items_total', 0),
+            'delivery_total': order_data.get('delivery_price', 0),
+            'grand_total': order_data.get('total', 0),
+        },
+    }
+
+    orders.append(normalized)
+    save_orders(orders)
+
+    # Увеличиваем orders_count в users.json
+    users = load_users()
+    uid = str(user_info.get('id'))
+    if uid in users:
+        users[uid]['orders_count'] = users[uid].get('orders_count', 0) + 1
+        users[uid]['last_seen'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        USERS_FILE.write_text(
+            json.dumps({'users': users}, ensure_ascii=False, indent=2),
+            encoding='utf-8'
+        )
+
+    log.info('Заказ %s сохранён (API): user_id=%s, items=%d', order_id, uid, len(normalized_items))
+    return order_id
+
+
+def _format_order_for_mama_api(order_data: dict, user_info: dict, order_id: str) -> str:
+    """Форматирует заказ для отправки маме."""
+    name = user_info.get('first_name', '—')
+    username = f'@{user_info["username"]}' if user_info.get('username') else '—'
+    phone = order_data.get('phone', '—')
+
+    lines = [f'🛒 <b>НОВЫЙ ЗАКАЗ (Web App)</b> — {order_id}\n']
+    lines.append(f'👤 <b>Клиент:</b> {name} ({username})')
+    lines.append(f'📞 <b>Телефон:</b> {phone}\n')
+
+    lines.append('📦 <b>Состав заказа:</b>')
+    total = 0
+    for item in order_data.get('items', []):
+        item_name = item.get('name', '?')
+        qty = item.get('quantity', 1)
+        weight = item.get('weight')
+        if weight:
+            price = item.get('price_kg') or item.get('price_kg_min') or 0
+            subtotal = price * weight * qty
+            amount_str = f'{weight} кг × {qty} шт'
+        else:
+            price = item.get('price_item') or item.get('price_item_min') or 0
+            subtotal = price * qty
+            amount_str = f'{qty} {item.get("unit", "шт")}'
+        total += subtotal
+        price_str = f'{subtotal:,.0f} ₽'.replace(',', ' ') if subtotal else '—'
+        lines.append(f'  • {item_name} — {amount_str} = {price_str}')
+
+    total_str = f'{order_data.get("total", total):,.0f} ₽'.replace(',', ' ')
+    lines.append(f'\n💰 <b>Итого:</b> {total_str}')
+
+    delivery_type = order_data.get('delivery_type', 'pickup')
+    address = order_data.get('address', '—')
+    delivery_label = '🚗 Доставка' if delivery_type == 'delivery' else '🏡 Самовывоз'
+    lines.append(f'\n{delivery_label}: {address}')
+    lines.append(f'📅 <b>Дата:</b> {order_data.get("date", "—")}')
+
+    comment = order_data.get('comment', '').strip()
+    if comment:
+        lines.append(f'💬 <b>Комментарий:</b> {comment}')
+
+    return '\n'.join(lines)
+
+
+@app.post('/api/orders')
+async def submit_order(
+    body: OrderBody,
+    x_init_data: str | None = Header(default=None),
+) -> dict:
+    """Принять заказ через HTTP API — сохранить + уведомить маму."""
+    user_info = {}
+    # Пытаемся извлечь пользователя из initData
+    if x_init_data:
+        verified = verify_initdata(x_init_data)
+        if verified:
+            user_info = verified
+    # Если нет initData — берём из тела заказа
+    if not user_info and body.user:
+        user_info = body.user
+    # DEV fallback
+    if not user_info and DEV_MODE:
+        user_info = {'id': DEV_USER_ID, 'first_name': 'Dev', 'username': 'dev'}
+
+    if not user_info.get('id'):
+        raise HTTPException(status_code=400, detail='Не удалось определить пользователя')
+
+    order_data = body.model_dump()
+
+    # Сохраняем заказ
+    order_id = _save_order_api(order_data, user_info)
+
+    # Уведомляем маму через Telegram Bot API
+    mama_text = _format_order_for_mama_api(order_data, user_info, order_id)
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.post(
+                f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage',
+                json={
+                    'chat_id': MAMA_CHAT_ID,
+                    'text': mama_text,
+                    'parse_mode': 'HTML',
+                },
+            )
+            if r.status_code != 200:
+                log.error('Не удалось отправить заказ маме: %s', r.text)
+    except Exception as exc:
+        log.error('Ошибка отправки маме: %s', exc)
+
+    # Подтверждение клиенту (если в Telegram)
+    if user_info.get('id') and user_info['id'] != DEV_USER_ID:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                await client.post(
+                    f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage',
+                    json={
+                        'chat_id': user_info['id'],
+                        'text': f'✅ <b>Заказ принят!</b> ({order_id})\n\nНадежда свяжется с вами в ближайшее время для уточнения деталей.',
+                        'parse_mode': 'HTML',
+                    },
+                )
+        except Exception:
+            pass  # не критично
+
+    return {'ok': True, 'order_id': order_id}
 
 
 # ──────────────────────────────────────────────

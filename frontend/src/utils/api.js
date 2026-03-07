@@ -51,6 +51,17 @@ export async function fetchPrices() {
     return res.json()
 }
 
+export async function submitOrder(orderData) {
+    return apiFetch('/api/orders', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-init-data': getInitData(),
+        },
+        body: JSON.stringify(orderData),
+    })
+}
+
 // ── Админ (требуют initData мамы) ──────────
 
 function adminHeaders() {
