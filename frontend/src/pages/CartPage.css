@@ -89,6 +89,52 @@
     margin-top: var(--space-xs);
 }
 
+/* CTA-кнопка «В каталог» / «Добавить ещё» */
+.btn-catalog-cta {
+    display: block;
+    width: 100%;
+    padding: 14px 24px;
+    border: none;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, var(--color-primary), #a47a4e);
+    color: #fff;
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    margin-bottom: var(--space-md);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-catalog-cta:active {
+    transform: scale(0.97);
+}
+
+.btn-catalog-cta.btn-outline {
+    background: transparent;
+    border: 2px solid var(--color-primary);
+    color: var(--color-primary);
+}
+
+/* Shimmer-эффект */
+.btn-shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+    animation: shimmer 2.5s infinite;
+    pointer-events: none;
+}
+
+.btn-catalog-cta.btn-outline.btn-shimmer::after {
+    background: linear-gradient(90deg, transparent, rgba(212,163,115,0.15), transparent);
+}
+
 /* Кнопки */
 .cart-buttons {
     display: flex;

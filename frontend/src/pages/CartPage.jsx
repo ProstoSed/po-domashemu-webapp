@@ -20,7 +20,7 @@ export default function CartPage() {
                 <span className="empty-state-emoji">🛒</span>
                 <p className="empty-state-title">Корзина пуста</p>
                 <p className="empty-state-text">Выберите любимую выпечку из каталога</p>
-                <button className="btn btn-primary" onClick={() => navigate('/')}>
+                <button className="btn-catalog-cta btn-shimmer" onClick={() => navigate('/')}>
                     Перейти в каталог
                 </button>
             </div>
@@ -91,6 +91,16 @@ export default function CartPage() {
                     })}
                 </AnimatePresence>
             </div>
+
+            <motion.button
+                className="btn-catalog-cta btn-outline btn-shimmer"
+                onClick={() => navigate('/')}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileTap={{ scale: 0.97 }}
+            >
+                Добавить ещё
+            </motion.button>
 
             {/* Итог */}
             <motion.div

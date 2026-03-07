@@ -48,6 +48,7 @@ export default function Header() {
                     <h1 className="header-title">По-домашнему</h1>
                     <p className="header-subtitle">Домашняя выпечка на заказ</p>
                 </div>
+                <div className="header-baking-anim" aria-hidden="true" />
             </div>
 
             {/* Главные вкладки: Админка | Клиентское */}

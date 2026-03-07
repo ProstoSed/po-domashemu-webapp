@@ -131,16 +131,25 @@ def normalize_address(address: str) -> str:
                  'балахна', 'бор', 'семёнов', 'арзамас']:
         s = re.sub(r'\b' + city + r'\b', city.capitalize(), s, flags=re.IGNORECASE)
 
-    # 3. Вставить пробел между сокращением и числом: «д15» → «д 15»
+    # 3. Сокращаем полные слова: «квартира» → «кв», «корпус» → «кор» и т.д.
+    s = re.sub(r'\bквартира\s*', 'кв ', s, flags=re.IGNORECASE)
+    s = re.sub(r'\bкорпус\s*', 'кор ', s, flags=re.IGNORECASE)
+    s = re.sub(r'\bстроение\s*', 'стр ', s, flags=re.IGNORECASE)
+    s = re.sub(r'\bофис\s*', 'оф ', s, flags=re.IGNORECASE)
+    s = re.sub(r'\bулица\s*', 'ул ', s, flags=re.IGNORECASE)
+    s = re.sub(r'\bпроспект\s*', 'пр ', s, flags=re.IGNORECASE)
+    s = re.sub(r'\bпереулок\s*', 'пер ', s, flags=re.IGNORECASE)
+
+    # 3a. Вставить пробел между сокращением и числом: «д15» → «д 15»
     s = re.sub(
-        r'\b(ул|пр|пр-т|пл|д|кв|кор|стр|мкр|б-р|пер|ш|наб|туп|г|с|пос|р-н)(\d)',
+        r'\b(ул|пр|пр-т|пл|д|кв|кор|корп|стр|оф|мкр|б-р|пер|ш|наб|туп|г|с|пос|р-н)(\d)',
         r'\1 \2',
         s, flags=re.IGNORECASE
     )
 
     # 3b. Точки после сокращений: «д 39» → «д. 39»
     s = re.sub(
-        r'\b(ул|пр|пр-т|пл|д|кв|кор|стр|мкр|б-р|пер|ш|наб|туп|г|с|пос|р-н)\s+',
+        r'\b(ул|пр|пр-т|пл|д|кв|кор|корп|стр|оф|мкр|б-р|пер|ш|наб|туп|г|с|пос|р-н)\s+',
         lambda m: m.group(1) + '. ',
         s, flags=re.IGNORECASE
     )
@@ -168,6 +177,41 @@ def normalize_address(address: str) -> str:
     s = ', '.join(parts)
 
     return s.strip(' ,')
+
+
+def _strip_apartment_info(address: str) -> tuple[str, str]:
+    """
+    Извлекает из адреса информацию о квартире/корпусе/строении/офисе.
+    Возвращает (чистый_адрес, суффикс_для_отображения).
+    Формат «10/5» (дом/корпус) НЕ трогаем — Nominatim понимает.
+    """
+    import re
+
+    suffixes = []
+    clean = address
+
+    # Паттерны: кв. 5, кор. 2, стр. 3, оф. 10
+    patterns = [
+        (r'\b(?:кв|квартира)\.?\s*(\d+)', 'кв. '),
+        (r'\b(?:кор|корп|корпус)\.?\s*(\d+)', 'кор. '),
+        (r'\b(?:стр|строение)\.?\s*(\d+)', 'стр. '),
+        (r'\b(?:оф|офис)\.?\s*(\d+)', 'оф. '),
+    ]
+
+    for pattern, prefix in patterns:
+        m = re.search(pattern, clean, re.IGNORECASE)
+        if m:
+            suffixes.append(f'{prefix}{m.group(1)}')
+            # Убираем из адреса (вместе с возможной запятой перед/после)
+            clean = re.sub(r',?\s*' + pattern + r'\s*,?', '', clean, flags=re.IGNORECASE)
+
+    # Чистим возможные двойные запятые и пробелы
+    clean = re.sub(r',\s*,', ',', clean)
+    clean = re.sub(r'\s{2,}', ' ', clean)
+    clean = clean.strip(' ,')
+
+    suffix = ', '.join(suffixes)
+    return clean, suffix
 
 
 async def get_road_distance_osrm(
@@ -392,6 +436,9 @@ async def geocode_address(body: GeocodeBody) -> dict:
 
     normalized = normalize_address(addr)
 
+    # Извлекаем кв/кор/стр/оф — они мешают Nominatim
+    normalized, apartment_suffix = _strip_apartment_info(normalized)
+
     nominatim_headers = {'User-Agent': 'po-domashemu-webapp/2.0 (sn17518@gmail.com)'}
     nominatim_url = 'https://nominatim.openstreetmap.org/search'
     base_params = {'format': 'json', 'limit': 5, 'addressdetails': 1, 'accept-language': 'ru'}
@@ -521,6 +568,10 @@ async def geocode_address(body: GeocodeBody) -> dict:
     # Если пользователь ввёл номер дома, а Nominatim его не вернул — добавляем
     if house and not addr_details.get('house_number'):
         short_address = f'{short_address}, уч. {house}'
+
+    # Дописываем квартиру/корпус/строение/офис в отображаемый адрес
+    if apartment_suffix:
+        short_address = f'{short_address}, {apartment_suffix}'
 
     return {
         'found': True,

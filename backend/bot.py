@@ -23,7 +23,7 @@ from aiogram.types import (
 )
 from aiogram.types.web_app_data import WebAppData
 
-from config import BOT_TOKEN, MAMA_CHAT_ID, WEBAPP_URL, USERS_FILE
+from config import BOT_TOKEN, MAMA_CHAT_ID, WEBAPP_URL, USERS_FILE, ORDERS_FILE
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger(__name__)
@@ -146,6 +146,108 @@ async def cmd_start(message: Message) -> None:
 
 
 # ──────────────────────────────────────────────
+# Сохранение заказов в orders_backup.json
+# ──────────────────────────────────────────────
+
+def _load_orders() -> list:
+    if not ORDERS_FILE.exists():
+        return []
+    data = json.loads(ORDERS_FILE.read_text(encoding='utf-8'))
+    return data if isinstance(data, list) else []
+
+
+def _save_orders(orders: list) -> None:
+    ORDERS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    ORDERS_FILE.write_text(json.dumps(orders, ensure_ascii=False, indent=2), encoding='utf-8')
+
+
+def _generate_order_id(orders: list) -> str:
+    year = datetime.now().year
+    prefix = f'ORD-{year}-'
+    max_num = 0
+    for o in orders:
+        oid = o.get('order_id', '')
+        if oid.startswith(prefix):
+            try:
+                num = int(oid[len(prefix):])
+                max_num = max(max_num, num)
+            except ValueError:
+                pass
+    return f'{prefix}{max_num + 1:04d}'
+
+
+def _save_order(order_data: dict, message: Message) -> str:
+    """Сохраняет заказ в orders_backup.json, возвращает order_id."""
+    orders = _load_orders()
+    order_id = _generate_order_id(orders)
+    user = message.from_user
+
+    # Нормализуем товары
+    normalized_items = []
+    for item in order_data.get('items', []):
+        weight = item.get('weight')
+        qty = item.get('quantity', 1)
+        if weight:
+            price_per = item.get('price_kg') or item.get('price_kg_min') or 0
+            subtotal = price_per * weight * qty
+        else:
+            price_per = item.get('price_item') or item.get('price_item_min') or 0
+            subtotal = price_per * qty
+
+        normalized_items.append({
+            'name': item.get('name', ''),
+            'quantity': qty,
+            'unit': item.get('unit', 'шт'),
+            'weight': weight,
+            'price_per_unit': price_per,
+            'total': subtotal,
+        })
+
+    normalized = {
+        'order_id': order_id,
+        'status': 'new',
+        'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'customer': {
+            'user_id': user.id,
+            'username': user.username or '',
+            'first_name': user.first_name or '',
+            'phone': order_data.get('phone', ''),
+        },
+        'items': normalized_items,
+        'delivery': {
+            'type': order_data.get('delivery_type', 'pickup'),
+            'address': order_data.get('address', ''),
+            'price': order_data.get('delivery_price', 0),
+        },
+        'payment': {
+            'method': order_data.get('payment_method', 'cash'),
+        },
+        'schedule': {
+            'date': order_data.get('date', ''),
+        },
+        'comment': order_data.get('comment', ''),
+        'totals': {
+            'items_total': order_data.get('items_total', 0),
+            'delivery_total': order_data.get('delivery_price', 0),
+            'grand_total': order_data.get('total', 0),
+        },
+    }
+
+    orders.append(normalized)
+    _save_orders(orders)
+
+    # Увеличиваем orders_count в users.json
+    users = _load_users()
+    uid = str(user.id)
+    if uid in users:
+        users[uid]['orders_count'] = users[uid].get('orders_count', 0) + 1
+        _save_users(users)
+
+    log.info('Заказ %s сохранён: user_id=%s, items=%d', order_id, user.id, len(normalized_items))
+    return order_id
+
+
+# ──────────────────────────────────────────────
 # web_app_data — получить заказ из Mini App
 # ──────────────────────────────────────────────
 
@@ -161,29 +263,39 @@ async def handle_web_app_order(message: Message) -> None:
         await message.answer('❌ Ошибка обработки заказа. Попробуйте ещё раз.')
         return
 
+    # ── Сохраняем заказ в JSON ────────────────
+    order_id = None
+    try:
+        order_id = _save_order(order, message)
+    except Exception as exc:
+        log.error('Не удалось сохранить заказ: %s', exc)
+
     # ── Подтверждение клиенту ────────────────
-    await message.answer(
-        '✅ <b>Заказ принят!</b>\n\n'
-        'Надежда свяжется с вами в ближайшее время для уточнения деталей.',
-        parse_mode='HTML'
-    )
+    confirm_text = '✅ <b>Заказ принят!</b>'
+    if order_id:
+        confirm_text += f' ({order_id})'
+    confirm_text += '\n\nНадежда свяжется с вами в ближайшее время для уточнения деталей.'
+    await message.answer(confirm_text, parse_mode='HTML')
 
     # ── Формируем сообщение для мамы ─────────
-    mama_text = _format_order_for_mama(order, message)
+    mama_text = _format_order_for_mama(order, message, order_id)
 
     try:
         await bot.send_message(MAMA_CHAT_ID, mama_text, parse_mode='HTML')
-        log.info('Заказ отправлен маме: user_id=%s', message.from_user.id)
+        log.info('Заказ %s отправлен маме: user_id=%s', order_id, message.from_user.id)
     except Exception as exc:
         log.error('Не удалось отправить заказ маме: %s', exc)
 
 
-def _format_order_for_mama(order: dict, message: Message) -> str:
+def _format_order_for_mama(order: dict, message: Message, order_id: str = None) -> str:
     """Форматирует заказ в читаемый текст для мамы."""
     user = message.from_user
     tg_user = order.get('user') or {}
 
-    lines = ['🛒 <b>НОВЫЙ ЗАКАЗ (Web App)</b>\n']
+    header = '🛒 <b>НОВЫЙ ЗАКАЗ (Web App)</b>'
+    if order_id:
+        header += f' — {order_id}'
+    lines = [header + '\n']
 
     # Клиент
     name = user.first_name or tg_user.get('first_name', '—')

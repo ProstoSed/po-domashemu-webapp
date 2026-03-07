@@ -38,3 +38,11 @@
     color: var(--color-text);
     margin-left: 4px;
 }
+
+@media (max-width: 374px) {
+    .weight-chip {
+        padding: 4px 8px;
+        font-size: 0.78rem;
+        min-width: 34px;
+    }
+}

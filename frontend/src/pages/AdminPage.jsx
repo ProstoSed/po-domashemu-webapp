@@ -358,7 +358,14 @@ function UsersSection() {
         setLoading(true)
         setError(null)
         fetchUsers()
-            .then(d => setUsers(d.users || []))
+            .then(d => {
+                const sorted = (d.users || []).sort((a, b) => {
+                    const nameA = (a.first_name || a.username || '').toLowerCase()
+                    const nameB = (b.first_name || b.username || '').toLowerCase()
+                    return nameA.localeCompare(nameB, 'ru')
+                })
+                setUsers(sorted)
+            })
             .catch(e => setError(e.message))
             .finally(() => setLoading(false))
     }

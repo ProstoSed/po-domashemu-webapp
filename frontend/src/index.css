@@ -412,3 +412,12 @@ body {
   color: var(--color-text-secondary);
   max-width: 260px;
 }
+
+/* ---------- Narrow screens (Samsung Galaxy A12 etc.) ---------- */
+@media (max-width: 359px) {
+  :root {
+    --font-size-2xl: 1.4rem;
+    --font-size-xl: 1.15rem;
+    --font-size-lg: 0.95rem;
+  }
+}
