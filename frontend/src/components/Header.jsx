@@ -37,33 +37,39 @@ export default function Header() {
 
     // Скрытие навигации при скролле вниз, показ при скролле вверх
     const [navHidden, setNavHidden] = useState(false)
-    const anchorY = useRef(0)       // точка последней смены направления
-    const wasGoingDown = useRef(false)
+    const stateChangeY = useRef(0)  // Y-позиция последнего переключения
 
     useEffect(() => {
-        const THRESHOLD = 40  // px — порог для смены состояния
+        const HIDE_AFTER = 50  // px вниз от точки переключения
+        const SHOW_AFTER = 30  // px вверх от точки переключения
 
         const onScroll = () => {
             const y = window.scrollY
-            const goingDown = y > anchorY.current
 
-            // Направление изменилось — запоминаем новую точку отсчёта
-            if (goingDown !== wasGoingDown.current) {
-                anchorY.current = y
-                wasGoingDown.current = goingDown
+            // У самого верха — всегда показывать
+            if (y < 60) {
+                if (navHidden) {
+                    setNavHidden(false)
+                    stateChangeY.current = y
+                }
+                return
             }
 
-            const delta = Math.abs(y - anchorY.current)
+            const delta = y - stateChangeY.current
 
-            if (goingDown && delta > THRESHOLD && y > 100) {
+            if (!navHidden && delta > HIDE_AFTER) {
+                // Скроллим вниз достаточно далеко — скрываем
                 setNavHidden(true)
-            } else if (!goingDown && delta > THRESHOLD) {
+                stateChangeY.current = y
+            } else if (navHidden && delta < -SHOW_AFTER) {
+                // Скроллим вверх достаточно далеко — показываем
                 setNavHidden(false)
+                stateChangeY.current = y
             }
         }
         window.addEventListener('scroll', onScroll, { passive: true })
         return () => window.removeEventListener('scroll', onScroll)
-    }, [])
+    }, [navHidden])
 
     return (
         <header className="header">
