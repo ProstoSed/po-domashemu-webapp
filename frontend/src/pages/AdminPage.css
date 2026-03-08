@@ -528,6 +528,17 @@
     opacity: 0.7;
 }
 
+.admin-manual-add {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.6rem 0.75rem;
+}
+.admin-manual-add .form-input {
+    flex: 1;
+    margin: 0;
+}
+
 .admin-search-item-name {
     font-size: 0.85rem;
     color: var(--color-text);

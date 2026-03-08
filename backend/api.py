@@ -90,7 +90,7 @@ class RemindBody(BaseModel):
 
 
 class AddAdminBody(BaseModel):
-    user_id: int
+    user_id: int | None = None
     username: str | None = None
     first_name: str | None = None
 
@@ -1366,21 +1366,42 @@ async def admin_add_admin(
     body: AddAdminBody,
     x_init_data: str | None = Header(default=None),
 ) -> dict:
-    """Добавить нового администратора."""
+    """Добавить нового администратора по user_id или @username."""
     require_admin(x_init_data)
 
+    user_id = body.user_id
+    username = (body.username or '').strip().lstrip('@')
+    first_name = body.first_name or ''
+
+    # Если user_id не указан, ищем по username в users.json
+    if not user_id and username:
+        try:
+            raw = json.loads(USERS_FILE.read_text(encoding='utf-8'))
+            users_dict = raw.get('users', {}) if isinstance(raw, dict) else {}
+            for uid_str, u in users_dict.items():
+                if (u.get('username', '') or '').lower() == username.lower():
+                    user_id = int(uid_str) if uid_str.isdigit() else None
+                    first_name = first_name or u.get('first_name', '')
+                    break
+        except Exception:
+            pass
+
+    if not user_id:
+        raise HTTPException(status_code=400, detail=f'Пользователь @{username} не найден среди клиентов бота. Попросите его сначала открыть бота, или добавьте по числовому ID.')
+
     admins = _load_admins()
-    if any(a['user_id'] == body.user_id for a in admins) or body.user_id in ADMIN_IDS:
+    all_ids = _get_all_admin_ids()
+    if user_id in all_ids:
         raise HTTPException(status_code=400, detail='Этот пользователь уже администратор')
 
     admins.append({
-        'user_id': body.user_id,
-        'username': body.username or '',
-        'first_name': body.first_name or '',
+        'user_id': user_id,
+        'username': username,
+        'first_name': first_name,
         'added_at': datetime.now(timezone.utc).isoformat(),
     })
     _save_admins(admins)
-    log.info('Admin added: %s', body.user_id)
+    log.info('Admin added: %s (@%s)', user_id, username)
     return {'ok': True}
 
 

@@ -551,6 +551,8 @@ function AdminsSection() {
     const [searching, setSearching] = useState(false)
     const [adding, setAdding] = useState(null)
     const [removing, setRemoving] = useState(null)
+    const [manualInput, setManualInput] = useState('')
+    const [manualAdding, setManualAdding] = useState(false)
     const searchTimer = useRef(null)
 
     const load = () => {
@@ -608,6 +610,29 @@ function AdminsSection() {
             alert(`Ошибка: ${err.message}`)
         } finally {
             setRemoving(null)
+        }
+    }
+
+    const handleManualAdd = async () => {
+        const val = manualInput.trim()
+        if (!val) return
+        setManualAdding(true)
+        try {
+            // Если число — добавляем по ID, иначе по username
+            const isNumeric = /^\d+$/.test(val)
+            if (isNumeric) {
+                await addAdmin(parseInt(val, 10), '', '')
+            } else {
+                // Убираем @ если есть
+                const username = val.replace(/^@/, '')
+                await addAdmin(null, username, '')
+            }
+            setManualInput('')
+            load()
+        } catch (err) {
+            alert(err.message)
+        } finally {
+            setManualAdding(false)
         }
     }
 
@@ -687,6 +712,25 @@ function AdminsSection() {
                 {query.trim() && !searching && results.length === 0 && (
                     <div className="admin-search-hint">Пользователь не найден среди клиентов бота</div>
                 )}
+            </div>
+
+            {/* Ручной ввод по @username или ID */}
+            <div className="section-subheader" style={{ marginTop: '0.75rem' }}>Или введите @username / ID</div>
+            <div className="glass-card admin-manual-add">
+                <input
+                    className="form-input"
+                    placeholder="@username или числовой ID"
+                    value={manualInput}
+                    onChange={e => setManualInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleManualAdd()}
+                />
+                <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handleManualAdd}
+                    disabled={manualAdding || !manualInput.trim()}
+                >
+                    {manualAdding ? '...' : 'Добавить'}
+                </button>
             </div>
         </div>
     )
