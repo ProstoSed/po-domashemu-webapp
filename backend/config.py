@@ -43,6 +43,9 @@ _photos_dir = os.getenv('PHOTOS_DIR', '../../data/photos')
 PHOTOS_DIR: Path = (BASE_DIR / _photos_dir).resolve()
 PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
 
+_admins_path = os.getenv('ADMINS_FILE', '../../data/admins.json')
+ADMINS_FILE: Path = (BASE_DIR / _admins_path).resolve()
+
 GOOGLE_SHEET_ID: str = os.getenv('GOOGLE_SHEET_ID', '13N8s8Bl3J_LFt_j96nZX-kUgXJ4nKq5gWj8u4U2PgfQ')
 
 # Автосоздание папки data/ и пустых JSON-файлов (для Render и свежих серверов)
@@ -51,6 +54,7 @@ _DATA_FILES = {
     USERS_FILE: {'users': {}},
     PHOTO_REQUESTS_FILE: {'requests': {}},
     HOLIDAYS_FILE: {'holidays': {}},
+    ADMINS_FILE: {'admins': []},
 }
 for _path, _default in _DATA_FILES.items():
     _path.parent.mkdir(parents=True, exist_ok=True)

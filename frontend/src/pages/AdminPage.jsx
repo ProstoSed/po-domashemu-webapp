@@ -1,6 +1,6 @@
 /**
  * AdminPage — панель управления для мамы.
- * Разделы: Заказы | Статистика | Клиенты | Фото-запросы | Рассылка
+ * Разделы: Заказы | Статистика | Клиенты | Админы | Напоминалки | Рассылка
  */
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -8,9 +8,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useTelegram } from '../hooks/useTelegram'
 import {
     fetchOrders, deleteOrder, updateOrderStatus,
-    fetchStats, fetchUsers, fetchPhotoRequests, sendBroadcast,
-    fetchReminders, remindSleeping, fulfillPhotoRequest, rejectPhotoRequest,
+    fetchStats, fetchUsers, sendBroadcast,
+    fetchReminders, remindSleeping,
     syncPrices, fetchUserOrders,
+    fetchAdmins, addAdmin, removeAdmin, searchUsers,
 } from '../utils/api'
 import './AdminPage.css'
 
@@ -35,7 +36,7 @@ const SECTIONS_ROW1 = [
     { key: 'users',     label: '👥 Клиенты' },
 ]
 const SECTIONS_ROW2 = [
-    { key: 'photos',    label: '📷 Фото' },
+    { key: 'admins',    label: '👑 Админы' },
     { key: 'reminders', label: '⏰ Напоминалки' },
     { key: 'broadcast', label: '📨 Рассылка' },
 ]
@@ -538,145 +539,155 @@ function UsersSection() {
 }
 
 // ──────────────────────────────────────────
-// Секция: Запросы на фото
+// Секция: Администраторы
 // ──────────────────────────────────────────
 
-const PHOTO_STATUS = {
-    open:      { text: 'Ожидает',  cls: 'status-new' },
-    fulfilled: { text: 'Выполнен', cls: 'status-closed' },
-    rejected:  { text: 'Отклонён', cls: 'status-delivery' },
-}
-
-function PhotoRequestsSection() {
-    const [requests, setRequests] = useState([])
+function AdminsSection() {
+    const [admins, setAdmins] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
-    const [acting, setActing] = useState({}) // reqId → 'fulfilling'|'rejecting'
-    const fileInputRef = useRef(null)
-    const pendingReqId = useRef(null)
+    const [query, setQuery] = useState('')
+    const [results, setResults] = useState([])
+    const [searching, setSearching] = useState(false)
+    const [adding, setAdding] = useState(null)
+    const [removing, setRemoving] = useState(null)
+    const searchTimer = useRef(null)
 
     const load = () => {
         setLoading(true)
         setError(null)
-        fetchPhotoRequests()
-            .then(d => setRequests(d.requests || []))
+        fetchAdmins()
+            .then(d => setAdmins(d.admins || []))
             .catch(e => setError(e.message))
             .finally(() => setLoading(false))
     }
     useEffect(load, [])
 
-    const handleFulfillClick = (reqId) => {
-        pendingReqId.current = reqId
-        fileInputRef.current?.click()
+    const handleSearch = (val) => {
+        setQuery(val)
+        clearTimeout(searchTimer.current)
+        if (!val.trim()) {
+            setResults([])
+            return
+        }
+        searchTimer.current = setTimeout(async () => {
+            setSearching(true)
+            try {
+                const d = await searchUsers(val.trim())
+                const adminIds = new Set(admins.map(a => a.user_id))
+                setResults((d.users || []).filter(u => !adminIds.has(u.user_id)))
+            } catch {
+                setResults([])
+            } finally {
+                setSearching(false)
+            }
+        }, 400)
     }
 
-    const handleFileChosen = async (e) => {
-        const file = e.target.files?.[0]
-        const reqId = pendingReqId.current
-        e.target.value = ''
-        if (!file || !reqId) return
-
-        setActing(prev => ({ ...prev, [reqId]: 'fulfilling' }))
+    const handleAdd = async (user) => {
+        setAdding(user.user_id)
         try {
-            await fulfillPhotoRequest(reqId, file)
-            setRequests(prev => prev.map(r =>
-                r.req_id === reqId ? { ...r, status: 'fulfilled' } : r
-            ))
+            await addAdmin(user.user_id, user.username, user.first_name)
+            setQuery('')
+            setResults([])
+            load()
         } catch (err) {
             alert(`Ошибка: ${err.message}`)
         } finally {
-            setActing(prev => ({ ...prev, [reqId]: null }))
+            setAdding(null)
         }
     }
 
-    const handleReject = async (reqId) => {
-        if (!window.confirm('Отклонить этот запрос? Пользователь получит уведомление.')) return
-        setActing(prev => ({ ...prev, [reqId]: 'rejecting' }))
+    const handleRemove = async (userId) => {
+        if (!window.confirm('Убрать этого администратора?')) return
+        setRemoving(userId)
         try {
-            await rejectPhotoRequest(reqId)
-            setRequests(prev => prev.map(r =>
-                r.req_id === reqId ? { ...r, status: 'rejected' } : r
-            ))
+            await removeAdmin(userId)
+            load()
         } catch (err) {
             alert(`Ошибка: ${err.message}`)
         } finally {
-            setActing(prev => ({ ...prev, [reqId]: null }))
+            setRemoving(null)
         }
     }
 
-    if (loading) return <Spinner text="Загружаем запросы..." />
+    if (loading) return <Spinner text="Загружаем админов..." />
     if (error) return <ErrorBox msg={error} onRetry={load} />
-    if (requests.length === 0) return <EmptyBox emoji="📷" text="Запросов на фото нет" />
-
-    const open = requests.filter(r => r.status === 'open')
-    const done = requests.filter(r => r.status !== 'open')
-
-    const RequestCard = ({ r }) => {
-        const ps = PHOTO_STATUS[r.status] || { text: r.status, cls: '' }
-        const isOpen = r.status === 'open'
-        const busy = acting[r.req_id]
-
-        return (
-            <div className="photo-card glass-card">
-                <div className="photo-card-header">
-                    <span className="order-id">{r.req_id}</span>
-                    <span className={`order-status ${ps.cls}`}>{ps.text}</span>
-                </div>
-                <div className="photo-card-item">📷 {r.item_name}</div>
-                <div className="photo-card-user">
-                    👤 {r.first_name}{r.username ? ` (@${r.username})` : ''}
-                </div>
-                <div className="photo-card-date">
-                    🕐 {(r.created_at || '').slice(0, 10)}
-                </div>
-                {isOpen && (
-                    <div className="photo-card-actions">
-                        <button
-                            className="btn btn-success btn-sm"
-                            onClick={() => handleFulfillClick(r.req_id)}
-                            disabled={!!busy}
-                        >
-                            {busy === 'fulfilling' ? '⏳ Отправка...' : '📤 Отправить фото'}
-                        </button>
-                        <button
-                            className="btn btn-danger btn-sm"
-                            onClick={() => handleReject(r.req_id)}
-                            disabled={!!busy}
-                        >
-                            {busy === 'rejecting' ? '⏳...' : '❌ Отклонить'}
-                        </button>
-                    </div>
-                )}
-            </div>
-        )
-    }
 
     return (
-        <div className="photos-section">
-            {/* Скрытый input для выбора файла */}
-            <input
-                type="file"
-                accept="image/*"
-                ref={fileInputRef}
-                style={{ display: 'none' }}
-                onChange={handleFileChosen}
-            />
+        <div className="admins-section">
+            <p className="section-count">Администраторов: <b>{admins.length}</b></p>
 
-            <p className="section-count">
-                Запросов: <b>{requests.length}</b> · открытых: <b>{open.length}</b>
-            </p>
-            {open.length > 0 && (
-                <>
-                    <div className="section-subheader">Ожидают ответа</div>
-                    {open.map(r => <RequestCard key={r.req_id} r={r} />)}
-                </>
-            )}
-            {done.length > 0 && (
-                <>
-                    <div className="section-subheader">Выполненные</div>
-                    {done.map(r => <RequestCard key={r.req_id} r={r} />)}
-                </>
-            )}
+            {/* Список текущих админов */}
+            <div className="admins-list">
+                {admins.map(a => (
+                    <div key={a.user_id} className="admin-card glass-card">
+                        <div className="admin-card-avatar">
+                            {a.is_mama ? '👑' : '🛡️'}
+                        </div>
+                        <div className="admin-card-info">
+                            <div className="admin-card-name">
+                                {a.first_name || `ID ${a.user_id}`}
+                                {a.username && (
+                                    <span className="admin-card-username"> @{a.username}</span>
+                                )}
+                            </div>
+                            <div className="admin-card-meta">
+                                ID: {a.user_id}
+                                {a.is_static && <span className="admin-badge-static"> .env</span>}
+                                {a.is_mama && <span className="admin-badge-mama"> Владелец</span>}
+                            </div>
+                        </div>
+                        {!a.is_static && !a.is_mama && (
+                            <button
+                                className="btn-remove-admin"
+                                onClick={() => handleRemove(a.user_id)}
+                                disabled={removing === a.user_id}
+                                title="Убрать админа"
+                            >
+                                {removing === a.user_id ? '...' : '✕'}
+                            </button>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {/* Добавить нового админа */}
+            <div className="section-subheader" style={{ marginTop: '1rem' }}>Добавить администратора</div>
+            <div className="glass-card" style={{ padding: '0.75rem' }}>
+                <input
+                    className="form-input"
+                    placeholder="Поиск по имени или @username..."
+                    value={query}
+                    onChange={e => handleSearch(e.target.value)}
+                />
+                {searching && <div className="admin-search-hint">Поиск...</div>}
+                {results.length > 0 && (
+                    <div className="admin-search-results">
+                        {results.map(u => (
+                            <div
+                                key={u.user_id}
+                                className="admin-search-item"
+                                onClick={() => handleAdd(u)}
+                            >
+                                <div className="admin-search-item-name">
+                                    {u.first_name} {u.last_name || ''}
+                                    {u.username && <span className="admin-card-username"> @{u.username}</span>}
+                                </div>
+                                <button
+                                    className="btn btn-success btn-sm"
+                                    disabled={adding === u.user_id}
+                                >
+                                    {adding === u.user_id ? '...' : '+ Добавить'}
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+                {query.trim() && !searching && results.length === 0 && (
+                    <div className="admin-search-hint">Пользователь не найден среди клиентов бота</div>
+                )}
+            </div>
         </div>
     )
 }
@@ -1091,7 +1102,7 @@ export default function AdminPage() {
 
             {section === 'stats'     && <StatsSection />}
             {section === 'users'     && <UsersSection />}
-            {section === 'photos'    && <PhotoRequestsSection />}
+            {section === 'admins'    && <AdminsSection />}
             {section === 'reminders' && <RemindersSection />}
             {section === 'broadcast' && <BroadcastSection />}
         </div>

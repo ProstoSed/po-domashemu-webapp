@@ -160,6 +160,31 @@ export async function fetchUserOrders(userId) {
     })
 }
 
+export async function fetchAdmins() {
+    return apiFetch('/api/admin/admins', { headers: adminHeaders() })
+}
+
+export async function addAdmin(userId, username, firstName) {
+    return apiFetch('/api/admin/admins', {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify({ user_id: userId, username, first_name: firstName }),
+    })
+}
+
+export async function removeAdmin(userId) {
+    return apiFetch(`/api/admin/admins/${userId}`, {
+        method: 'DELETE',
+        headers: adminHeaders(),
+    })
+}
+
+export async function searchUsers(query) {
+    return apiFetch(`/api/admin/users-search?q=${encodeURIComponent(query)}`, {
+        headers: adminHeaders(),
+    })
+}
+
 // ── Клиент (требуют initData пользователя) ──
 
 function userHeaders() {

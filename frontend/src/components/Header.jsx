@@ -37,39 +37,50 @@ export default function Header() {
 
     // Скрытие навигации при скролле вниз, показ при скролле вверх
     const [navHidden, setNavHidden] = useState(false)
-    const stateChangeY = useRef(0)  // Y-позиция последнего переключения
+    const stateRef = useRef({ anchorY: 0, hidden: false, cooldown: false })
 
     useEffect(() => {
-        const HIDE_AFTER = 50  // px вниз от точки переключения
-        const SHOW_AFTER = 30  // px вверх от точки переключения
+        const HIDE_AFTER = 60
+        const SHOW_AFTER = 35
+        const COOLDOWN_MS = 350  // игнорировать скролл после переключения (layout shift)
 
         const onScroll = () => {
+            const st = stateRef.current
+            if (st.cooldown) return
+
             const y = window.scrollY
 
             // У самого верха — всегда показывать
-            if (y < 60) {
-                if (navHidden) {
+            if (y < 50) {
+                if (st.hidden) {
+                    st.hidden = false
+                    st.anchorY = y
+                    st.cooldown = true
                     setNavHidden(false)
-                    stateChangeY.current = y
+                    setTimeout(() => { st.cooldown = false }, COOLDOWN_MS)
                 }
                 return
             }
 
-            const delta = y - stateChangeY.current
+            const delta = y - st.anchorY
 
-            if (!navHidden && delta > HIDE_AFTER) {
-                // Скроллим вниз достаточно далеко — скрываем
+            if (!st.hidden && delta > HIDE_AFTER) {
+                st.hidden = true
+                st.anchorY = y
+                st.cooldown = true
                 setNavHidden(true)
-                stateChangeY.current = y
-            } else if (navHidden && delta < -SHOW_AFTER) {
-                // Скроллим вверх достаточно далеко — показываем
+                setTimeout(() => { st.cooldown = false }, COOLDOWN_MS)
+            } else if (st.hidden && delta < -SHOW_AFTER) {
+                st.hidden = false
+                st.anchorY = y
+                st.cooldown = true
                 setNavHidden(false)
-                stateChangeY.current = y
+                setTimeout(() => { st.cooldown = false }, COOLDOWN_MS)
             }
         }
         window.addEventListener('scroll', onScroll, { passive: true })
         return () => window.removeEventListener('scroll', onScroll)
-    }, [navHidden])
+    }, [])
 
     return (
         <header className="header">

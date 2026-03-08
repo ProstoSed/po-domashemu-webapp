@@ -42,7 +42,7 @@ from pydantic import BaseModel
 
 from fastapi.responses import FileResponse
 
-from config import PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE, PHOTO_REQUESTS_FILE, HOLIDAYS_FILE, PHOTOS_DIR, GOOGLE_SHEET_ID, DEV_MODE, DEV_USER_ID, MAMA_CHAT_ID
+from config import PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE, PHOTO_REQUESTS_FILE, HOLIDAYS_FILE, PHOTOS_DIR, GOOGLE_SHEET_ID, DEV_MODE, DEV_USER_ID, MAMA_CHAT_ID, ADMINS_FILE
 
 log = logging.getLogger(__name__)
 app = FastAPI(title='По-домашнему API', version='1.3')
@@ -87,6 +87,12 @@ class PhotoRequestBody(BaseModel):
 
 class RemindBody(BaseModel):
     text: str
+
+
+class AddAdminBody(BaseModel):
+    user_id: int
+    username: str | None = None
+    first_name: str | None = None
 
 
 # ──────────────────────────────────────────────
@@ -280,10 +286,17 @@ def verify_initdata(init_data: str) -> dict | None:
         return None
 
 
+def _is_admin(user_id: int) -> bool:
+    """Проверить, является ли user_id администратором (статические + динамические)."""
+    if user_id in ADMIN_IDS:
+        return True
+    return any(a['user_id'] == user_id for a in _load_admins())
+
+
 def require_admin(x_init_data: str | None) -> None:
-    """Кидает 403 если запрос не от мамы."""
+    """Кидает 403 если запрос не от админа."""
     if DEV_MODE and not x_init_data:
-        if DEV_USER_ID not in ADMIN_IDS:
+        if not _is_admin(DEV_USER_ID):
             raise HTTPException(status_code=403, detail='Доступ запрещён')
         return
     if not x_init_data:
@@ -291,7 +304,7 @@ def require_admin(x_init_data: str | None) -> None:
     user = verify_initdata(x_init_data)
     if not user:
         raise HTTPException(status_code=403, detail='Неверная подпись')
-    if user.get('id') not in ADMIN_IDS:
+    if not _is_admin(user.get('id', 0)):
         raise HTTPException(status_code=403, detail='Доступ запрещён')
 
 
@@ -1284,3 +1297,144 @@ async def admin_get_user_orders(
     ]
     user_orders.sort(key=lambda o: o.get('created_at', ''), reverse=True)
     return {'orders': user_orders, 'total': len(user_orders)}
+
+
+# ── Управление администраторами ──────────────────────────────────────────────
+
+def _load_admins() -> list[dict]:
+    """Загрузить список динамических админов из admins.json."""
+    try:
+        data = json.loads(ADMINS_FILE.read_text(encoding='utf-8'))
+        return data.get('admins', [])
+    except Exception:
+        return []
+
+
+def _save_admins(admins: list[dict]):
+    """Сохранить список динамических админов."""
+    ADMINS_FILE.write_text(
+        json.dumps({'admins': admins}, ensure_ascii=False, indent=2),
+        encoding='utf-8',
+    )
+
+
+def _get_all_admin_ids() -> set[int]:
+    """Все ID админов: из .env + динамические из admins.json."""
+    ids = set(ADMIN_IDS)
+    for a in _load_admins():
+        ids.add(a['user_id'])
+    return ids
+
+
+@app.get('/api/admin/admins')
+async def admin_list_admins(x_init_data: str | None = Header(default=None)) -> dict:
+    """Список всех администраторов."""
+    require_admin(x_init_data)
+
+    # Статические админы из .env
+    static_ids = set(ADMIN_IDS)
+    dynamic_admins = _load_admins()
+    dynamic_ids = {a['user_id'] for a in dynamic_admins}
+
+    # Подтянем инфо о пользователях из users.json
+    users_data = {}
+    try:
+        raw = json.loads(USERS_FILE.read_text(encoding='utf-8'))
+        users_dict = raw if isinstance(raw, dict) and 'users' in raw else {}
+        users_data = users_dict.get('users', {})
+    except Exception:
+        pass
+
+    result = []
+    for uid in static_ids | dynamic_ids:
+        user_info = users_data.get(str(uid), {})
+        result.append({
+            'user_id': uid,
+            'username': user_info.get('username', ''),
+            'first_name': user_info.get('first_name', ''),
+            'is_static': uid in static_ids,
+            'is_mama': uid == MAMA_CHAT_ID,
+        })
+
+    # Мама первой, потом по имени
+    result.sort(key=lambda a: (0 if a['is_mama'] else 1, a.get('first_name', '')))
+    return {'admins': result}
+
+
+@app.post('/api/admin/admins')
+async def admin_add_admin(
+    body: AddAdminBody,
+    x_init_data: str | None = Header(default=None),
+) -> dict:
+    """Добавить нового администратора."""
+    require_admin(x_init_data)
+
+    admins = _load_admins()
+    if any(a['user_id'] == body.user_id for a in admins) or body.user_id in ADMIN_IDS:
+        raise HTTPException(status_code=400, detail='Этот пользователь уже администратор')
+
+    admins.append({
+        'user_id': body.user_id,
+        'username': body.username or '',
+        'first_name': body.first_name or '',
+        'added_at': datetime.now(timezone.utc).isoformat(),
+    })
+    _save_admins(admins)
+    log.info('Admin added: %s', body.user_id)
+    return {'ok': True}
+
+
+@app.delete('/api/admin/admins/{user_id}')
+async def admin_remove_admin(
+    user_id: int,
+    x_init_data: str | None = Header(default=None),
+) -> dict:
+    """Убрать администратора (только динамических, не из .env)."""
+    require_admin(x_init_data)
+
+    if user_id == MAMA_CHAT_ID:
+        raise HTTPException(status_code=400, detail='Нельзя убрать маму из админов')
+    if user_id in ADMIN_IDS:
+        raise HTTPException(status_code=400, detail='Этот админ задан в настройках сервера (.env), нельзя убрать через UI')
+
+    admins = _load_admins()
+    new_admins = [a for a in admins if a['user_id'] != user_id]
+    if len(new_admins) == len(admins):
+        raise HTTPException(status_code=404, detail='Админ не найден')
+
+    _save_admins(new_admins)
+    log.info('Admin removed: %s', user_id)
+    return {'ok': True}
+
+
+@app.get('/api/admin/users-search')
+async def admin_search_users(
+    q: str = '',
+    x_init_data: str | None = Header(default=None),
+) -> dict:
+    """Поиск пользователей по имени/username для выдачи админки."""
+    require_admin(x_init_data)
+
+    try:
+        raw = json.loads(USERS_FILE.read_text(encoding='utf-8'))
+        users_dict = raw.get('users', {}) if isinstance(raw, dict) else {}
+    except Exception:
+        users_dict = {}
+
+    query = q.lower().strip().lstrip('@')
+    results = []
+    for uid_str, u in users_dict.items():
+        name = (u.get('first_name', '') + ' ' + u.get('last_name', '')).strip().lower()
+        username = (u.get('username', '') or '').lower()
+        if query and query not in name and query not in username and query != uid_str:
+            continue
+        results.append({
+            'user_id': int(uid_str) if uid_str.isdigit() else 0,
+            'username': u.get('username', ''),
+            'first_name': u.get('first_name', ''),
+            'last_name': u.get('last_name', ''),
+        })
+        if len(results) >= 20:
+            break
+
+    return {'users': results}

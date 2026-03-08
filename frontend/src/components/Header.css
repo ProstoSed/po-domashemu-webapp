@@ -12,6 +12,7 @@
        при backdrop-filter + position:sticky на iOS WebKit */
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
+    contain: layout style;
 }
 
 .header-content {
@@ -31,33 +32,34 @@
 .header-logo::after {
     content: '';
     position: absolute;
-    width: 6px;
-    height: 6px;
-    background: rgba(180, 160, 140, 0.5);
+    width: 8px;
+    height: 8px;
+    background: rgba(160, 140, 120, 0.7);
     border-radius: 50%;
-    filter: blur(2px);
-    animation: steam 2.2s ease-out infinite;
+    filter: blur(2.5px);
+    animation: steam 2.4s ease-out infinite;
     pointer-events: none;
 }
 
 .header-logo::before {
-    top: -2px;
+    top: 2px;
     left: 50%;
     transform: translateX(-50%);
 }
 
 .header-logo::after {
-    top: 0;
-    left: 40%;
-    animation-delay: 0.8s;
-    width: 5px;
-    height: 5px;
+    top: 4px;
+    left: 38%;
+    animation-delay: 0.9s;
+    width: 7px;
+    height: 7px;
 }
 
 @keyframes steam {
     0% { opacity: 0; transform: translateY(0) translateX(-50%) scaleX(1); }
-    30% { opacity: 0.6; }
-    100% { opacity: 0; transform: translateY(-16px) translateX(-50%) scaleX(1.8); }
+    20% { opacity: 0.8; }
+    50% { opacity: 0.5; }
+    100% { opacity: 0; transform: translateY(-20px) translateX(-50%) scaleX(2); }
 }
 
 .header-title {
@@ -101,7 +103,7 @@
     font-size: var(--font-size-xs);
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.18s;
+    transition: background 0.18s, color 0.18s;
     font-family: var(--font-family);
     white-space: nowrap;
 }
@@ -117,17 +119,17 @@
     flex-direction: column;
     gap: 0.25rem;
     margin-top: 0.4rem;
-    max-height: 200px;
+    transform-origin: top center;
+    transform: scaleY(1);
     opacity: 1;
-    overflow: hidden;
-    transition: max-height 0.35s ease, opacity 0.25s ease;
+    transition: transform 0.28s cubic-bezier(.4,0,.2,1), opacity 0.22s ease;
+    will-change: transform, opacity;
 }
 
 .header-nav-wrap.nav-hidden {
-    max-height: 0;
+    transform: scaleY(0);
     opacity: 0;
-    margin-top: 0;
-    gap: 0;
+    pointer-events: none;
 }
 
 .header-panel-title {
@@ -158,10 +160,11 @@
     font-size: var(--font-size-sm);
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.18s;
+    transition: background 0.18s, color 0.18s;
     white-space: nowrap;
     font-family: var(--font-family);
     text-align: center;
+    will-change: background, color;
 }
 
 .header-grid-btn.active {
@@ -185,6 +188,7 @@
 .header-baking-anim::before {
     content: '';
     position: absolute;
+    top: 4px;
     width: 4px;
     height: 4px;
     animation: baking-cycle 9s steps(1) infinite;
