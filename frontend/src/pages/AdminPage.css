@@ -528,13 +528,12 @@
     opacity: 0.7;
 }
 
-.admin-manual-add {
+.admin-add-row {
     display: flex;
     gap: 0.5rem;
     align-items: center;
-    padding: 0.6rem 0.75rem;
 }
-.admin-manual-add .form-input {
+.admin-add-row .form-input {
     flex: 1;
     margin: 0;
 }
