@@ -239,9 +239,23 @@
     font-weight: 500;
     cursor: pointer;
     transition: background 0.18s, color 0.18s, border-color 0.18s;
-    white-space: nowrap;
     text-align: center;
     min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-family);
+}
+
+@media (max-width: 389px) {
+    .admin-sections-wrap {
+        gap: 0.25rem;
+    }
+    .admin-section-btn {
+        font-size: 0.72rem;
+        padding: 0.4rem 0.15rem;
+        border-radius: 16px;
+    }
 }
 .admin-section-btn.active {
     background: var(--color-primary);
