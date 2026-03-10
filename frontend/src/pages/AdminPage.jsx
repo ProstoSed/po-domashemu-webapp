@@ -465,18 +465,33 @@ function UsersSection() {
                                     ) : orders.length === 0 ? (
                                         <div className="tree-empty">Заказов нет</div>
                                     ) : (
-                                        orders.map(order => {
+                                        orders.map((order, orderIdx) => {
                                             const isOrderExp = expandedOrder === order.order_id
                                             const st = STATUS_LABEL[order.status] || { text: order.status, cls: '' }
                                             const total = order.totals?.grand_total ?? order.total ?? 0
+                                            const isLastOrder = orderIdx === orders.length - 1
+
+                                            /* Собираем строки деталей для определения последнего */
+                                            const detailRows = []
+                                            ;(order.items || []).forEach((it, i) => {
+                                                detailRows.push({ type: 'item', it, i })
+                                            })
+                                            if (order.schedule?.date)
+                                                detailRows.push({ type: 'date', value: order.schedule.date })
+                                            if (order.delivery?.address)
+                                                detailRows.push({ type: 'addr', value: order.delivery.address })
+                                            if (order.payment?.method)
+                                                detailRows.push({ type: 'pay', value: order.payment.method })
 
                                             return (
-                                                <div key={order.order_id} className="tree-order-node">
+                                                <div
+                                                    key={order.order_id}
+                                                    className={`tree-order-node${isLastOrder ? ' tree-order-node--last' : ''}`}
+                                                >
                                                     <div
                                                         className="tree-order-header"
                                                         onClick={() => setExpandedOrder(isOrderExp ? null : order.order_id)}
                                                     >
-                                                        <span className="tree-line" />
                                                         <span className="tree-order-id">{order.order_id}</span>
                                                         <span className={`order-status ${st.cls}`}>{st.text}</span>
                                                         <span className="tree-order-total">
@@ -493,34 +508,29 @@ function UsersSection() {
                                                                 animate={{ height: 'auto', opacity: 1 }}
                                                                 exit={{ height: 0, opacity: 0 }}
                                                             >
-                                                                {(order.items || []).map((it, i) => (
-                                                                    <div key={i} className="tree-item-row">
-                                                                        <span className="tree-line tree-line--deep" />
-                                                                        <span>{it.name}</span>
-                                                                        <span className="tree-item-qty">
-                                                                            {it.quantity || 1} {it.unit || 'шт'}
-                                                                            {it.total ? ` = ${it.total.toLocaleString('ru')} ₽` : ''}
-                                                                        </span>
-                                                                    </div>
-                                                                ))}
-                                                                {order.schedule?.date && (
-                                                                    <div className="tree-detail-row">
-                                                                        <span className="tree-line tree-line--deep" />
-                                                                        📅 {order.schedule.date}
-                                                                    </div>
-                                                                )}
-                                                                {order.delivery?.address && (
-                                                                    <div className="tree-detail-row">
-                                                                        <span className="tree-line tree-line--deep" />
-                                                                        📍 {order.delivery.address}
-                                                                    </div>
-                                                                )}
-                                                                {order.payment?.method && (
-                                                                    <div className="tree-detail-row">
-                                                                        <span className="tree-line tree-line--deep" />
-                                                                        💳 {order.payment.method === 'cash' ? 'Наличные' : 'Перевод'}
-                                                                    </div>
-                                                                )}
+                                                                {detailRows.map((row, ri) => {
+                                                                    const isLast = ri === detailRows.length - 1
+                                                                    const cls = `tree-detail-row${isLast ? ' tree-detail-row--last' : ''}`
+                                                                    if (row.type === 'item') return (
+                                                                        <div key={`item-${row.i}`} className={`tree-item-row${isLast ? ' tree-detail-row--last' : ''}`}>
+                                                                            <span>{row.it.name}</span>
+                                                                            <span className="tree-item-qty">
+                                                                                {row.it.quantity || 1} {row.it.unit || 'шт'}
+                                                                                {row.it.total ? ` = ${row.it.total.toLocaleString('ru')} ₽` : ''}
+                                                                            </span>
+                                                                        </div>
+                                                                    )
+                                                                    if (row.type === 'date') return (
+                                                                        <div key="date" className={cls}>📅 {row.value}</div>
+                                                                    )
+                                                                    if (row.type === 'addr') return (
+                                                                        <div key="addr" className={cls}>📍 {row.value}</div>
+                                                                    )
+                                                                    if (row.type === 'pay') return (
+                                                                        <div key="pay" className={cls}>💳 {row.value === 'cash' ? 'Наличные' : 'Перевод'}</div>
+                                                                    )
+                                                                    return null
+                                                                })}
                                                             </motion.div>
                                                         )}
                                                     </AnimatePresence>
