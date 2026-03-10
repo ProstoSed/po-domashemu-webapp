@@ -5,6 +5,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import { useTelegram } from '../hooks/useTelegram'
 import {
     fetchOrders, deleteOrder, updateOrderStatus,
@@ -310,6 +311,183 @@ function OrderCard({ order, onStatusChange, onDelete }) {
 // Секция: Статистика
 // ──────────────────────────────────────────
 
+/** Хелпер: все дни от start до end включительно */
+function getDaysInRange(startDate, endDate) {
+    const days = []
+    const d = new Date(startDate)
+    const end = new Date(endDate)
+    while (d <= end) {
+        days.push(d.toISOString().slice(0, 10))
+        d.setDate(d.getDate() + 1)
+    }
+    return days
+}
+
+/** Хелпер: первый и последний день месяца */
+function getMonthRange(year, month) {
+    const start = new Date(year, month, 1)
+    const end = new Date(year, month + 1, 0)
+    return [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)]
+}
+
+const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+    'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
+
+function OrdersChart({ ordersByDate }) {
+    const now = new Date()
+    const [mode, setMode] = useState('month') // 'month' | 'preset' | 'custom'
+    const [selYear, setSelYear] = useState(now.getFullYear())
+    const [selMonth, setSelMonth] = useState(now.getMonth())
+    const [preset, setPreset] = useState('30')
+    const [customFrom, setCustomFrom] = useState('')
+    const [customTo, setCustomTo] = useState('')
+
+    const chartData = useMemo(() => {
+        let startStr, endStr
+
+        if (mode === 'month') {
+            ;[startStr, endStr] = getMonthRange(selYear, selMonth)
+        } else if (mode === 'preset') {
+            const days = parseInt(preset, 10)
+            const end = new Date()
+            const start = new Date()
+            start.setDate(start.getDate() - days + 1)
+            startStr = start.toISOString().slice(0, 10)
+            endStr = end.toISOString().slice(0, 10)
+        } else {
+            if (!customFrom || !customTo) return []
+            startStr = customFrom
+            endStr = customTo
+        }
+
+        const allDays = getDaysInRange(startStr, endStr)
+        return allDays.map(day => ({
+            date: day,
+            label: day.slice(8, 10) + '.' + day.slice(5, 7),
+            orders: ordersByDate[day] || 0,
+        }))
+    }, [mode, selYear, selMonth, preset, customFrom, customTo, ordersByDate])
+
+    // Доступные годы из данных
+    const years = useMemo(() => {
+        const yrs = new Set()
+        Object.keys(ordersByDate).forEach(d => yrs.add(parseInt(d.slice(0, 4), 10)))
+        yrs.add(now.getFullYear())
+        return [...yrs].sort()
+    }, [ordersByDate])
+
+    const totalInRange = chartData.reduce((s, d) => s + d.orders, 0)
+
+    // Навигация месяцев
+    const prevMonth = () => {
+        if (selMonth === 0) { setSelMonth(11); setSelYear(y => y - 1) }
+        else setSelMonth(m => m - 1)
+    }
+    const nextMonth = () => {
+        if (selMonth === 11) { setSelMonth(0); setSelYear(y => y + 1) }
+        else setSelMonth(m => m + 1)
+    }
+
+    return (
+        <div className="stats-row glass-card chart-section">
+            <div className="stats-row-title">📈 Заказы по дням</div>
+
+            {/* Переключатель режима */}
+            <div className="chart-mode-tabs">
+                <button className={`chart-mode-btn ${mode === 'month' ? 'active' : ''}`}
+                    onClick={() => setMode('month')}>Месяц</button>
+                <button className={`chart-mode-btn ${mode === 'preset' ? 'active' : ''}`}
+                    onClick={() => setMode('preset')}>Период</button>
+                <button className={`chart-mode-btn ${mode === 'custom' ? 'active' : ''}`}
+                    onClick={() => setMode('custom')}>Даты</button>
+            </div>
+
+            {/* Месяц: навигация */}
+            {mode === 'month' && (
+                <div className="chart-month-nav">
+                    <button className="chart-nav-btn" onClick={prevMonth}>‹</button>
+                    <span className="chart-month-label">
+                        {MONTH_NAMES[selMonth]} {selYear}
+                    </span>
+                    <button className="chart-nav-btn" onClick={nextMonth}>›</button>
+                </div>
+            )}
+
+            {/* Пресеты */}
+            {mode === 'preset' && (
+                <div className="chart-presets">
+                    {[['7', '7 дней'], ['14', '14 дней'], ['30', '30 дней'], ['90', '3 мес']].map(([val, label]) => (
+                        <button key={val}
+                            className={`chart-preset-btn ${preset === val ? 'active' : ''}`}
+                            onClick={() => setPreset(val)}
+                        >{label}</button>
+                    ))}
+                </div>
+            )}
+
+            {/* Кастомный диапазон */}
+            {mode === 'custom' && (
+                <div className="chart-custom-range">
+                    <label>
+                        <span>От</span>
+                        <input type="date" value={customFrom}
+                            onChange={e => setCustomFrom(e.target.value)} />
+                    </label>
+                    <label>
+                        <span>До</span>
+                        <input type="date" value={customTo}
+                            onChange={e => setCustomTo(e.target.value)} />
+                    </label>
+                </div>
+            )}
+
+            {/* Сумма за период */}
+            {chartData.length > 0 && (
+                <div className="chart-total">
+                    Заказов за период: <b>{totalInRange}</b>
+                </div>
+            )}
+
+            {/* График */}
+            {chartData.length > 0 ? (
+                <div className="chart-container">
+                    <ResponsiveContainer width="100%" height={220}>
+                        <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                            <XAxis
+                                dataKey="label"
+                                tick={{ fontSize: 11 }}
+                                interval={chartData.length > 15 ? Math.floor(chartData.length / 8) : 0}
+                            />
+                            <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                            <Tooltip
+                                contentStyle={{
+                                    background: 'var(--color-surface)',
+                                    border: '1px solid var(--color-border)',
+                                    borderRadius: 8,
+                                    fontSize: '0.82rem',
+                                }}
+                                formatter={(val) => [`${val} шт`, 'Заказов']}
+                                labelFormatter={(label) => `📅 ${label}`}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="orders"
+                                stroke="var(--color-primary)"
+                                strokeWidth={2.5}
+                                dot={{ r: chartData.length > 20 ? 0 : 3, fill: 'var(--color-primary)' }}
+                                activeDot={{ r: 5, fill: 'var(--color-primary-dark)' }}
+                            />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+            ) : (
+                <div className="chart-empty">Выберите диапазон дат</div>
+            )}
+        </div>
+    )
+}
+
 function StatsSection() {
     const [stats, setStats] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -331,6 +509,7 @@ function StatsSection() {
     const {
         total_orders = 0, total_revenue = 0, avg_check = 0,
         users_count = 0, status_counts = {}, top_items = [],
+        orders_by_date = {},
     } = stats
 
     return (
@@ -358,20 +537,25 @@ function StatsSection() {
                 </div>
             </div>
 
-            {/* Заказы по статусам */}
+            {/* Заказы по статусам — горизонтальная строка */}
             {Object.keys(status_counts).length > 0 && (
                 <div className="stats-row glass-card">
                     <div className="stats-row-title">По статусам</div>
-                    {Object.entries(STATUS_LABEL).map(([key, info]) =>
-                        (status_counts[key] || 0) > 0 ? (
-                            <div key={key} className="stats-status-row">
-                                <span className={`order-status ${info.cls}`}>{info.text}</span>
-                                <span className="stats-count">{status_counts[key]}</span>
-                            </div>
-                        ) : null
-                    )}
+                    <div className="stats-status-wrap">
+                        {Object.entries(STATUS_LABEL).map(([key, info]) =>
+                            (status_counts[key] || 0) > 0 ? (
+                                <div key={key} className="stats-status-chip">
+                                    <span className={`order-status ${info.cls}`}>{info.text}</span>
+                                    <span className="stats-count">{status_counts[key]}</span>
+                                </div>
+                            ) : null
+                        )}
+                    </div>
                 </div>
             )}
+
+            {/* График заказов по дням */}
+            <OrdersChart ordersByDate={orders_by_date} />
 
             {/* Топ товаров */}
             {top_items.length > 0 && (

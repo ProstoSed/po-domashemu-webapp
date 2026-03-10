@@ -1002,6 +1002,13 @@ async def admin_get_stats(x_init_data: str | None = Header(default=None)) -> dic
             item_counts[name] = item_counts.get(name, 0) + (qty if isinstance(qty, (int, float)) else 1)
     top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:5]
 
+    # Заказы по дням (для графика)
+    orders_by_date: dict = {}
+    for o in orders:
+        date_str = (o.get('created_at') or '')[:10]  # 'YYYY-MM-DD'
+        if date_str:
+            orders_by_date[date_str] = orders_by_date.get(date_str, 0) + 1
+
     return {
         'total_orders': len(orders),
         'total_revenue': total_revenue,
@@ -1009,6 +1016,7 @@ async def admin_get_stats(x_init_data: str | None = Header(default=None)) -> dic
         'users_count': len(users),
         'status_counts': status_counts,
         'top_items': [{'name': n, 'count': round(c, 1)} for n, c in top_items],
+        'orders_by_date': orders_by_date,
     }
 
 
