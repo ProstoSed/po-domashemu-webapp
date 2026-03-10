@@ -37,49 +37,62 @@ export default function Header() {
 
     // Скрытие навигации при скролле вниз, показ при скролле вверх
     const [navHidden, setNavHidden] = useState(false)
-    const stateRef = useRef({ anchorY: 0, hidden: false, cooldown: false })
+    const stateRef = useRef({ lastY: 0, hidden: false, accumulated: 0, rafId: 0 })
 
     useEffect(() => {
-        const HIDE_AFTER = 60
-        const SHOW_AFTER = 35
-        const COOLDOWN_MS = 350  // игнорировать скролл после переключения (layout shift)
+        const HIDE_THRESHOLD = 50   // px вниз для скрытия
+        const SHOW_THRESHOLD = 30   // px вверх для показа
+        const TOP_ZONE = 40         // у самого верха — всегда показывать
 
-        const onScroll = () => {
+        const update = () => {
             const st = stateRef.current
-            if (st.cooldown) return
-
+            st.rafId = 0
             const y = window.scrollY
 
             // У самого верха — всегда показывать
-            if (y < 50) {
+            if (y < TOP_ZONE) {
                 if (st.hidden) {
                     st.hidden = false
-                    st.anchorY = y
-                    st.cooldown = true
                     setNavHidden(false)
-                    setTimeout(() => { st.cooldown = false }, COOLDOWN_MS)
                 }
+                st.accumulated = 0
+                st.lastY = y
                 return
             }
 
-            const delta = y - st.anchorY
+            const delta = y - st.lastY
+            st.lastY = y
 
-            if (!st.hidden && delta > HIDE_AFTER) {
+            // Если направление сменилось — сбрасываем аккумулятор
+            if ((st.accumulated > 0 && delta < 0) || (st.accumulated < 0 && delta > 0)) {
+                st.accumulated = 0
+            }
+
+            st.accumulated += delta
+
+            if (!st.hidden && st.accumulated > HIDE_THRESHOLD) {
                 st.hidden = true
-                st.anchorY = y
-                st.cooldown = true
+                st.accumulated = 0
                 setNavHidden(true)
-                setTimeout(() => { st.cooldown = false }, COOLDOWN_MS)
-            } else if (st.hidden && delta < -SHOW_AFTER) {
+            } else if (st.hidden && st.accumulated < -SHOW_THRESHOLD) {
                 st.hidden = false
-                st.anchorY = y
-                st.cooldown = true
+                st.accumulated = 0
                 setNavHidden(false)
-                setTimeout(() => { st.cooldown = false }, COOLDOWN_MS)
             }
         }
+
+        const onScroll = () => {
+            if (!stateRef.current.rafId) {
+                stateRef.current.rafId = requestAnimationFrame(update)
+            }
+        }
+
+        stateRef.current.lastY = window.scrollY
         window.addEventListener('scroll', onScroll, { passive: true })
-        return () => window.removeEventListener('scroll', onScroll)
+        return () => {
+            window.removeEventListener('scroll', onScroll)
+            if (stateRef.current.rafId) cancelAnimationFrame(stateRef.current.rafId)
+        }
     }, [])
 
     return (
