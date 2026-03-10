@@ -460,7 +460,7 @@ function OrdersChart({ ordersByDate, closedByDate, revenueByDate }) {
             {chartData.length > 0 ? (
                 <div className="chart-container">
                     <ResponsiveContainer width="100%" height={260}>
-                        <LineChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
+                        <LineChart data={chartData} margin={{ top: 5, right: 2, left: -18, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                             <XAxis
                                 dataKey="label"
@@ -507,9 +507,8 @@ function OrdersChart({ ordersByDate, closedByDate, revenueByDate }) {
                                 name="closed"
                                 stroke="#d4a373"
                                 strokeWidth={2.5}
-                                dot={false}
-                                activeDot={false}
-                                isAnimationActive={false}
+                                dot={{ r: 2, fill: '#d4a373', strokeWidth: 0 }}
+                                activeDot={{ r: 4, fill: '#d4a373', stroke: '#fff', strokeWidth: 2 }}
                             />
                             <Line
                                 yAxisId="right"
@@ -519,9 +518,8 @@ function OrdersChart({ ordersByDate, closedByDate, revenueByDate }) {
                                 stroke="#6b9e78"
                                 strokeWidth={2}
                                 strokeDasharray="5 3"
-                                dot={false}
-                                activeDot={false}
-                                isAnimationActive={false}
+                                dot={{ r: 2, fill: '#6b9e78', strokeWidth: 0 }}
+                                activeDot={{ r: 4, fill: '#6b9e78', stroke: '#fff', strokeWidth: 2 }}
                             />
                         </LineChart>
                     </ResponsiveContainer>
