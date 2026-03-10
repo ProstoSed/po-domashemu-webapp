@@ -5,7 +5,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts'
 import { useTelegram } from '../hooks/useTelegram'
 import {
     fetchOrders, deleteOrder, updateOrderStatus,
@@ -333,7 +333,7 @@ function getMonthRange(year, month) {
 const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь',
     'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
 
-function OrdersChart({ ordersByDate }) {
+function OrdersChart({ ordersByDate, closedByDate, revenueByDate }) {
     const now = new Date()
     const [mode, setMode] = useState('month') // 'month' | 'preset' | 'custom'
     const [selYear, setSelYear] = useState(now.getFullYear())
@@ -341,6 +341,19 @@ function OrdersChart({ ordersByDate }) {
     const [preset, setPreset] = useState('30')
     const [customFrom, setCustomFrom] = useState('')
     const [customTo, setCustomTo] = useState('')
+
+    // Авто-переход на месяц с данными при первом рендере
+    const [initialized, setInitialized] = useState(false)
+    useEffect(() => {
+        if (initialized) return
+        const dates = Object.keys(ordersByDate).sort()
+        if (dates.length > 0) {
+            const last = dates[dates.length - 1]
+            setSelYear(parseInt(last.slice(0, 4), 10))
+            setSelMonth(parseInt(last.slice(5, 7), 10) - 1)
+        }
+        setInitialized(true)
+    }, [ordersByDate, initialized])
 
     const chartData = useMemo(() => {
         let startStr, endStr
@@ -364,19 +377,13 @@ function OrdersChart({ ordersByDate }) {
         return allDays.map(day => ({
             date: day,
             label: day.slice(8, 10) + '.' + day.slice(5, 7),
-            orders: ordersByDate[day] || 0,
+            closed: closedByDate[day] || 0,
+            revenue: revenueByDate[day] || 0,
         }))
-    }, [mode, selYear, selMonth, preset, customFrom, customTo, ordersByDate])
+    }, [mode, selYear, selMonth, preset, customFrom, customTo, closedByDate, revenueByDate])
 
-    // Доступные годы из данных
-    const years = useMemo(() => {
-        const yrs = new Set()
-        Object.keys(ordersByDate).forEach(d => yrs.add(parseInt(d.slice(0, 4), 10)))
-        yrs.add(now.getFullYear())
-        return [...yrs].sort()
-    }, [ordersByDate])
-
-    const totalInRange = chartData.reduce((s, d) => s + d.orders, 0)
+    const totalClosed = chartData.reduce((s, d) => s + d.closed, 0)
+    const totalRevenue = chartData.reduce((s, d) => s + d.revenue, 0)
 
     // Навигация месяцев
     const prevMonth = () => {
@@ -390,7 +397,7 @@ function OrdersChart({ ordersByDate }) {
 
     return (
         <div className="stats-row glass-card chart-section">
-            <div className="stats-row-title">📈 Заказы по дням</div>
+            <div className="stats-row-title">📈 Закрытые заказы и выручка</div>
 
             {/* Переключатель режима */}
             <div className="chart-mode-tabs">
@@ -441,25 +448,36 @@ function OrdersChart({ ordersByDate }) {
                 </div>
             )}
 
-            {/* Сумма за период */}
+            {/* Итоги за период */}
             {chartData.length > 0 && (
-                <div className="chart-total">
-                    Заказов за период: <b>{totalInRange}</b>
+                <div className="chart-totals">
+                    <span>Закрыто: <b>{totalClosed}</b></span>
+                    <span>Выручка: <b>{totalRevenue.toLocaleString('ru')} ₽</b></span>
                 </div>
             )}
 
             {/* График */}
             {chartData.length > 0 ? (
                 <div className="chart-container">
-                    <ResponsiveContainer width="100%" height={220}>
-                        <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                    <ResponsiveContainer width="100%" height={240}>
+                        <LineChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                             <XAxis
                                 dataKey="label"
-                                tick={{ fontSize: 11 }}
+                                tick={{ fontSize: 10 }}
                                 interval={chartData.length > 15 ? Math.floor(chartData.length / 8) : 0}
                             />
-                            <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                            <YAxis
+                                yAxisId="left"
+                                allowDecimals={false}
+                                tick={{ fontSize: 10 }}
+                            />
+                            <YAxis
+                                yAxisId="right"
+                                orientation="right"
+                                tick={{ fontSize: 10 }}
+                                tickFormatter={v => v >= 1000 ? `${Math.round(v / 1000)}к` : v}
+                            />
                             <Tooltip
                                 contentStyle={{
                                     background: 'var(--color-surface)',
@@ -467,16 +485,36 @@ function OrdersChart({ ordersByDate }) {
                                     borderRadius: 8,
                                     fontSize: '0.82rem',
                                 }}
-                                formatter={(val) => [`${val} шт`, 'Заказов']}
+                                formatter={(val, name) => {
+                                    if (name === 'closed') return [`${val} шт`, 'Закрытых']
+                                    return [`${val.toLocaleString('ru')} ₽`, 'Выручка']
+                                }}
                                 labelFormatter={(label) => `📅 ${label}`}
                             />
+                            <Legend
+                                formatter={(val) => val === 'closed' ? 'Закрытые' : 'Выручка ₽'}
+                                wrapperStyle={{ fontSize: '0.78rem' }}
+                            />
                             <Line
+                                yAxisId="left"
                                 type="monotone"
-                                dataKey="orders"
-                                stroke="var(--color-primary)"
+                                dataKey="closed"
+                                name="closed"
+                                stroke="#d4a373"
                                 strokeWidth={2.5}
-                                dot={{ r: chartData.length > 20 ? 0 : 3, fill: 'var(--color-primary)' }}
-                                activeDot={{ r: 5, fill: 'var(--color-primary-dark)' }}
+                                dot={{ r: chartData.length > 20 ? 0 : 3, fill: '#d4a373' }}
+                                activeDot={{ r: 5 }}
+                            />
+                            <Line
+                                yAxisId="right"
+                                type="monotone"
+                                dataKey="revenue"
+                                name="revenue"
+                                stroke="#6b9e78"
+                                strokeWidth={2}
+                                strokeDasharray="5 3"
+                                dot={{ r: chartData.length > 20 ? 0 : 3, fill: '#6b9e78' }}
+                                activeDot={{ r: 5 }}
                             />
                         </LineChart>
                     </ResponsiveContainer>
@@ -510,6 +548,8 @@ function StatsSection() {
         total_orders = 0, total_revenue = 0, avg_check = 0,
         users_count = 0, status_counts = {}, top_items = [],
         orders_by_date = {},
+        closed_by_date = {},
+        revenue_by_date = {},
     } = stats
 
     return (
@@ -555,7 +595,11 @@ function StatsSection() {
             )}
 
             {/* График заказов по дням */}
-            <OrdersChart ordersByDate={orders_by_date} />
+            <OrdersChart
+                ordersByDate={orders_by_date}
+                closedByDate={closed_by_date}
+                revenueByDate={revenue_by_date}
+            />
 
             {/* Топ товаров */}
             {top_items.length > 0 && (

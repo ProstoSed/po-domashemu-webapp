@@ -1002,12 +1002,19 @@ async def admin_get_stats(x_init_data: str | None = Header(default=None)) -> dic
             item_counts[name] = item_counts.get(name, 0) + (qty if isinstance(qty, (int, float)) else 1)
     top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:5]
 
-    # Заказы по дням (для графика)
-    orders_by_date: dict = {}
+    # Заказы по дням (для графика): все заказы, закрытые, выручка
+    daily_all: dict = {}
+    daily_closed: dict = {}
+    daily_revenue: dict = {}
     for o in orders:
         date_str = (o.get('created_at') or '')[:10]  # 'YYYY-MM-DD'
-        if date_str:
-            orders_by_date[date_str] = orders_by_date.get(date_str, 0) + 1
+        if not date_str:
+            continue
+        daily_all[date_str] = daily_all.get(date_str, 0) + 1
+        if o.get('status') == 'closed':
+            daily_closed[date_str] = daily_closed.get(date_str, 0) + 1
+            rev = o.get('totals', {}).get('grand_total') or o.get('total') or 0
+            daily_revenue[date_str] = daily_revenue.get(date_str, 0) + rev
 
     return {
         'total_orders': len(orders),
@@ -1016,7 +1023,9 @@ async def admin_get_stats(x_init_data: str | None = Header(default=None)) -> dic
         'users_count': len(users),
         'status_counts': status_counts,
         'top_items': [{'name': n, 'count': round(c, 1)} for n, c in top_items],
-        'orders_by_date': orders_by_date,
+        'orders_by_date': daily_all,
+        'closed_by_date': daily_closed,
+        'revenue_by_date': daily_revenue,
     }
 
 

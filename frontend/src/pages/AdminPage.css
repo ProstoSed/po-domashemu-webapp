@@ -453,8 +453,10 @@
     color: var(--color-text);
 }
 
-.chart-total {
-    text-align: center;
+.chart-totals {
+    display: flex;
+    justify-content: center;
+    gap: 1.2rem;
     font-size: 0.82rem;
     color: var(--color-text-secondary);
     margin-bottom: 0.4rem;
