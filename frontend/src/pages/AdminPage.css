@@ -319,6 +319,10 @@
     border-radius: 14px;
     padding: 0.85rem 1rem;
 }
+
+.stats-row:active {
+    transform: none !important;
+}
 .stats-row-title {
     font-size: 0.85rem;
     font-weight: 600;
@@ -347,6 +351,12 @@
 /* ── График заказов ── */
 .chart-section {
     padding-bottom: 0.5rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.chart-section:active {
+    transform: none !important;
 }
 
 .chart-mode-tabs {
@@ -463,24 +473,21 @@
 }
 
 .chart-container {
-    margin: 0 -0.75rem;
+    margin: 0 -0.5rem;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
+    pointer-events: none;
 }
 
-.chart-container svg {
-    outline: none !important;
-}
-
-.chart-container .recharts-surface {
-    outline: none !important;
-    cursor: default !important;
-}
-
+.chart-container *,
+.chart-container svg,
+.chart-container .recharts-surface,
 .chart-container .recharts-wrapper {
     outline: none !important;
     cursor: default !important;
+    -webkit-tap-highlight-color: transparent !important;
+    pointer-events: none !important;
 }
 
 .chart-empty {
