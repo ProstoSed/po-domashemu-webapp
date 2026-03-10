@@ -820,7 +820,7 @@
     top: 0;
     bottom: 0;
     width: 2px;
-    background: var(--color-border);
+    background: var(--color-primary);
 }
 
 /* Скруглённый коннектор └ от вертикальной линии к заголовку */
@@ -831,7 +831,7 @@
     top: 1.1rem;
     width: 0.7rem;
     height: 0;
-    border-bottom: 2px solid var(--color-border);
+    border-bottom: 2px solid var(--color-primary);
     border-left: none;
 }
 
@@ -841,8 +841,8 @@
     height: 1.2rem;
     border-radius: 0 0 0 8px;
     background: none;
-    border-left: 2px solid var(--color-border);
-    border-bottom: 2px solid var(--color-border);
+    border-left: 2px solid var(--color-primary);
+    border-bottom: 2px solid var(--color-primary);
     width: 0.7rem;
 }
 .tree-order-node--last::after {
@@ -914,8 +914,7 @@
     top: 0;
     bottom: 0;
     width: 2px;
-    background: var(--color-border);
-    opacity: 0.6;
+    background: var(--color-primary-light);
 }
 
 /* Горизонтальный коннектор деталей */
@@ -927,8 +926,7 @@
     top: 50%;
     width: 0.65rem;
     height: 0;
-    border-bottom: 2px solid var(--color-border);
-    opacity: 0.6;
+    border-bottom: 2px solid var(--color-primary-light);
 }
 
 /* Последний элемент деталей: скруглённый └ */
@@ -937,10 +935,9 @@
     height: 50%;
     border-radius: 0 0 0 6px;
     background: none;
-    border-left: 2px solid var(--color-border);
-    border-bottom: 2px solid var(--color-border);
+    border-left: 2px solid var(--color-primary-light);
+    border-bottom: 2px solid var(--color-primary-light);
     width: 0.65rem;
-    opacity: 0.6;
 }
 .tree-detail-row--last::after {
     display: none;
