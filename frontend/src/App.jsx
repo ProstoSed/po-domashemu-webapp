@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { CartProvider } from './hooks/useCart.jsx'
 import Header from './components/Header'
@@ -7,7 +8,7 @@ import CategoryPage from './pages/CategoryPage'
 import CartPage from './pages/CartPage'
 import CheckoutPage from './pages/CheckoutPage'
 import SuccessPage from './pages/SuccessPage'
-import AdminPage from './pages/AdminPage'
+const AdminPage = lazy(() => import('./pages/AdminPage'))
 import SearchPage from './pages/SearchPage'
 import MyOrdersPage from './pages/MyOrdersPage'
 import MyPhotosPage from './pages/MyPhotosPage'
@@ -28,7 +29,7 @@ export default function App() {
                             <Route path="/cart" element={<CartPage />} />
                             <Route path="/checkout" element={<CheckoutPage />} />
                             <Route path="/success" element={<SuccessPage />} />
-                            <Route path="/admin" element={<AdminPage />} />
+                            <Route path="/admin" element={<Suspense fallback={<div className="catalog-loading"><div className="loading-spinner" /><p>Загрузка...</p></div>}><AdminPage /></Suspense>} />
                             <Route path="/search" element={<SearchPage />} />
                             <Route path="/my-orders" element={<MyOrdersPage />} />
                             <Route path="/my-photos" element={<MyPhotosPage />} />
