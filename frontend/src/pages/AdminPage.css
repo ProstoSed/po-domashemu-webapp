@@ -949,3 +949,51 @@
     font-weight: 500;
     white-space: nowrap;
 }
+
+/* ── Пагинация ── */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    margin: 1rem 0 0.5rem;
+    padding: 0.5rem 0;
+}
+
+.pagination-btn {
+    min-width: 2.2rem;
+    height: 2.2rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pagination-btn:active {
+    transform: scale(0.95);
+}
+
+.pagination-btn.active {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.pagination-dots {
+    width: 1.5rem;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+}

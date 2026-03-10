@@ -2,7 +2,7 @@
  * AdminPage — панель управления для мамы.
  * Разделы: Заказы | Статистика | Клиенты | Админы | Напоминалки | Рассылка
  */
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTelegram } from '../hooks/useTelegram'
@@ -73,6 +73,54 @@ function EmptyBox({ emoji = '📭', text }) {
         <div className="empty-state">
             <span className="empty-state-emoji">{emoji}</span>
             <p className="empty-state-title">{text}</p>
+        </div>
+    )
+}
+
+const PAGE_SIZE = 15
+
+function Pagination({ page, totalPages, onPageChange }) {
+    if (totalPages <= 1) return null
+
+    const pages = []
+    for (let i = 1; i <= totalPages; i++) {
+        // Показываем: первую, последнюю, текущую ±1
+        if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
+            pages.push(i)
+        } else if (pages[pages.length - 1] !== '...') {
+            pages.push('...')
+        }
+    }
+
+    return (
+        <div className="pagination">
+            <button
+                className="pagination-btn"
+                disabled={page === 1}
+                onClick={() => onPageChange(page - 1)}
+            >
+                ‹
+            </button>
+            {pages.map((p, i) =>
+                p === '...' ? (
+                    <span key={`dots-${i}`} className="pagination-dots">…</span>
+                ) : (
+                    <button
+                        key={p}
+                        className={`pagination-btn ${p === page ? 'active' : ''}`}
+                        onClick={() => onPageChange(p)}
+                    >
+                        {p}
+                    </button>
+                )
+            )}
+            <button
+                className="pagination-btn"
+                disabled={page === totalPages}
+                onClick={() => onPageChange(page + 1)}
+            >
+                ›
+            </button>
         </div>
     )
 }
@@ -353,6 +401,7 @@ function UsersSection() {
     const [expandedUser, setExpandedUser] = useState(null)
     const [expandedOrder, setExpandedOrder] = useState(null)
     const [userOrders, setUserOrders] = useState({})
+    const [usersPage, setUsersPage] = useState(1)
     const [ordersLoading, setOrdersLoading] = useState(null)
 
     const load = () => {
@@ -397,10 +446,14 @@ function UsersSection() {
     if (error) return <ErrorBox msg={error} onRetry={load} />
     if (users.length === 0) return <EmptyBox emoji="👥" text="Клиентов пока нет" />
 
+    const usersTotalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE))
+    const safeUsersPage = Math.min(usersPage, usersTotalPages)
+    const pagedUsers = users.slice((safeUsersPage - 1) * PAGE_SIZE, safeUsersPage * PAGE_SIZE)
+
     return (
         <div className="users-section">
             <p className="section-count">Клиентов: <b>{users.length}</b></p>
-            {users.map(u => {
+            {pagedUsers.map(u => {
                 const isExpanded = expandedUser === u.user_id
                 const orders = userOrders[u.user_id] || []
                 const isLoadingOrders = ordersLoading === u.user_id
@@ -544,6 +597,11 @@ function UsersSection() {
                     </div>
                 )
             })}
+            <Pagination
+                page={safeUsersPage}
+                totalPages={usersTotalPages}
+                onPageChange={setUsersPage}
+            />
         </div>
     )
 }
@@ -981,6 +1039,7 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [filter, setFilter] = useState('active')
+    const [ordersPage, setOrdersPage] = useState(1)
     const [syncing, setSyncing] = useState(false)
     const [syncResult, setSyncResult] = useState(null)
 
@@ -1027,12 +1086,15 @@ export default function AdminPage() {
         )
     }
 
-    const filtered = orders.filter(o => {
+    const filtered = useMemo(() => orders.filter(o => {
         if (filter === 'active') return o.status !== 'closed'
         if (filter === 'closed') return o.status === 'closed'
         return true
-    })
+    }), [orders, filter])
     const activeCount = orders.filter(o => o.status !== 'closed').length
+    const ordersTotalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+    const safePage = Math.min(ordersPage, ordersTotalPages)
+    const pagedOrders = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
     return (
         <div className="admin-page">
@@ -1112,7 +1174,7 @@ export default function AdminPage() {
                             <button
                                 key={tab.key}
                                 className={`admin-tab ${filter === tab.key ? 'active' : ''}`}
-                                onClick={() => setFilter(tab.key)}
+                                onClick={() => { setFilter(tab.key); setOrdersPage(1) }}
                             >
                                 {tab.label}
                             </button>
@@ -1128,18 +1190,25 @@ export default function AdminPage() {
                         <EmptyBox text="Заказов нет" />
                     )}
                     {!loading && !error && (
-                        <div className="orders-list">
-                            <AnimatePresence>
-                                {filtered.map(order => (
-                                    <OrderCard
-                                        key={order.order_id}
-                                        order={order}
-                                        onStatusChange={handleStatusChange}
-                                        onDelete={handleDelete}
-                                    />
-                                ))}
-                            </AnimatePresence>
-                        </div>
+                        <>
+                            <div className="orders-list">
+                                <AnimatePresence>
+                                    {pagedOrders.map(order => (
+                                        <OrderCard
+                                            key={order.order_id}
+                                            order={order}
+                                            onStatusChange={handleStatusChange}
+                                            onDelete={handleDelete}
+                                        />
+                                    ))}
+                                </AnimatePresence>
+                            </div>
+                            <Pagination
+                                page={safePage}
+                                totalPages={ordersTotalPages}
+                                onPageChange={setOrdersPage}
+                            />
+                        </>
                     )}
                 </>
             )}
