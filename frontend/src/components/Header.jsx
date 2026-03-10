@@ -37,22 +37,25 @@ export default function Header() {
 
     // Скрытие навигации при скролле вниз, показ при скролле вверх
     const [navHidden, setNavHidden] = useState(false)
-    const stateRef = useRef({ lastY: 0, hidden: false, accumulated: 0, rafId: 0 })
+    const stateRef = useRef({ lastY: 0, hidden: false, accumulated: 0, rafId: 0, changedAt: 0 })
 
     useEffect(() => {
         const HIDE_THRESHOLD = 50   // px вниз для скрытия
         const SHOW_THRESHOLD = 30   // px вверх для показа
         const TOP_ZONE = 40         // у самого верха — всегда показывать
+        const MIN_INTERVAL = 400    // мс между переключениями (защита от инерции)
 
         const update = () => {
             const st = stateRef.current
             st.rafId = 0
             const y = window.scrollY
+            const now = Date.now()
 
             // У самого верха — всегда показывать
             if (y < TOP_ZONE) {
                 if (st.hidden) {
                     st.hidden = false
+                    st.changedAt = now
                     setNavHidden(false)
                 }
                 st.accumulated = 0
@@ -70,13 +73,18 @@ export default function Header() {
 
             st.accumulated += delta
 
+            // Не переключаем слишком часто (инерционный скролл на мобильных)
+            if (now - st.changedAt < MIN_INTERVAL) return
+
             if (!st.hidden && st.accumulated > HIDE_THRESHOLD) {
                 st.hidden = true
                 st.accumulated = 0
+                st.changedAt = now
                 setNavHidden(true)
             } else if (st.hidden && st.accumulated < -SHOW_THRESHOLD) {
                 st.hidden = false
                 st.accumulated = 0
+                st.changedAt = now
                 setNavHidden(false)
             }
         }
