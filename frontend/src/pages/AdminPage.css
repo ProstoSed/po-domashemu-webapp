@@ -463,7 +463,24 @@
 }
 
 .chart-container {
-    margin: 0 -0.5rem;
+    margin: 0 -0.75rem;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.chart-container svg {
+    outline: none !important;
+}
+
+.chart-container .recharts-surface {
+    outline: none !important;
+    cursor: default !important;
+}
+
+.chart-container .recharts-wrapper {
+    outline: none !important;
+    cursor: default !important;
 }
 
 .chart-empty {

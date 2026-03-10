@@ -459,24 +459,29 @@ function OrdersChart({ ordersByDate, closedByDate, revenueByDate }) {
             {/* График */}
             {chartData.length > 0 ? (
                 <div className="chart-container">
-                    <ResponsiveContainer width="100%" height={240}>
+                    <ResponsiveContainer width="100%" height={260}>
                         <LineChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                             <XAxis
                                 dataKey="label"
                                 tick={{ fontSize: 10 }}
                                 interval={chartData.length > 15 ? Math.floor(chartData.length / 8) : 0}
+                                tickLine={false}
                             />
                             <YAxis
                                 yAxisId="left"
                                 allowDecimals={false}
                                 tick={{ fontSize: 10 }}
+                                tickLine={false}
+                                axisLine={false}
                             />
                             <YAxis
                                 yAxisId="right"
                                 orientation="right"
                                 tick={{ fontSize: 10 }}
                                 tickFormatter={v => v >= 1000 ? `${Math.round(v / 1000)}к` : v}
+                                tickLine={false}
+                                axisLine={false}
                             />
                             <Tooltip
                                 contentStyle={{
@@ -502,8 +507,9 @@ function OrdersChart({ ordersByDate, closedByDate, revenueByDate }) {
                                 name="closed"
                                 stroke="#d4a373"
                                 strokeWidth={2.5}
-                                dot={{ r: chartData.length > 20 ? 0 : 3, fill: '#d4a373' }}
-                                activeDot={{ r: 5 }}
+                                dot={false}
+                                activeDot={false}
+                                isAnimationActive={false}
                             />
                             <Line
                                 yAxisId="right"
@@ -513,8 +519,9 @@ function OrdersChart({ ordersByDate, closedByDate, revenueByDate }) {
                                 stroke="#6b9e78"
                                 strokeWidth={2}
                                 strokeDasharray="5 3"
-                                dot={{ r: chartData.length > 20 ? 0 : 3, fill: '#6b9e78' }}
-                                activeDot={{ r: 5 }}
+                                dot={false}
+                                activeDot={false}
+                                isAnimationActive={false}
                             />
                         </LineChart>
                     </ResponsiveContainer>
