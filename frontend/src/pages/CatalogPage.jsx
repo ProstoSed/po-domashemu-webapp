@@ -120,18 +120,13 @@ export default function CatalogPage() {
             <p className="catalog-subtitle">
                 {categories.length} категорий — выбирайте с любовью 💛
             </p>
-            <div className="catalog-list">
-                {categories.map((cat, i) => (
-                    <CategoryCard key={cat.key} category={cat} index={i} />
-                ))}
-            </div>
 
             <motion.div
                 className="lenten-card glass-card"
                 onClick={() => navigate('/lenten')}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: categories.length * 0.06 + 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay: 0.05, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 whileTap={{ scale: 0.96 }}
             >
                 <span className="lenten-card-icon">🌿</span>
@@ -141,6 +136,12 @@ export default function CatalogPage() {
                 </div>
                 <span className="category-arrow">›</span>
             </motion.div>
+
+            <div className="catalog-list">
+                {categories.map((cat, i) => (
+                    <CategoryCard key={cat.key} category={cat} index={i} />
+                ))}
+            </div>
         </div>
     )
 }
