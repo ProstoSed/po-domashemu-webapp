@@ -6,7 +6,9 @@ FastAPI сервер.
 Публичные эндпоинты:
   GET  /health
   GET  /api/prices
+  GET  /api/lenten-prices       — постное меню
   POST /api/geocode             — геокодирование адреса + цена доставки
+  POST /api/assistant            — AI-помощник (рекомендации из меню)
 
 Авторизованные (X-Init-Data):
   GET  /api/orders/my                         — мои заказы
@@ -42,7 +44,10 @@ from pydantic import BaseModel
 
 from fastapi.responses import FileResponse
 
-from config import PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE, PHOTO_REQUESTS_FILE, HOLIDAYS_FILE, PHOTOS_DIR, GOOGLE_SHEET_ID, DEV_MODE, DEV_USER_ID, MAMA_CHAT_ID, ADMINS_FILE
+from config import (PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE,
+                     PHOTO_REQUESTS_FILE, HOLIDAYS_FILE, PHOTOS_DIR, GOOGLE_SHEET_ID,
+                     DEV_MODE, DEV_USER_ID, MAMA_CHAT_ID, ADMINS_FILE,
+                     LENTEN_PRICES_FILE, LENTEN_SHEET_GID)
 
 log = logging.getLogger(__name__)
 app = FastAPI(title='По-домашнему API', version='1.3')
@@ -77,6 +82,10 @@ class BroadcastBody(BaseModel):
 
 class GeocodeBody(BaseModel):
     address: str
+
+
+class AssistantBody(BaseModel):
+    message: str
 
 
 class PhotoRequestBody(BaseModel):
@@ -433,6 +442,32 @@ async def get_prices() -> dict:
     except Exception as exc:
         log.error('Ошибка чтения prices.json: %s', exc)
         raise HTTPException(status_code=500, detail='Ошибка сервера')
+
+
+@app.get('/api/lenten-prices')
+async def get_lenten_prices() -> dict:
+    """Постное меню (из второй вкладки Google Sheets)."""
+    if not LENTEN_PRICES_FILE.exists():
+        raise HTTPException(status_code=503, detail='Постное меню недоступно')
+    try:
+        return json.loads(LENTEN_PRICES_FILE.read_text(encoding='utf-8'))
+    except Exception as exc:
+        log.error('Ошибка чтения lenten_prices.json: %s', exc)
+        raise HTTPException(status_code=500, detail='Ошибка сервера')
+
+
+@app.post('/api/assistant')
+async def assistant(body: AssistantBody) -> dict:
+    """AI-помощник: рекомендации из меню на основе запроса пользователя."""
+    if not body.message or not body.message.strip():
+        raise HTTPException(status_code=400, detail='Сообщение не может быть пустым')
+    if len(body.message) > 500:
+        raise HTTPException(status_code=400, detail='Сообщение слишком длинное (макс. 500 символов)')
+    from qwen_api import ask_assistant
+    result = await ask_assistant(body.message.strip())
+    if result.get('error') and not result.get('text'):
+        raise HTTPException(status_code=503, detail=result['error'])
+    return result
 
 
 @app.post('/api/geocode')
@@ -1279,7 +1314,11 @@ async def admin_sync_prices(x_init_data: str | None = Header(default=None)) -> d
     """Синхронизация цен из Google Sheets + кеширование фото."""
     require_admin(x_init_data)
     from sheets_sync import sync_prices as do_sync
-    success, message = await do_sync(GOOGLE_SHEET_ID, PRICES_FILE, PHOTOS_DIR)
+    success, message = await do_sync(
+        GOOGLE_SHEET_ID, PRICES_FILE, PHOTOS_DIR,
+        lenten_file=LENTEN_PRICES_FILE,
+        lenten_gid=LENTEN_SHEET_GID,
+    )
     return {'ok': success, 'message': message}
 
 

@@ -1,0 +1,77 @@
+.assistant-fab {
+    position: fixed;
+    bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px));
+    right: var(--space-md);
+    z-index: 199;
+
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 10px 16px;
+    border: none;
+    border-radius: var(--radius-xl);
+    background: linear-gradient(135deg, #7c4dff, #651fff);
+    color: #fff;
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(124, 77, 255, 0.4);
+    white-space: nowrap;
+    transition: bottom 0.3s ease;
+}
+
+/* Когда корзина видна — поднимаем кнопку выше */
+.assistant-fab--with-cart {
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+.assistant-fab-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.assistant-fab-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.assistant-fab-label {
+    letter-spacing: 0.01em;
+}
+
+/* Маленькие экраны — только иконка */
+@media (max-width: 374px) {
+    .assistant-fab {
+        padding: 10px;
+        border-radius: var(--radius-full);
+        right: 10px;
+    }
+
+    .assistant-fab-label {
+        display: none;
+    }
+
+    .assistant-fab-icon svg {
+        width: 22px;
+        height: 22px;
+    }
+}
+
+/* Средние экраны */
+@media (min-width: 375px) and (max-width: 480px) {
+    .assistant-fab {
+        padding: 8px 14px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Когда корзина видна — адаптация на маленьких экранах */
+@media (max-width: 374px) {
+    .assistant-fab--with-cart {
+        bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+    }
+}

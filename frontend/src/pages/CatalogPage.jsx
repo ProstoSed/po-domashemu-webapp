@@ -3,6 +3,8 @@
  * Показывает все категории товаров из prices.json.
  */
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { usePrices } from '../hooks/usePrices'
 import CategoryCard from '../components/CategoryCard'
 import './CatalogPage.css'
@@ -82,6 +84,7 @@ function getRandomPhrase(exclude) {
 
 export default function CatalogPage() {
     const { categories, loading, error } = usePrices()
+    const navigate = useNavigate()
     const [loadingPhrase, setLoadingPhrase] = useState(() => getRandomPhrase())
 
     useEffect(() => {
@@ -122,6 +125,22 @@ export default function CatalogPage() {
                     <CategoryCard key={cat.key} category={cat} index={i} />
                 ))}
             </div>
+
+            <motion.div
+                className="lenten-card glass-card"
+                onClick={() => navigate('/lenten')}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: categories.length * 0.06 + 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                whileTap={{ scale: 0.96 }}
+            >
+                <span className="lenten-card-icon">🌿</span>
+                <div className="lenten-card-info">
+                    <h3 className="lenten-card-title">Постное меню</h3>
+                    <span className="lenten-card-desc">Вкусно и без компромиссов</span>
+                </div>
+                <span className="category-arrow">›</span>
+            </motion.div>
         </div>
     )
 }

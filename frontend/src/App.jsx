@@ -1,8 +1,10 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { CartProvider } from './hooks/useCart.jsx'
 import Header from './components/Header'
 import CartButton from './components/CartButton'
+import AssistantButton from './components/AssistantButton'
+import AssistantModal from './components/AssistantModal'
 import CatalogPage from './pages/CatalogPage'
 import CategoryPage from './pages/CategoryPage'
 import CartPage from './pages/CartPage'
@@ -15,8 +17,12 @@ import MyPhotosPage from './pages/MyPhotosPage'
 import DeliveryPage from './pages/DeliveryPage'
 import AboutPage from './pages/AboutPage'
 import InvitePage from './pages/InvitePage'
+import LentenCatalogPage from './pages/LentenCatalogPage'
+import LentenCategoryPage from './pages/LentenCategoryPage'
 
 export default function App() {
+    const [assistantOpen, setAssistantOpen] = useState(false)
+
     return (
         <CartProvider>
             <HashRouter>
@@ -26,6 +32,8 @@ export default function App() {
                         <Routes>
                             <Route path="/" element={<CatalogPage />} />
                             <Route path="/category/:categoryKey" element={<CategoryPage />} />
+                            <Route path="/lenten" element={<LentenCatalogPage />} />
+                            <Route path="/lenten/category/:categoryKey" element={<LentenCategoryPage />} />
                             <Route path="/cart" element={<CartPage />} />
                             <Route path="/checkout" element={<CheckoutPage />} />
                             <Route path="/success" element={<SuccessPage />} />
@@ -39,7 +47,12 @@ export default function App() {
                             <Route path="*" element={<Navigate to="/" replace />} />
                         </Routes>
                     </main>
+                    <AssistantButton onClick={() => setAssistantOpen(true)} />
                     <CartButton />
+                    <AssistantModal
+                        isOpen={assistantOpen}
+                        onClose={() => setAssistantOpen(false)}
+                    />
                 </div>
             </HashRouter>
         </CartProvider>

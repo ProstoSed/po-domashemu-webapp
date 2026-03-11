@@ -213,3 +213,11 @@ export async function createPhotoRequest(itemKey, itemId, itemName) {
 export async function fetchMyReferral() {
     return apiFetch('/api/referral/my', { headers: userHeaders() })
 }
+
+export async function askAssistant(message) {
+    return apiFetch('/api/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+    }, 1) // 1 retry (запрос долгий, не хотим ждать 3 раза)
+}

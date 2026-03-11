@@ -47,6 +47,11 @@ _admins_path = os.getenv('ADMINS_FILE', '../../data/admins.json')
 ADMINS_FILE: Path = (BASE_DIR / _admins_path).resolve()
 
 GOOGLE_SHEET_ID: str = os.getenv('GOOGLE_SHEET_ID', '13N8s8Bl3J_LFt_j96nZX-kUgXJ4nKq5gWj8u4U2PgfQ')
+LENTEN_SHEET_GID: str = os.getenv('LENTEN_SHEET_GID', '1656336604')
+
+# Постное меню — отдельный JSON
+_lenten_path = os.getenv('LENTEN_PRICES_FILE', '../../data/lenten_prices.json')
+LENTEN_PRICES_FILE: Path = (BASE_DIR / _lenten_path).resolve()
 
 # Автосоздание папки data/ и пустых JSON-файлов (для Render и свежих серверов)
 _DATA_FILES = {
@@ -60,6 +65,10 @@ for _path, _default in _DATA_FILES.items():
     _path.parent.mkdir(parents=True, exist_ok=True)
     if not _path.exists():
         _path.write_text(json.dumps(_default, ensure_ascii=False, indent=2), encoding='utf-8')
+
+# AI-помощник (FreeQwenApi прокси)
+QWEN_PROXY_URL: str = os.getenv('QWEN_PROXY_URL', 'http://localhost:3264')
+QWEN_MODEL: str = os.getenv('QWEN_MODEL', 'qwen-max-latest')
 
 # Режим локальной разработки: пропускает HMAC-проверку initData.
 # Включить: добавить DEV_MODE=true в .env

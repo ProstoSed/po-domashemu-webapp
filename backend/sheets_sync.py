@@ -18,8 +18,9 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-# URL для экспорта первого листа в CSV
+# URL для экспорта листа в CSV (gid=0 — первый лист, gid=N — другой)
 SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&id={sheet_id}"
+SHEETS_CSV_URL_GID = "https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&id={sheet_id}&gid={gid}"
 
 # Маппинг русских заголовков → внутренние ключи
 HEADER_MAP = {
@@ -197,9 +198,13 @@ def _csv_to_prices_json(csv_text: str) -> dict:
     }
 
 
-async def fetch_prices_from_sheet(sheet_id: str) -> Optional[dict]:
-    """Скачивает данные из Google Sheets (CSV) и возвращает структуру prices.json."""
-    url = SHEETS_CSV_URL.format(sheet_id=sheet_id)
+async def fetch_prices_from_sheet(sheet_id: str, gid: str | None = None) -> Optional[dict]:
+    """Скачивает данные из Google Sheets (CSV) и возвращает структуру prices.json.
+    gid — ID вкладки (None = первая вкладка)."""
+    if gid:
+        url = SHEETS_CSV_URL_GID.format(sheet_id=sheet_id, gid=gid)
+    else:
+        url = SHEETS_CSV_URL.format(sheet_id=sheet_id)
     logger.info("Синхронизация с Google Sheets: %s", url)
 
     try:
@@ -260,20 +265,18 @@ async def cache_photos(prices: dict, photos_dir: Path) -> int:
     return downloaded
 
 
-async def sync_prices(sheet_id: str, prices_file: Path, photos_dir: Path) -> tuple[bool, str]:
-    """
-    Скачивает данные из Google Sheets, кеширует фото и перезаписывает prices.json.
-    Возвращает (успех, сообщение).
-    """
-    prices = await fetch_prices_from_sheet(sheet_id)
+async def _sync_one(sheet_id: str, prices_file: Path, photos_dir: Path,
+                    gid: str | None = None, label: str = "основное") -> tuple[bool, str]:
+    """Синхронизирует один лист из Google Sheets."""
+    prices = await fetch_prices_from_sheet(sheet_id, gid=gid)
 
     if prices is None:
-        return False, "❌ Не удалось получить данные из Google Sheets"
+        return False, f"❌ Не удалось получить данные ({label})"
 
     items_count = sum(len(c['items']) for c in prices['categories'])
 
     if items_count == 0:
-        return False, ("⚠️ Таблица пуста или неправильная структура. "
+        return False, (f"⚠️ Таблица ({label}) пуста или неправильная структура. "
                        "Убедитесь что первая строка — заголовки: "
                        "Категория (ключ), Категория, ID товара, Название, Ед.изм., Цена, Примечание")
 
@@ -292,4 +295,27 @@ async def sync_prices(sheet_id: str, prices_file: Path, photos_dir: Path) -> tup
     )
 
     cats = len(prices['categories'])
-    return True, f"✅ Синхронизировано: {cats} категорий, {items_count} товаров, {photo_count} новых фото"
+    return True, f"✅ {label.capitalize()}: {cats} кат., {items_count} товаров, {photo_count} новых фото"
+
+
+async def sync_prices(sheet_id: str, prices_file: Path, photos_dir: Path,
+                      lenten_file: Path | None = None,
+                      lenten_gid: str | None = None) -> tuple[bool, str]:
+    """
+    Скачивает данные из Google Sheets, кеширует фото и перезаписывает prices.json.
+    Если передан lenten_file и lenten_gid — синхронизирует и постное меню.
+    Возвращает (успех, сообщение).
+    """
+    ok_main, msg_main = await _sync_one(sheet_id, prices_file, photos_dir, label="основное меню")
+
+    messages = [msg_main]
+    all_ok = ok_main
+
+    if lenten_file and lenten_gid:
+        ok_lent, msg_lent = await _sync_one(sheet_id, lenten_file, photos_dir,
+                                            gid=lenten_gid, label="постное меню")
+        messages.append(msg_lent)
+        if not ok_lent:
+            all_ok = False
+
+    return all_ok, "\n".join(messages)

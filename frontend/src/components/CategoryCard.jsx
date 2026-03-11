@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import './CategoryCard.css'
 
-export default function CategoryCard({ category, index }) {
+export default function CategoryCard({ category, index, linkPrefix = '/category' }) {
     const navigate = useNavigate()
 
     // Извлекаем эмодзи из начала названия
@@ -12,7 +12,7 @@ export default function CategoryCard({ category, index }) {
     return (
         <motion.div
             className="category-card glass-card"
-            onClick={() => navigate(`/category/${category.key}`)}
+            onClick={() => navigate(`${linkPrefix}/${category.key}`)}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.06, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
