@@ -219,5 +219,5 @@ export async function askAssistant(message) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message }),
-    }, 1) // 1 retry (запрос долгий, не хотим ждать 3 раза)
+    }, 0) // без retry (запрос долгий + 503 не нужно повторять)
 }
