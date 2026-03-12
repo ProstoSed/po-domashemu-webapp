@@ -83,7 +83,7 @@ pip install -r requirements.txt
 # Создать .env
 cat > .env << EOF
 BOT_TOKEN=ваш_токен_бота
-MAMA_CHAT_ID=id_чата_владельца
+MAIN_CHAT_ID=id_чата_владельца
 DEV_MODE=true
 DEV_USER_ID=ваш_telegram_id
 EOF
@@ -144,7 +144,7 @@ docker run -d \
 | Переменная | Обязательная | Описание |
 |------------|:---:|----------|
 | `BOT_TOKEN` | да | Токен Telegram-бота |
-| `MAMA_CHAT_ID` | да | ID чата владельца для уведомлений о заказах |
+| `MAIN_CHAT_ID` | да | ID чата владельца для уведомлений о заказах |
 | `ADMIN_IDS` | нет | Доп. админы (через запятую) |
 | `WEBAPP_URL` | нет | URL фронтенда (для кнопки в боте) |
 | `GOOGLE_SHEET_ID` | нет | ID таблицы для синхронизации цен |

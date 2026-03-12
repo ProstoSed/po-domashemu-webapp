@@ -46,7 +46,7 @@ from fastapi.responses import FileResponse
 
 from config import (PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE,
                      PHOTO_REQUESTS_FILE, HOLIDAYS_FILE, PHOTOS_DIR, GOOGLE_SHEET_ID,
-                     DEV_MODE, DEV_USER_ID, MAMA_CHAT_ID, ADMINS_FILE,
+                     DEV_MODE, DEV_USER_ID, MAIN_CHAT_ID, ADMINS_FILE,
                      LENTEN_PRICES_FILE, LENTEN_SHEET_GID)
 
 log = logging.getLogger(__name__)
@@ -814,7 +814,7 @@ async def submit_order(
             r = await client.post(
                 f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage',
                 json={
-                    'chat_id': MAMA_CHAT_ID,
+                    'chat_id': MAIN_CHAT_ID,
                     'text': mama_text,
                     'parse_mode': 'HTML',
                 },
@@ -1409,7 +1409,7 @@ async def admin_list_admins(x_init_data: str | None = Header(default=None)) -> d
             'username': user_info.get('username', ''),
             'first_name': user_info.get('first_name', ''),
             'is_static': uid in static_ids,
-            'is_mama': uid == MAMA_CHAT_ID,
+            'is_mama': uid == MAIN_CHAT_ID,
         })
 
     # Мама первой, потом по имени
@@ -1469,8 +1469,8 @@ async def admin_remove_admin(
     """Убрать администратора (только динамических, не из .env)."""
     require_admin(x_init_data)
 
-    if user_id == MAMA_CHAT_ID:
-        raise HTTPException(status_code=400, detail='Нельзя убрать маму из админов')
+    if user_id == MAIN_CHAT_ID:
+        raise HTTPException(status_code=400, detail='Нельзя убрать владельца из админов')
     if user_id in ADMIN_IDS:
         raise HTTPException(status_code=400, detail='Этот админ задан в настройках сервера (.env), нельзя убрать через UI')
 

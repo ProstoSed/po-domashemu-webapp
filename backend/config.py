@@ -9,14 +9,14 @@ BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / '.env')
 
 BOT_TOKEN: str = os.environ['BOT_TOKEN']
-MAMA_CHAT_ID: int = int(os.environ['MAMA_CHAT_ID'])
+MAIN_CHAT_ID: int = int(os.getenv('MAIN_CHAT_ID') or os.getenv('MAIN_CHAT_ID', '0'))
 WEBAPP_URL: str = os.environ['WEBAPP_URL']
 
 # Список ID всех администраторов (мама + дополнительные).
 # В .env задаётся через ADMIN_IDS=111,222,333 (через запятую).
 # Если не задано — только мама.
 _admin_ids_raw = os.getenv('ADMIN_IDS', '')
-ADMIN_IDS: set[int] = {MAMA_CHAT_ID}
+ADMIN_IDS: set[int] = {MAIN_CHAT_ID}
 if _admin_ids_raw.strip():
     for _id in _admin_ids_raw.split(','):
         _id = _id.strip()

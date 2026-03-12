@@ -23,7 +23,7 @@ from aiogram.types import (
 )
 from aiogram.types.web_app_data import WebAppData
 
-from config import BOT_TOKEN, MAMA_CHAT_ID, WEBAPP_URL, USERS_FILE, ORDERS_FILE
+from config import BOT_TOKEN, MAIN_CHAT_ID, WEBAPP_URL, USERS_FILE, ORDERS_FILE
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger(__name__)
@@ -281,7 +281,7 @@ async def handle_web_app_order(message: Message) -> None:
     mama_text = _format_order_for_mama(order, message, order_id)
 
     try:
-        await bot.send_message(MAMA_CHAT_ID, mama_text, parse_mode='HTML')
+        await bot.send_message(MAIN_CHAT_ID, mama_text, parse_mode='HTML')
         log.info('Заказ %s отправлен маме: user_id=%s', order_id, message.from_user.id)
     except Exception as exc:
         log.error('Не удалось отправить заказ маме: %s', exc)
