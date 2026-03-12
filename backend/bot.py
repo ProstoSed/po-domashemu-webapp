@@ -14,12 +14,14 @@ import logging
 from datetime import datetime
 
 from aiogram import Bot, Dispatcher, F
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram.types import (
     Message,
     WebAppInfo,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
+    MenuButtonWebApp,
+    BotCommand,
 )
 from aiogram.types.web_app_data import WebAppData
 
@@ -141,6 +143,36 @@ async def cmd_start(message: Message) -> None:
         '🥧 Пироги, торты, блины, пицца и многое другое.\n'
         'Нажмите кнопку ниже, чтобы открыть меню и оформить заказ:',
         parse_mode='HTML',
+        reply_markup=kb
+    )
+
+
+# ──────────────────────────────────────────────
+# /menu — заново показать кнопку WebApp
+# ──────────────────────────────────────────────
+
+@dp.message(Command('menu'))
+async def cmd_menu(message: Message) -> None:
+    """Показывает кнопку открытия WebApp заново."""
+    _register_user(message.from_user)
+
+    # Устанавливаем MenuButton для этого чата (на случай если пропала)
+    try:
+        await bot.set_chat_menu_button(
+            chat_id=message.chat.id,
+            menu_button=MenuButtonWebApp(text='🥧 Меню', web_app=WebAppInfo(url=WEBAPP_URL))
+        )
+    except Exception as e:
+        log.warning('Не удалось установить menu button: %s', e)
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(
+            text='🥧 Открыть меню',
+            web_app=WebAppInfo(url=WEBAPP_URL)
+        )
+    ]])
+    await message.answer(
+        '🥧 Нажмите кнопку ниже, чтобы открыть меню:',
         reply_markup=kb
     )
 
@@ -356,6 +388,21 @@ def _format_order_for_mama(order: dict, message: Message, order_id: str = None) 
 
 async def main() -> None:
     log.info('WebApp-бот запущен. WEBAPP_URL=%s', WEBAPP_URL)
+
+    # Устанавливаем команды бота (выпадающее меню рядом с вводом)
+    await bot.set_my_commands([
+        BotCommand(command='start', description='Начать / перезапустить бота'),
+        BotCommand(command='menu', description='Открыть меню'),
+    ])
+
+    # Устанавливаем кнопку Menu (постоянная кнопка снизу)
+    try:
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(text='🥧 Меню', web_app=WebAppInfo(url=WEBAPP_URL))
+        )
+    except Exception as e:
+        log.warning('Не удалось установить глобальный menu button: %s', e)
+
     await dp.start_polling(bot)
 
 
