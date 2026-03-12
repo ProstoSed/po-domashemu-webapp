@@ -1364,7 +1364,9 @@ export default function AdminPage() {
                 </button>
                 {syncResult && (
                     <div className={`broadcast-result ${syncResult.ok ? 'broadcast-result--ok' : 'broadcast-result--err'}`}>
-                        {syncResult.message}
+                        {syncResult.message.split('\n').map((line, i) => (
+                            <div key={i}>{line}</div>
+                        ))}
                     </div>
                 )}
             </div>

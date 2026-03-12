@@ -30,7 +30,7 @@
     gap: var(--space-md);
     cursor: pointer;
     padding: var(--space-md) var(--space-lg);
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--space-lg);
     border: 1.5px solid rgba(76, 175, 80, 0.25);
     background: linear-gradient(135deg, rgba(76, 175, 80, 0.08), rgba(139, 195, 74, 0.05));
 }
