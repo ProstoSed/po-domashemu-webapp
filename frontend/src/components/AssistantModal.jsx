@@ -3,6 +3,7 @@
  * Drawer снизу с полем ввода, ответом и карточками товаров.
  */
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../hooks/useCart'
 import { useTelegram } from '../hooks/useTelegram'
@@ -29,6 +30,7 @@ export default function AssistantModal({ isOpen, onClose }) {
     const [error, setError] = useState(null)
     const [thinkingPhrase, setThinkingPhrase] = useState(THINKING_PHRASES[0])
     const inputRef = useRef(null)
+    const navigate = useNavigate()
     const { addItem } = useCart()
     const { haptic } = useTelegram()
     const { categories: mainCategories } = usePrices()
@@ -70,15 +72,20 @@ export default function AssistantModal({ isOpen, onClose }) {
         setResult(null)
         setError(null)
         setAddedItems(new Set())
+        setShowCartPrompt(false)
 
         try {
             const data = await askAssistant(query.trim())
             if (data.error && !data.text) {
                 setError(data.error)
             } else {
-                // Обогащаем products полными данными из загруженных каталогов
+                // Обогащаем products полными данными из загруженных каталогов + дедупликация
+                const seen = new Set()
                 const enrichedProducts = (data.products || [])
                     .map(p => {
+                        const key = `${p.category_key}:${p.item_id}`
+                        if (seen.has(key)) return null
+                        seen.add(key)
                         const full = findProduct(p.category_key, p.item_id, p.source)
                         return full ? { ...full, ...p } : null
                     })
@@ -96,11 +103,19 @@ export default function AssistantModal({ isOpen, onClose }) {
         }
     }
 
+    const [showCartPrompt, setShowCartPrompt] = useState(false)
+
     const handleAddToCart = (product) => {
         const isKg = product.unit === 'кг'
         addItem({ ...product, categoryKey: product.category_key || product.categoryKey }, 1, isKg ? 1 : null)
         haptic?.('medium')
         setAddedItems(prev => new Set(prev).add(product.id))
+        setShowCartPrompt(true)
+    }
+
+    const handleGoToCart = () => {
+        onClose()
+        navigate('/cart')
     }
 
     const handleClose = () => {
@@ -222,6 +237,21 @@ export default function AssistantModal({ isOpen, onClose }) {
                                             ))}
                                         </div>
                                     )}
+
+                                    {showCartPrompt && addedItems.size > 0 && (
+                                        <motion.div
+                                            className="assistant-cart-prompt"
+                                            initial={{ opacity: 0, y: 8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                        >
+                                            <button className="assistant-cart-btn" onClick={handleGoToCart}>
+                                                🛒 Перейти в корзину
+                                            </button>
+                                            <button className="assistant-stay-btn" onClick={() => setShowCartPrompt(false)}>
+                                                Продолжить выбор
+                                            </button>
+                                        </motion.div>
+                                    )}
                                 </motion.div>
                             )}
 
@@ -283,7 +313,7 @@ function MiniProductCard({ product, onAdd, isAdded }) {
                 onClick={onAdd}
                 disabled={isAdded}
             >
-                {isAdded ? '...' : '+'}
+                {isAdded ? '✓' : '+'}
             </button>
         </motion.div>
     )

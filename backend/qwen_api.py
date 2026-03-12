@@ -195,10 +195,15 @@ def _parse_product_tags(text: str) -> tuple[str, list[dict]]:
     products = []
     pattern = r'\[product:\s*category_key=([^,]+),\s*item_id=([^,]+),\s*source=([^\]]+)\]'
 
+    seen = set()
     for match in re.finditer(pattern, text):
+        key = (match.group(1).strip(), match.group(2).strip())
+        if key in seen:
+            continue
+        seen.add(key)
         products.append({
-            "category_key": match.group(1).strip(),
-            "item_id": match.group(2).strip(),
+            "category_key": key[0],
+            "item_id": key[1],
             "source": match.group(3).strip(),
         })
 
