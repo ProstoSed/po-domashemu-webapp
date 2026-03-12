@@ -235,7 +235,7 @@ async def ask_assistant(user_message: str) -> dict:
     }
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(
                 f"{QWEN_PROXY_URL}/api/chat/completions",
                 json=payload,
