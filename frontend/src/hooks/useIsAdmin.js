@@ -1,8 +1,7 @@
 /**
  * useIsAdmin — проверяет, является ли текущий пользователь админом.
- * Сначала проверяет по статическому списку (мгновенно),
- * затем подтверждает через бэкенд /api/check-admin.
- * Если бэкенд недоступен — использует статический результат.
+ * Мгновенный результат по статическому списку VITE_ADMIN_IDS,
+ * затем фоново уточняет через бэкенд /api/check-admin.
  */
 import { useState, useEffect } from 'react'
 import { checkAdmin } from '../utils/api'
@@ -22,30 +21,20 @@ function staticCheck() {
 }
 
 export function useIsAdmin() {
+    // checked=true сразу — статической проверки достаточно для показа UI
     const [isAdmin, setIsAdmin] = useState(staticCheck)
-    const [checked, setChecked] = useState(false)
+    const [checked] = useState(true)
 
+    // Фоновая проверка через API — уточняет результат (динамические админы)
     useEffect(() => {
         let cancelled = false
         checkAdmin()
             .then(data => {
                 if (!cancelled) setIsAdmin(data.admin === true)
             })
-            .catch(() => {
-                // API недоступен — оставляем статический результат
-            })
-            .finally(() => {
-                if (!cancelled) setChecked(true)
-            })
+            .catch(() => {})
         return () => { cancelled = true }
     }, [])
-
-    // Если через 3 секунды checked ещё false — принудительно ставим
-    useEffect(() => {
-        if (checked) return
-        const timer = setTimeout(() => setChecked(true), 3000)
-        return () => clearTimeout(timer)
-    }, [checked])
 
     return { isAdmin, checked }
 }
