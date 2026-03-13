@@ -683,6 +683,40 @@
     cursor: not-allowed;
 }
 
+.admin-card--ignored {
+    opacity: 0.55;
+    border: 1.5px dashed var(--color-text-secondary);
+}
+
+.admin-badge-ignored {
+    color: #ef5350;
+    font-weight: 600;
+}
+
+.btn-restore-admin {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 1.5px solid #66bb6a;
+    background: transparent;
+    color: #66bb6a;
+    font-size: 0.9rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+}
+.btn-restore-admin:active {
+    background: #66bb6a;
+    color: white;
+}
+.btn-restore-admin:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .admin-search-hint {
     font-size: 0.8rem;
     color: var(--color-text-secondary);

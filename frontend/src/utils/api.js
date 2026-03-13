@@ -192,6 +192,13 @@ export async function removeAdmin(userId) {
     })
 }
 
+export async function restoreAdmin(userId) {
+    return apiFetch(`/api/admin/admins/${userId}/restore`, {
+        method: 'POST',
+        headers: adminHeaders(),
+    })
+}
+
 export async function searchUsers(query) {
     return apiFetch(`/api/admin/users-search?q=${encodeURIComponent(query)}`, {
         headers: adminHeaders(),

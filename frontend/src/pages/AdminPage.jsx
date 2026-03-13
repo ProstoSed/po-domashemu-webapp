@@ -12,7 +12,7 @@ import {
     fetchStats, fetchUsers, sendBroadcast,
     fetchReminders, remindSleeping,
     syncPrices, fetchUserOrders,
-    fetchAdmins, addAdmin, removeAdmin, searchUsers,
+    fetchAdmins, addAdmin, removeAdmin, restoreAdmin, searchUsers,
 } from '../utils/api'
 import './AdminPage.css'
 
@@ -894,10 +894,26 @@ function AdminsSection() {
     }
 
     const handleRemove = async (userId) => {
-        if (!window.confirm('Убрать этого администратора?')) return
+        const adm = admins.find(a => a.user_id === userId)
+        const msg = adm?.is_static
+            ? 'Заблокировать этого админа? (env-админ — можно будет вернуть)'
+            : 'Убрать этого администратора?'
+        if (!window.confirm(msg)) return
         setRemoving(userId)
         try {
             await removeAdmin(userId)
+            load()
+        } catch (err) {
+            alert(`Ошибка: ${err.message}`)
+        } finally {
+            setRemoving(null)
+        }
+    }
+
+    const handleRestore = async (userId) => {
+        setRemoving(userId)
+        try {
+            await restoreAdmin(userId)
             load()
         } catch (err) {
             alert(`Ошибка: ${err.message}`)
@@ -938,9 +954,9 @@ function AdminsSection() {
             {/* Список текущих админов */}
             <div className="admins-list">
                 {admins.map(a => (
-                    <div key={a.user_id} className="admin-card glass-card">
+                    <div key={a.user_id} className={`admin-card glass-card${a.is_ignored ? ' admin-card--ignored' : ''}`}>
                         <div className="admin-card-avatar">
-                            {a.is_mama ? '👑' : '🛡️'}
+                            {a.is_mama ? '👑' : a.is_ignored ? '🚫' : '🛡️'}
                         </div>
                         <div className="admin-card-info">
                             <div className="admin-card-name">
@@ -953,16 +969,27 @@ function AdminsSection() {
                                 ID: {a.user_id}
                                 {a.is_static && <span className="admin-badge-static"> .env</span>}
                                 {a.is_mama && <span className="admin-badge-mama"> Владелец</span>}
+                                {a.is_ignored && <span className="admin-badge-ignored"> Заблокирован</span>}
                             </div>
                         </div>
-                        {!a.is_static && !a.is_mama && (
+                        {!a.is_mama && !a.is_ignored && (
                             <button
                                 className="btn-remove-admin"
                                 onClick={() => handleRemove(a.user_id)}
                                 disabled={removing === a.user_id}
-                                title="Убрать админа"
+                                title={a.is_static ? 'Заблокировать (можно вернуть)' : 'Убрать админа'}
                             >
-                                {removing === a.user_id ? '...' : '✕'}
+                                {removing === a.user_id ? '...' : a.is_static ? '🚫' : '✕'}
+                            </button>
+                        )}
+                        {a.is_ignored && (
+                            <button
+                                className="btn-restore-admin"
+                                onClick={() => handleRestore(a.user_id)}
+                                disabled={removing === a.user_id}
+                                title="Разблокировать"
+                            >
+                                {removing === a.user_id ? '...' : '✅'}
                             </button>
                         )}
                     </div>

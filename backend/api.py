@@ -1460,9 +1460,6 @@ async def admin_list_admins(x_init_data: str | None = Header(default=None)) -> d
 
     result = []
     for uid in static_ids | dynamic_ids:
-        # Пропускаем игнорируемых env-админов (кроме владельца)
-        if uid in ignored and uid != MAIN_CHAT_ID:
-            continue
         user_info = users_data.get(str(uid), {})
         result.append({
             'user_id': uid,
@@ -1470,6 +1467,7 @@ async def admin_list_admins(x_init_data: str | None = Header(default=None)) -> d
             'first_name': user_info.get('first_name', ''),
             'is_static': uid in static_ids,
             'is_mama': uid == MAIN_CHAT_ID,
+            'is_ignored': uid in ignored and uid != MAIN_CHAT_ID,
         })
 
     # Мама первой, потом по имени
@@ -1507,6 +1505,16 @@ async def admin_add_admin(
 
     admins = _load_admins()
     all_ids = _get_all_admin_ids()
+
+    # Если env-админ заблокирован — разблокировать вместо добавления
+    ignored = set(_load_ignored())
+    if user_id in ADMIN_IDS and user_id in ignored:
+        data = _load_admins_data()
+        data['ignored'] = [uid for uid in data.get('ignored', []) if uid != user_id]
+        _save_admins_data(data)
+        log.info('Admin restored via add: %s', user_id)
+        return {'ok': True}
+
     if user_id in all_ids:
         raise HTTPException(status_code=400, detail='Этот пользователь уже администратор')
 
@@ -1551,6 +1559,23 @@ async def admin_remove_admin(
 
     _save_admins(new_admins)
     log.info('Admin removed: %s', user_id)
+    return {'ok': True}
+
+
+@app.post('/api/admin/admins/{user_id}/restore')
+async def admin_restore_admin(
+    user_id: int,
+    x_init_data: str | None = Header(default=None),
+) -> dict:
+    """Разблокировать ранее заблокированного env-админа."""
+    require_admin(x_init_data)
+    data = _load_admins_data()
+    ignored = data.get('ignored', [])
+    if user_id not in ignored:
+        raise HTTPException(status_code=400, detail='Этот админ не заблокирован')
+    data['ignored'] = [uid for uid in ignored if uid != user_id]
+    _save_admins_data(data)
+    log.info('Admin restored (unignored): %s', user_id)
     return {'ok': True}
 
 
