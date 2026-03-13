@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { geocodeAddress } from '../utils/api'
 import { formatPrice } from '../utils/formatPrice'
@@ -13,6 +14,7 @@ const DELIVERY_ZONES = [
 ]
 
 export default function DeliveryPage() {
+    const navigate = useNavigate()
     const [calcAddr, setCalcAddr] = useState('')
     const [calcStatus, setCalcStatus] = useState('idle')
     const [calcResult, setCalcResult] = useState(null)
@@ -150,6 +152,9 @@ export default function DeliveryPage() {
                     Заказ выполняется в течение <strong>1–3 дней</strong> в зависимости от сложности. Желаемую дату можно указать при оформлении — постараемся выполнить к нужному времени.
                 </p>
             </div>
+            <button className="btn btn-primary back-to-menu-btn" onClick={() => navigate('/')}>
+                ← Вернуться в меню
+            </button>
         </motion.div>
     )
 }

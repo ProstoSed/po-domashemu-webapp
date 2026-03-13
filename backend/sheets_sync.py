@@ -299,11 +299,10 @@ async def _sync_one(sheet_id: str, prices_file: Path, photos_dir: Path,
 
 
 async def sync_prices(sheet_id: str, prices_file: Path, photos_dir: Path,
-                      lenten_file: Path | None = None,
-                      lenten_gid: str | None = None) -> tuple[bool, str]:
+                      extra_menus: list | None = None) -> tuple[bool, str]:
     """
     Скачивает данные из Google Sheets, кеширует фото и перезаписывает prices.json.
-    Если передан lenten_file и lenten_gid — синхронизирует и постное меню.
+    extra_menus — список кортежей (key, file, gid, label) для доп. меню (постное, фуршетное и т.д.).
     Возвращает (успех, сообщение).
     """
     ok_main, msg_main = await _sync_one(sheet_id, prices_file, photos_dir, label="основное меню")
@@ -311,11 +310,11 @@ async def sync_prices(sheet_id: str, prices_file: Path, photos_dir: Path,
     messages = [msg_main]
     all_ok = ok_main
 
-    if lenten_file and lenten_gid:
-        ok_lent, msg_lent = await _sync_one(sheet_id, lenten_file, photos_dir,
-                                            gid=lenten_gid, label="постное меню")
-        messages.append(msg_lent)
-        if not ok_lent:
+    for _key, extra_file, extra_gid, extra_label in (extra_menus or []):
+        ok_extra, msg_extra = await _sync_one(sheet_id, extra_file, photos_dir,
+                                              gid=extra_gid, label=extra_label)
+        messages.append(msg_extra)
+        if not ok_extra:
             all_ok = False
 
     return all_ok, "\n".join(messages)

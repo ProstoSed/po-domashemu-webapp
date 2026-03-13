@@ -19,6 +19,8 @@ import AboutPage from './pages/AboutPage'
 import InvitePage from './pages/InvitePage'
 import LentenCatalogPage from './pages/LentenCatalogPage'
 import LentenCategoryPage from './pages/LentenCategoryPage'
+import BanquetCatalogPage from './pages/BanquetCatalogPage'
+import BanquetCategoryPage from './pages/BanquetCategoryPage'
 
 export default function App() {
     const [assistantOpen, setAssistantOpen] = useState(false)
@@ -34,6 +36,8 @@ export default function App() {
                             <Route path="/category/:categoryKey" element={<CategoryPage />} />
                             <Route path="/lenten" element={<LentenCatalogPage />} />
                             <Route path="/lenten/category/:categoryKey" element={<LentenCategoryPage />} />
+                            <Route path="/banquet" element={<BanquetCatalogPage />} />
+                            <Route path="/banquet/category/:categoryKey" element={<BanquetCategoryPage />} />
                             <Route path="/cart" element={<CartPage />} />
                             <Route path="/checkout" element={<CheckoutPage />} />
                             <Route path="/success" element={<SuccessPage />} />

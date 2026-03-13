@@ -57,6 +57,15 @@
     color: var(--color-text-muted);
 }
 
+/* Карточка «Фуршетное меню» */
+.banquet-card {
+    border: 1.5px solid rgba(156, 39, 176, 0.25);
+    background: linear-gradient(135deg, rgba(156, 39, 176, 0.08), rgba(186, 104, 200, 0.05));
+}
+.banquet-card .lenten-card-title {
+    color: #7b1fa2;
+}
+
 /* Загрузка */
 .catalog-loading {
     display: flex;

@@ -66,8 +66,8 @@ export default function AboutPage() {
                 </a>
             </div>
 
-            <button className="btn btn-primary about-catalog-btn" onClick={() => navigate('/')}>
-                🥧 Перейти в каталог
+            <button className="btn btn-primary back-to-menu-btn" onClick={() => navigate('/')}>
+                ← Вернуться в меню
             </button>
         </motion.div>
     )

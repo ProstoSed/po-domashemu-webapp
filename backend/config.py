@@ -48,10 +48,15 @@ ADMINS_FILE: Path = (BASE_DIR / _admins_path).resolve()
 
 GOOGLE_SHEET_ID: str = os.getenv('GOOGLE_SHEET_ID', '13N8s8Bl3J_LFt_j96nZX-kUgXJ4nKq5gWj8u4U2PgfQ')
 LENTEN_SHEET_GID: str = os.getenv('LENTEN_SHEET_GID', '1656336604')
+BANQUET_SHEET_GID: str = os.getenv('BANQUET_SHEET_GID', '1286891366')
 
 # Постное меню — отдельный JSON
 _lenten_path = os.getenv('LENTEN_PRICES_FILE', '../../data/lenten_prices.json')
 LENTEN_PRICES_FILE: Path = (BASE_DIR / _lenten_path).resolve()
+
+# Фуршетное меню — отдельный JSON
+_banquet_path = os.getenv('BANQUET_PRICES_FILE', '../../data/banquet_prices.json')
+BANQUET_PRICES_FILE: Path = (BASE_DIR / _banquet_path).resolve()
 
 # Автосоздание папки data/ и пустых JSON-файлов (для Render и свежих серверов)
 _DATA_FILES = {

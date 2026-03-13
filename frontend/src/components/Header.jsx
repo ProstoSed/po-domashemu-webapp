@@ -9,7 +9,9 @@ const _extraIds = (import.meta.env.VITE_ADMIN_IDS || '')
 const ADMIN_IDS = new Set([MAMA_ID, ..._extraIds])
 
 // В dev-режиме (npm run dev) всегда показываем вкладки без проверки прав
+// В dev-режиме показываем админку только если DEV_USER_ID совпадает с одним из ADMIN_IDS
 const IS_DEV = import.meta.env.DEV
+const DEV_USER_ID = parseInt(import.meta.env.VITE_DEV_USER_ID || '0', 10)
 
 const CLIENT_NAV_ROW1 = [
     { path: '/search',    label: '🔍 Поиск' },
@@ -27,7 +29,8 @@ export default function Header() {
     const { user } = useTelegram()
     const navigate = useNavigate()
     const location = useLocation()
-    const isMama = IS_DEV || (user && ADMIN_IDS.has(user.id))
+    const userId = user?.id || (IS_DEV ? DEV_USER_ID : 0)
+    const isMama = ADMIN_IDS.has(userId)
     const isAdmin = location.pathname.startsWith('/admin')
 
     // Скрыть клиентский sub-nav на служебных страницах

@@ -96,7 +96,7 @@
     border: 1.5px solid var(--color-border);
 }
 
-.about-catalog-btn {
+.back-to-menu-btn {
     width: 100%;
     padding: 0.85rem;
     font-size: var(--font-size-md);

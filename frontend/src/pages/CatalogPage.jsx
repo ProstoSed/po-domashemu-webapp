@@ -137,6 +137,22 @@ export default function CatalogPage() {
                 <span className="category-arrow">›</span>
             </motion.div>
 
+            <motion.div
+                className="lenten-card banquet-card glass-card"
+                onClick={() => navigate('/banquet')}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                whileTap={{ scale: 0.96 }}
+            >
+                <span className="lenten-card-icon">🥂</span>
+                <div className="lenten-card-info">
+                    <h3 className="lenten-card-title">Фуршетное меню</h3>
+                    <span className="lenten-card-desc">Для праздников и мероприятий</span>
+                </div>
+                <span className="category-arrow">›</span>
+            </motion.div>
+
             <div className="catalog-list">
                 {categories.map((cat, i) => (
                     <CategoryCard key={cat.key} category={cat} index={i} />

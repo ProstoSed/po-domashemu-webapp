@@ -21,6 +21,7 @@ const _extraIds = (import.meta.env.VITE_ADMIN_IDS || '')
     .split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
 const ADMIN_IDS = new Set([MAMA_ID, ..._extraIds])
 const IS_DEV = import.meta.env.DEV
+const DEV_USER_ID = parseInt(import.meta.env.VITE_DEV_USER_ID || '0', 10)
 
 const STATUS_LABEL = {
     new:      { text: 'Новый',      cls: 'status-new' },
@@ -1276,7 +1277,8 @@ export default function AdminPage() {
     const [syncing, setSyncing] = useState(false)
     const [syncResult, setSyncResult] = useState(null)
 
-    const isMama = IS_DEV || !user || ADMIN_IDS.has(user.id)
+    const userId = user?.id || (IS_DEV ? DEV_USER_ID : 0)
+    const isMama = ADMIN_IDS.has(userId)
 
     useEffect(() => {
         if (!isMama) return
@@ -1308,8 +1310,8 @@ export default function AdminPage() {
         setOrders(prev => prev.filter(o => o.order_id !== id))
     }
 
-    // Не мама — заглушка
-    if (!IS_DEV && user && !ADMIN_IDS.has(user.id)) {
+    // Не админ — заглушка
+    if (!isMama) {
         return (
             <div className="empty-state">
                 <span className="empty-state-emoji">🔒</span>

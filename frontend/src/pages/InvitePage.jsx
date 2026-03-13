@@ -2,6 +2,7 @@
  * InvitePage — Пригласить друга (реферальная ссылка).
  */
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useTelegram } from '../hooks/useTelegram'
 import { fetchMyReferral } from '../utils/api'
@@ -11,6 +12,7 @@ import './InvitePage.css'
 const FALLBACK_BOT = 'VypechkaNadezhda_App_bot'
 
 export default function InvitePage() {
+    const navigate = useNavigate()
     const { user, tg } = useTelegram()
     const [copied, setCopied] = useState(false)
     const [refData, setRefData] = useState(null)
@@ -99,6 +101,9 @@ export default function InvitePage() {
                     Вы пригласили: <strong>{refCount}</strong> {refCount === 1 ? 'друга' : 'друзей'}
                 </span>
             </div>
+            <button className="btn btn-primary back-to-menu-btn" onClick={() => navigate('/')}>
+                ← Вернуться в меню
+            </button>
         </motion.div>
     )
 }

@@ -47,7 +47,8 @@ from fastapi.responses import FileResponse
 from config import (PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE,
                      PHOTO_REQUESTS_FILE, HOLIDAYS_FILE, PHOTOS_DIR, GOOGLE_SHEET_ID,
                      DEV_MODE, DEV_USER_ID, MAIN_CHAT_ID, ADMINS_FILE,
-                     LENTEN_PRICES_FILE, LENTEN_SHEET_GID)
+                     LENTEN_PRICES_FILE, LENTEN_SHEET_GID,
+                     BANQUET_PRICES_FILE, BANQUET_SHEET_GID)
 
 log = logging.getLogger(__name__)
 app = FastAPI(title='По-домашнему API', version='1.3')
@@ -453,6 +454,18 @@ async def get_lenten_prices() -> dict:
         return json.loads(LENTEN_PRICES_FILE.read_text(encoding='utf-8'))
     except Exception as exc:
         log.error('Ошибка чтения lenten_prices.json: %s', exc)
+        raise HTTPException(status_code=500, detail='Ошибка сервера')
+
+
+@app.get('/api/banquet-prices')
+async def get_banquet_prices() -> dict:
+    """Фуршетное меню (из отдельной вкладки Google Sheets)."""
+    if not BANQUET_PRICES_FILE.exists():
+        raise HTTPException(status_code=503, detail='Фуршетное меню недоступно')
+    try:
+        return json.loads(BANQUET_PRICES_FILE.read_text(encoding='utf-8'))
+    except Exception as exc:
+        log.error('Ошибка чтения banquet_prices.json: %s', exc)
         raise HTTPException(status_code=500, detail='Ошибка сервера')
 
 
@@ -1314,10 +1327,14 @@ async def admin_sync_prices(x_init_data: str | None = Header(default=None)) -> d
     """Синхронизация цен из Google Sheets + кеширование фото."""
     require_admin(x_init_data)
     from sheets_sync import sync_prices as do_sync
+    extra_menus = []
+    if LENTEN_SHEET_GID:
+        extra_menus.append(('lenten', LENTEN_PRICES_FILE, LENTEN_SHEET_GID, 'постное меню'))
+    if BANQUET_SHEET_GID:
+        extra_menus.append(('banquet', BANQUET_PRICES_FILE, BANQUET_SHEET_GID, 'фуршетное меню'))
     success, message = await do_sync(
         GOOGLE_SHEET_ID, PRICES_FILE, PHOTOS_DIR,
-        lenten_file=LENTEN_PRICES_FILE,
-        lenten_gid=LENTEN_SHEET_GID,
+        extra_menus=extra_menus,
     )
     return {'ok': success, 'message': message}
 
