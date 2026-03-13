@@ -6,7 +6,7 @@ import { useEffect, useState, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts'
-import { useTelegram } from '../hooks/useTelegram'
+import { useIsAdmin } from '../hooks/useIsAdmin'
 import {
     fetchOrders, deleteOrder, updateOrderStatus,
     fetchStats, fetchUsers, sendBroadcast,
@@ -15,13 +15,6 @@ import {
     fetchAdmins, addAdmin, removeAdmin, searchUsers,
 } from '../utils/api'
 import './AdminPage.css'
-
-const MAMA_ID = 5513112898
-const _extraIds = (import.meta.env.VITE_ADMIN_IDS || '')
-    .split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
-const ADMIN_IDS = new Set([MAMA_ID, ..._extraIds])
-const IS_DEV = import.meta.env.DEV
-const DEV_USER_ID = parseInt(import.meta.env.VITE_DEV_USER_ID || '0', 10)
 
 const STATUS_LABEL = {
     new:      { text: 'Новый',      cls: 'status-new' },
@@ -1266,7 +1259,7 @@ function BroadcastSection() {
 // ──────────────────────────────────────────
 
 export default function AdminPage() {
-    const { user } = useTelegram()
+    const { isAdmin: isMama, checked } = useIsAdmin()
     const navigate = useNavigate()
     const [section, setSection] = useState('orders')
     const [orders, setOrders] = useState([])
@@ -1276,9 +1269,6 @@ export default function AdminPage() {
     const [ordersPage, setOrdersPage] = useState(1)
     const [syncing, setSyncing] = useState(false)
     const [syncResult, setSyncResult] = useState(null)
-
-    const userId = user?.id || (IS_DEV ? DEV_USER_ID : 0)
-    const isMama = ADMIN_IDS.has(userId)
 
     useEffect(() => {
         if (!isMama) return
@@ -1308,6 +1298,16 @@ export default function AdminPage() {
     const handleDelete = async (id) => {
         await deleteOrder(id)
         setOrders(prev => prev.filter(o => o.order_id !== id))
+    }
+
+    // Ждём проверки прав
+    if (!checked) {
+        return (
+            <div className="catalog-loading">
+                <div className="loading-spinner" />
+                <p>Проверка доступа...</p>
+            </div>
+        )
     }
 
     // Не админ — заглушка

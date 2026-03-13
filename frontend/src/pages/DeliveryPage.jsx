@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { geocodeAddress } from '../utils/api'
 import { formatPrice } from '../utils/formatPrice'
 import './DeliveryPage.css'
+import './CategoryPage.css'
 
 const PICKUP_ADDRESS = 'д. Зимёнки, Нижегородская область'
 
@@ -55,6 +56,16 @@ export default function DeliveryPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
         >
+            <motion.button
+                className="back-button"
+                onClick={() => navigate('/')}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                whileTap={{ scale: 0.95 }}
+            >
+                ← Назад
+            </motion.button>
+
             <h2 className="delivery-title">🚗 Доставка и самовывоз</h2>
 
             {/* Самовывоз */}
@@ -152,9 +163,6 @@ export default function DeliveryPage() {
                     Заказ выполняется в течение <strong>1–3 дней</strong> в зависимости от сложности. Желаемую дату можно указать при оформлении — постараемся выполнить к нужному времени.
                 </p>
             </div>
-            <button className="btn btn-primary back-to-menu-btn" onClick={() => navigate('/')}>
-                ← Вернуться в меню
-            </button>
         </motion.div>
     )
 }

@@ -66,6 +66,15 @@
     color: #7b1fa2;
 }
 
+/* Карточка «Детское меню» */
+.kids-card {
+    border: 1.5px solid rgba(255, 152, 0, 0.25);
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.08), rgba(255, 183, 77, 0.05));
+}
+.kids-card .lenten-card-title {
+    color: #e65100;
+}
+
 /* Загрузка */
 .catalog-loading {
     display: flex;

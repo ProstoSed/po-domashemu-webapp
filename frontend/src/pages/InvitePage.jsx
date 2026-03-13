@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import { useTelegram } from '../hooks/useTelegram'
 import { fetchMyReferral } from '../utils/api'
 import './InvitePage.css'
+import './CategoryPage.css'
 
 // Fallback — если backend недоступен
 const FALLBACK_BOT = 'VypechkaNadezhda_App_bot'
@@ -68,6 +69,16 @@ export default function InvitePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
         >
+            <motion.button
+                className="back-button"
+                onClick={() => navigate('/')}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                whileTap={{ scale: 0.95 }}
+            >
+                ← Назад
+            </motion.button>
+
             <div className="invite-hero glass-card">
                 <span className="invite-hero-emoji">🎁</span>
                 <h2 className="invite-title">Пригласи друга!</h2>
@@ -101,9 +112,6 @@ export default function InvitePage() {
                     Вы пригласили: <strong>{refCount}</strong> {refCount === 1 ? 'друга' : 'друзей'}
                 </span>
             </div>
-            <button className="btn btn-primary back-to-menu-btn" onClick={() => navigate('/')}>
-                ← Вернуться в меню
-            </button>
         </motion.div>
     )
 }

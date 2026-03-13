@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import './AboutPage.css'
+import './CategoryPage.css'
 
 export default function AboutPage() {
     const navigate = useNavigate()
@@ -12,6 +13,16 @@ export default function AboutPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
         >
+            <motion.button
+                className="back-button"
+                onClick={() => navigate('/')}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                whileTap={{ scale: 0.95 }}
+            >
+                ← Назад
+            </motion.button>
+
             <div className="about-hero glass-card">
                 <span className="about-hero-emoji">🥧</span>
                 <h2 className="about-hero-title">По-домашнему</h2>
@@ -65,10 +76,6 @@ export default function AboutPage() {
                     <span>@kolesnik_nadezhda в Telegram</span>
                 </a>
             </div>
-
-            <button className="btn btn-primary back-to-menu-btn" onClick={() => navigate('/')}>
-                ← Вернуться в меню
-            </button>
         </motion.div>
     )
 }

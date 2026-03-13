@@ -48,7 +48,8 @@ from config import (PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE,
                      PHOTO_REQUESTS_FILE, HOLIDAYS_FILE, PHOTOS_DIR, GOOGLE_SHEET_ID,
                      DEV_MODE, DEV_USER_ID, MAIN_CHAT_ID, ADMINS_FILE,
                      LENTEN_PRICES_FILE, LENTEN_SHEET_GID,
-                     BANQUET_PRICES_FILE, BANQUET_SHEET_GID)
+                     BANQUET_PRICES_FILE, BANQUET_SHEET_GID,
+                     KIDS_PRICES_FILE, KIDS_SHEET_GID)
 
 log = logging.getLogger(__name__)
 app = FastAPI(title='По-домашнему API', version='1.3')
@@ -297,10 +298,8 @@ def verify_initdata(init_data: str) -> dict | None:
 
 
 def _is_admin(user_id: int) -> bool:
-    """Проверить, является ли user_id администратором (статические + динамические)."""
-    if user_id in ADMIN_IDS:
-        return True
-    return any(a['user_id'] == user_id for a in _load_admins())
+    """Проверить, является ли user_id администратором (статические + динамические - игнорируемые)."""
+    return user_id in _get_all_admin_ids()
 
 
 def require_admin(x_init_data: str | None) -> None:
@@ -434,6 +433,14 @@ async def health() -> dict:
     return {'status': 'ok'}
 
 
+@app.get('/api/check-admin')
+async def check_admin(x_init_data: str | None = Header(default=None, alias='X-Init-Data')) -> dict:
+    """Проверить, является ли текущий пользователь админом."""
+    user = require_user(x_init_data)
+    uid = user.get('id', 0)
+    return {'admin': _is_admin(uid)}
+
+
 @app.get('/api/prices')
 async def get_prices() -> dict:
     if not PRICES_FILE.exists():
@@ -466,6 +473,18 @@ async def get_banquet_prices() -> dict:
         return json.loads(BANQUET_PRICES_FILE.read_text(encoding='utf-8'))
     except Exception as exc:
         log.error('Ошибка чтения banquet_prices.json: %s', exc)
+        raise HTTPException(status_code=500, detail='Ошибка сервера')
+
+
+@app.get('/api/kids-prices')
+async def get_kids_prices() -> dict:
+    """Детское меню (из отдельной вкладки Google Sheets)."""
+    if not KIDS_PRICES_FILE.exists():
+        raise HTTPException(status_code=503, detail='Детское меню недоступно')
+    try:
+        return json.loads(KIDS_PRICES_FILE.read_text(encoding='utf-8'))
+    except Exception as exc:
+        log.error('Ошибка чтения kids_prices.json: %s', exc)
         raise HTTPException(status_code=500, detail='Ошибка сервера')
 
 
@@ -1332,6 +1351,8 @@ async def admin_sync_prices(x_init_data: str | None = Header(default=None)) -> d
         extra_menus.append(('lenten', LENTEN_PRICES_FILE, LENTEN_SHEET_GID, 'постное меню'))
     if BANQUET_SHEET_GID:
         extra_menus.append(('banquet', BANQUET_PRICES_FILE, BANQUET_SHEET_GID, 'фуршетное меню'))
+    if KIDS_SHEET_GID:
+        extra_menus.append(('kids', KIDS_PRICES_FILE, KIDS_SHEET_GID, 'детское меню'))
     success, message = await do_sync(
         GOOGLE_SHEET_ID, PRICES_FILE, PHOTOS_DIR,
         extra_menus=extra_menus,
@@ -1374,26 +1395,43 @@ async def admin_get_user_orders(
 
 # ── Управление администраторами ──────────────────────────────────────────────
 
+def _load_admins_data() -> dict:
+    """Загрузить admins.json целиком."""
+    try:
+        return json.loads(ADMINS_FILE.read_text(encoding='utf-8'))
+    except Exception:
+        return {'admins': [], 'ignored': []}
+
+
 def _load_admins() -> list[dict]:
     """Загрузить список динамических админов из admins.json."""
-    try:
-        data = json.loads(ADMINS_FILE.read_text(encoding='utf-8'))
-        return data.get('admins', [])
-    except Exception:
-        return []
+    return _load_admins_data().get('admins', [])
 
 
-def _save_admins(admins: list[dict]):
-    """Сохранить список динамических админов."""
+def _load_ignored() -> list[int]:
+    """Загрузить список игнорируемых env-админов."""
+    return _load_admins_data().get('ignored', [])
+
+
+def _save_admins_data(data: dict):
+    """Сохранить admins.json целиком."""
     ADMINS_FILE.write_text(
-        json.dumps({'admins': admins}, ensure_ascii=False, indent=2),
+        json.dumps(data, ensure_ascii=False, indent=2),
         encoding='utf-8',
     )
 
 
+def _save_admins(admins: list[dict]):
+    """Сохранить список динамических админов (сохраняет ignored)."""
+    data = _load_admins_data()
+    data['admins'] = admins
+    _save_admins_data(data)
+
+
 def _get_all_admin_ids() -> set[int]:
-    """Все ID админов: из .env + динамические из admins.json."""
-    ids = set(ADMIN_IDS)
+    """Все ID админов: из .env + динамические, минус игнорируемые."""
+    ignored = set(_load_ignored())
+    ids = {uid for uid in ADMIN_IDS if uid not in ignored}
     for a in _load_admins():
         ids.add(a['user_id'])
     return ids
@@ -1406,8 +1444,10 @@ async def admin_list_admins(x_init_data: str | None = Header(default=None)) -> d
 
     # Статические админы из .env
     static_ids = set(ADMIN_IDS)
-    dynamic_admins = _load_admins()
+    data = _load_admins_data()
+    dynamic_admins = data.get('admins', [])
     dynamic_ids = {a['user_id'] for a in dynamic_admins}
+    ignored = set(data.get('ignored', []))
 
     # Подтянем инфо о пользователях из users.json
     users_data = {}
@@ -1420,6 +1460,9 @@ async def admin_list_admins(x_init_data: str | None = Header(default=None)) -> d
 
     result = []
     for uid in static_ids | dynamic_ids:
+        # Пропускаем игнорируемых env-админов (кроме владельца)
+        if uid in ignored and uid != MAIN_CHAT_ID:
+            continue
         user_info = users_data.get(str(uid), {})
         result.append({
             'user_id': uid,
@@ -1483,14 +1526,24 @@ async def admin_remove_admin(
     user_id: int,
     x_init_data: str | None = Header(default=None),
 ) -> dict:
-    """Убрать администратора (только динамических, не из .env)."""
+    """Убрать администратора. Env-админов — игнорируем, динамических — удаляем."""
     require_admin(x_init_data)
 
     if user_id == MAIN_CHAT_ID:
         raise HTTPException(status_code=400, detail='Нельзя убрать владельца из админов')
-    if user_id in ADMIN_IDS:
-        raise HTTPException(status_code=400, detail='Этот админ задан в настройках сервера (.env), нельзя убрать через UI')
 
+    # Env-админ → добавляем в ignored
+    if user_id in ADMIN_IDS:
+        data = _load_admins_data()
+        ignored = data.get('ignored', [])
+        if user_id not in ignored:
+            ignored.append(user_id)
+            data['ignored'] = ignored
+            _save_admins_data(data)
+        log.info('Admin ignored (env): %s', user_id)
+        return {'ok': True}
+
+    # Динамический → удаляем
     admins = _load_admins()
     new_admins = [a for a in admins if a['user_id'] != user_id]
     if len(new_admins) == len(admins):

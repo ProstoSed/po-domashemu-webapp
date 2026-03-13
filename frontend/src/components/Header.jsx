@@ -1,17 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useTelegram } from '../hooks/useTelegram'
+import { useIsAdmin } from '../hooks/useIsAdmin'
 import './Header.css'
-
-const MAMA_ID = 5513112898
-const _extraIds = (import.meta.env.VITE_ADMIN_IDS || '')
-    .split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
-const ADMIN_IDS = new Set([MAMA_ID, ..._extraIds])
-
-// В dev-режиме (npm run dev) всегда показываем вкладки без проверки прав
-// В dev-режиме показываем админку только если DEV_USER_ID совпадает с одним из ADMIN_IDS
-const IS_DEV = import.meta.env.DEV
-const DEV_USER_ID = parseInt(import.meta.env.VITE_DEV_USER_ID || '0', 10)
 
 const CLIENT_NAV_ROW1 = [
     { path: '/search',    label: '🔍 Поиск' },
@@ -26,12 +16,10 @@ const CLIENT_NAV_ROW2 = [
 ]
 
 export default function Header() {
-    const { user } = useTelegram()
     const navigate = useNavigate()
     const location = useLocation()
-    const userId = user?.id || (IS_DEV ? DEV_USER_ID : 0)
-    const isMama = ADMIN_IDS.has(userId)
-    const isAdmin = location.pathname.startsWith('/admin')
+    const { isAdmin: isMama } = useIsAdmin()
+    const isAdminPage = location.pathname.startsWith('/admin')
 
     // Скрыть клиентский sub-nav на служебных страницах
     const hideClientNav = ['/cart', '/checkout', '/success'].some(
@@ -127,13 +115,13 @@ export default function Header() {
             {isMama && (
                 <div className="header-main-tabs">
                     <button
-                        className={`header-main-tab ${isAdmin ? 'active' : ''}`}
+                        className={`header-main-tab ${isAdminPage ? 'active' : ''}`}
                         onClick={() => navigate('/admin')}
                     >
                         ⚙️ Админка
                     </button>
                     <button
-                        className={`header-main-tab ${!isAdmin ? 'active' : ''}`}
+                        className={`header-main-tab ${!isAdminPage ? 'active' : ''}`}
                         onClick={() => navigate('/')}
                     >
                         🥧 Клиентское
@@ -142,7 +130,7 @@ export default function Header() {
             )}
 
             {/* Клиентский sub-nav */}
-            {!isAdmin && !hideClientNav && (
+            {!isAdminPage && !hideClientNav && (
                 <div className={`header-nav-wrap ${navHidden ? 'nav-hidden' : ''}`}>
                     <div className="header-panel-title">Панель управления</div>
                     <div className="header-nav-grid">

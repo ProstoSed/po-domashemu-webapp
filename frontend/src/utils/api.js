@@ -62,6 +62,10 @@ export async function submitOrder(orderData) {
     })
 }
 
+export async function checkAdmin() {
+    return apiFetch('/api/check-admin', { headers: { 'x-init-data': getInitData() } })
+}
+
 // ── Админ (требуют initData мамы) ──────────
 
 function adminHeaders() {
