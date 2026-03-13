@@ -63,7 +63,16 @@ export async function submitOrder(orderData) {
 }
 
 export async function checkAdmin() {
-    return apiFetch('/api/check-admin', { headers: { 'x-init-data': getInitData() } })
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 5000)
+    try {
+        return await apiFetch('/api/check-admin', {
+            headers: { 'x-init-data': getInitData() },
+            signal: controller.signal,
+        }, 0)
+    } finally {
+        clearTimeout(timer)
+    }
 }
 
 // ── Админ (требуют initData мамы) ──────────
