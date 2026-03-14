@@ -338,14 +338,15 @@
 /* Description expand */
 .mini-product-desc-expand {
     overflow: hidden;
-    border-top: 1px solid var(--color-border);
+    background: #fffbeb;
+    border-top: 1px solid #fef3c7;
 }
 
 .mini-product-desc-text {
     padding: 8px 12px;
     font-size: var(--font-size-xs);
     line-height: 1.5;
-    color: var(--color-text-secondary);
+    color: #1a1a1a;
     margin: 0;
 }
 
