@@ -207,22 +207,18 @@
 }
 
 /* Mini product card */
+.mini-product-wrapper {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+}
+
 .mini-product-card {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
     padding: 10px 12px;
-    border-radius: var(--radius-lg);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-}
-
-.mini-product-photo {
-    width: 44px;
-    height: 44px;
-    border-radius: var(--radius-md);
-    object-fit: cover;
-    flex-shrink: 0;
 }
 
 .mini-product-info {
@@ -273,6 +269,67 @@
 .mini-product-added {
     background: #4caf50;
     cursor: default;
+}
+
+/* Photo & desc buttons row */
+.mini-product-btns-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.mini-btn-show-photo,
+.mini-btn-show-desc {
+    padding: 3px 8px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-family: var(--font-family);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.mini-btn-show-photo:active,
+.mini-btn-show-desc:active {
+    background: var(--color-border);
+}
+
+/* Photo expand */
+.mini-product-photo-expand {
+    overflow: hidden;
+    border-top: 1px solid var(--color-border);
+}
+
+.mini-product-photo-img {
+    width: 100%;
+    max-height: 240px;
+    object-fit: contain;
+    display: block;
+    background: var(--color-bg);
+}
+
+.mini-product-photo-error {
+    padding: var(--space-md);
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+}
+
+/* Description expand */
+.mini-product-desc-expand {
+    overflow: hidden;
+    border-top: 1px solid var(--color-border);
+}
+
+.mini-product-desc-text {
+    padding: 8px 12px;
+    font-size: var(--font-size-xs);
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    margin: 0;
 }
 
 /* Cart prompt after adding items */

@@ -329,38 +329,92 @@ export default function AssistantModal({ isOpen, onClose }) {
 }
 
 function MiniProductCard({ product, onAdd, isAdded }) {
+    const [showPhoto, setShowPhoto] = useState(false)
+    const [photoError, setPhotoError] = useState(false)
+    const [showDesc, setShowDesc] = useState(false)
+
     const photoUrl = product.photo_filename
         ? `${API_URL}/api/photos/${product.photo_filename}`
         : null
+    const hasDesc = !!product.description
 
     const priceText = formatItemPrice(product)
 
     return (
-        <motion.div
-            className="mini-product-card"
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-        >
-            {photoUrl && (
-                <img
-                    className="mini-product-photo"
-                    src={photoUrl}
-                    alt={product.name}
-                    loading="lazy"
-                    onError={e => { e.target.style.display = 'none' }}
-                />
-            )}
-            <div className="mini-product-info">
-                <span className="mini-product-name">{product.name}</span>
-                <span className="mini-product-price">{priceText}</span>
-            </div>
-            <button
-                className={`mini-product-add ${isAdded ? 'mini-product-added' : ''}`}
-                onClick={onAdd}
-                disabled={isAdded}
+        <div className="mini-product-wrapper">
+            <motion.div
+                className="mini-product-card"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
             >
-                {isAdded ? '✓' : '+'}
-            </button>
-        </motion.div>
+                <div className="mini-product-info">
+                    <span className="mini-product-name">{product.name}</span>
+                    <span className="mini-product-price">{priceText}</span>
+                    <div className="mini-product-btns-row">
+                        {photoUrl && (
+                            <button
+                                className="mini-btn-show-photo"
+                                onClick={() => { setShowPhoto(p => !p); setPhotoError(false) }}
+                            >
+                                {showPhoto ? '🖼 Скрыть' : '🖼 Фото'}
+                            </button>
+                        )}
+                        {hasDesc && (
+                            <button
+                                className="mini-btn-show-desc"
+                                onClick={() => setShowDesc(d => !d)}
+                            >
+                                {showDesc ? 'Скрыть' : 'Подробнее'}
+                            </button>
+                        )}
+                    </div>
+                </div>
+                <button
+                    className={`mini-product-add ${isAdded ? 'mini-product-added' : ''}`}
+                    onClick={onAdd}
+                    disabled={isAdded}
+                >
+                    {isAdded ? '✓' : '+'}
+                </button>
+            </motion.div>
+
+            <AnimatePresence>
+                {showPhoto && photoUrl && (
+                    <motion.div
+                        className="mini-product-photo-expand"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        {!photoError ? (
+                            <img
+                                src={photoUrl}
+                                alt={product.name}
+                                className="mini-product-photo-img"
+                                onError={() => setPhotoError(true)}
+                                loading="lazy"
+                            />
+                        ) : (
+                            <p className="mini-product-photo-error">Фото недоступно</p>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showDesc && hasDesc && (
+                    <motion.div
+                        className="mini-product-desc-expand"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <p className="mini-product-desc-text">{product.description}</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     )
 }
