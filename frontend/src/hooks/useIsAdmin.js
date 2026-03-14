@@ -1,7 +1,8 @@
 /**
  * useIsAdmin — проверяет, является ли текущий пользователь админом.
- * Ждёт ответа от /api/check-admin, пока не ответит — checked=false.
- * Если API недоступен — fallback на статический список.
+ * Сначала показываем по статическому списку (мгновенно),
+ * затем уточняем через /api/check-admin (может заблокировать).
+ * Если API не отвечает за 3с — оставляем статический результат.
  */
 import { useState, useEffect } from 'react'
 import { checkAdmin } from '../utils/api'
@@ -26,24 +27,19 @@ function getUserId() {
 }
 
 export function useIsAdmin() {
-    const [isAdmin, setIsAdmin] = useState(false)
-    const [checked, setChecked] = useState(false)
+    // Мгновенно показываем по статическому списку
+    const [isAdmin, setIsAdmin] = useState(staticCheck)
+    const [checked, setChecked] = useState(true)
 
+    // Фоново уточняем через API (может заблокировать env-админа)
     useEffect(() => {
         let cancelled = false
         checkAdmin()
             .then(data => {
-                if (!cancelled) {
-                    setIsAdmin(data.admin === true)
-                    setChecked(true)
-                }
+                if (!cancelled) setIsAdmin(data.admin === true)
             })
             .catch(() => {
-                // API недоступен — fallback на статический список
-                if (!cancelled) {
-                    setIsAdmin(staticCheck())
-                    setChecked(true)
-                }
+                // API недоступен — оставляем статический результат
             })
         return () => { cancelled = true }
     }, [])
