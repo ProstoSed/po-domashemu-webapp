@@ -1,7 +1,7 @@
 /**
  * usePrices — загрузка каталога товаров.
- * Загружает API и static параллельно — показывает первый успешный.
- * API имеет приоритет (содержит photo_filename), но static быстрее.
+ * Приоритет: API (актуальные данные + photo_filename).
+ * Static fallback — только если API не ответил за 4с.
  */
 import { useState, useEffect } from 'react'
 
@@ -26,39 +26,23 @@ export function usePrices() {
     const [error, setError] = useState(null)
 
     useEffect(() => {
-        let settled = false
-
         const load = async () => {
-            // Запускаем оба запроса параллельно
-            const apiPromise = fetchWithTimeout(`${API_URL}/api/prices`, 4000)
-                .then(data => ({ source: 'api', data }))
-                .catch(() => null)
+            // Сначала пробуем API (актуальные данные)
+            try {
+                const data = await fetchWithTimeout(`${API_URL}/api/prices`, 4000)
+                setCategories(data.categories || [])
+                setLoading(false)
+                return
+            } catch {
+                // API недоступен — fallback на static
+            }
 
-            const staticPromise = fetchWithTimeout(STATIC_URL, 3000)
-                .then(data => ({ source: 'static', data }))
-                .catch(() => null)
-
-            // Показываем static сразу если он придёт первым
-            staticPromise.then(result => {
-                if (result && !settled) {
-                    settled = true
-                    setCategories(result.data.categories || [])
-                    setLoading(false)
-                }
-            })
-
-            // API перезаписывает static (содержит photo_filename)
-            apiPromise.then(result => {
-                if (result) {
-                    settled = true
-                    setCategories(result.data.categories || [])
-                    setLoading(false)
-                }
-            })
-
-            // Если оба упали — ошибка
-            const [apiResult, staticResult] = await Promise.all([apiPromise, staticPromise])
-            if (!apiResult && !staticResult) {
+            // Fallback: static prices.json
+            try {
+                const data = await fetchWithTimeout(STATIC_URL, 3000)
+                setCategories(data.categories || [])
+                setLoading(false)
+            } catch {
                 setError('Не удалось загрузить меню')
                 setLoading(false)
             }

@@ -26,8 +26,20 @@
     font-size: var(--font-size-base);
     color: var(--color-text-secondary);
     max-width: 280px;
-    margin-bottom: var(--space-xl);
+    margin-bottom: var(--space-sm);
     line-height: 1.6;
+}
+
+.success-hint {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    max-width: 300px;
+    line-height: 1.5;
+    margin-bottom: var(--space-xl);
+    padding: 0.6rem 1rem;
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
 }
 
 .success-actions {

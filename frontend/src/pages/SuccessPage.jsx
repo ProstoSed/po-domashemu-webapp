@@ -83,11 +83,20 @@ export default function SuccessPage() {
                 Спасибо за заказ! 💛
             </motion.p>
 
+            <motion.p
+                className="success-hint"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 }}
+            >
+                Передумали или хотите добавить что-то? Заказ можно изменить или отменить в разделе «Мои заказы» до начала доставки.
+            </motion.p>
+
             <motion.div
                 className="success-actions"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 1 }}
+                transition={{ delay: 1.1 }}
             >
                 <button className="btn btn-primary btn-lg" onClick={() => navigate('/')}>
                     Ещё что-нибудь? 🥧

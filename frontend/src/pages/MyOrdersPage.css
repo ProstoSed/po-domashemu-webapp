@@ -100,9 +100,22 @@
 .my-order-item-row {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     font-size: 0.85rem;
     padding: 0.18rem 0;
     color: var(--color-text);
+}
+
+.my-order-item-row--edit {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.3rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.my-order-item-row--edit:last-of-type {
+    border-bottom: none;
 }
 
 .my-order-item-name { flex: 1; }
@@ -112,17 +125,133 @@
     margin-left: 0.5rem;
 }
 
+/* Кнопки редактирования количества */
+.my-order-edit-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.qty-btn {
+    width: 30px;
+    height: 30px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    font-family: var(--font-family);
+}
+
+.qty-btn:active {
+    background: var(--color-border);
+}
+
+.qty-btn--remove {
+    border-color: #ef5350;
+    color: #ef5350;
+    margin-left: auto;
+}
+
+.qty-btn--remove:active {
+    background: #ffebee;
+}
+
+.qty-val {
+    min-width: 24px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.my-order-item-line-total {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    margin-left: 0.5rem;
+}
+
+.my-order-edit-total {
+    padding: 0.5rem 0;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--color-primary-dark);
+    text-align: right;
+}
+
+.my-order-edit-comment {
+    width: 100%;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.5rem;
+    font-family: var(--font-family);
+    font-size: 0.85rem;
+    background: var(--color-bg);
+    color: var(--color-text);
+    resize: none;
+    outline: none;
+    margin-top: 0.3rem;
+}
+
+.my-order-edit-comment:focus {
+    border-color: var(--color-primary);
+}
+
+.my-order-empty-edit {
+    padding: 0.5rem 0;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
 .my-order-meta {
     font-size: 0.8rem;
     color: var(--color-text-secondary);
     margin-top: 0.3rem;
 }
 
-.my-order-repeat-btn {
+/* Кнопки действий */
+.my-order-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
     margin-top: 0.7rem;
+}
+
+.my-order-action-btn {
     width: 100%;
     padding: 0.55rem;
     font-size: 0.9rem;
+    border-radius: 10px;
+    font-family: var(--font-family);
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.my-order-action-btn:active {
+    opacity: 0.7;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1.5px solid var(--color-primary);
+    color: var(--color-primary);
+}
+
+.btn-danger-outline {
+    background: transparent;
+    border: 1.5px solid #ef5350;
+    color: #ef5350;
+}
+
+.btn-danger-outline:active {
+    background: #ffebee;
 }
 
 /* Переиспользуем статусы из AdminPage */

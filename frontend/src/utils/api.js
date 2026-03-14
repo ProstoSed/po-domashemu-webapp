@@ -218,6 +218,21 @@ export async function fetchMyOrders() {
     return apiFetch('/api/orders/my', { headers: userHeaders() })
 }
 
+export async function updateMyOrder(orderId, data) {
+    return apiFetch(`/api/orders/my/${orderId}`, {
+        method: 'PUT',
+        headers: userHeaders(),
+        body: JSON.stringify(data),
+    })
+}
+
+export async function cancelMyOrder(orderId) {
+    return apiFetch(`/api/orders/my/${orderId}`, {
+        method: 'DELETE',
+        headers: userHeaders(),
+    })
+}
+
 export async function fetchMyPhotoRequests() {
     return apiFetch('/api/photo-requests/my', { headers: userHeaders() })
 }

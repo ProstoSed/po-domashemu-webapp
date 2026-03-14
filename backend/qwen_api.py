@@ -233,11 +233,20 @@ async def ask_assistant(user_message: str) -> dict:
     """
     system_prompt = _build_system_prompt()
 
+    # Дописываем текущее время к сообщению (незаметно для пользователя)
+    now = datetime.now(MSK)
+    months = ['января','февраля','марта','апреля','мая','июня',
+              'июля','августа','сентября','октября','ноября','декабря']
+    weekdays = ['понедельник','вторник','среда','четверг','пятница','суббота','воскресенье']
+    date_str = f"{now.day} {months[now.month-1]} {now.year}"
+    time_suffix = (f"\n\n[Текущее время: {date_str}, {weekdays[now.weekday()]}, {now.strftime('%H:%M')}]")
+    enriched_message = user_message + time_suffix
+
     payload = {
         "model": QWEN_MODEL,
         "messages": [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message},
+            {"role": "user", "content": enriched_message},
         ],
         "stream": False,
     }

@@ -106,6 +106,13 @@ class AddAdminBody(BaseModel):
     first_name: str | None = None
 
 
+class UpdateOrderBody(BaseModel):
+    items: list
+    total: float = 0
+    items_total: float = 0
+    comment: str = ''
+
+
 # ──────────────────────────────────────────────
 # Вспомогательные функции
 # ──────────────────────────────────────────────
@@ -892,6 +899,154 @@ async def get_my_orders(x_init_data: str | None = Header(default=None)) -> dict:
     ]
     my.sort(key=lambda o: o.get('created_at', ''), reverse=True)
     return {'orders': my, 'total': len(my)}
+
+
+@app.put('/api/orders/my/{order_id}')
+async def update_my_order(
+    order_id: str,
+    body: UpdateOrderBody,
+    x_init_data: str | None = Header(default=None),
+) -> dict:
+    """Пользователь изменяет свой заказ (статусы: new, accepted, cooking)."""
+    user = require_user(x_init_data)
+    user_id = user.get('id')
+
+    orders = load_orders()
+    order = None
+    for o in orders:
+        if o.get('order_id') == order_id:
+            order = o
+            break
+
+    if not order:
+        raise HTTPException(status_code=404, detail='Заказ не найден')
+
+    # Проверяем что заказ принадлежит пользователю
+    owner_id = order.get('customer', {}).get('user_id') or order.get('user', {}).get('id')
+    if owner_id != user_id:
+        raise HTTPException(status_code=403, detail='Это не ваш заказ')
+
+    # Разрешаем изменять заказы до стадии доставки
+    editable_statuses = ('new', 'accepted', 'cooking')
+    if order.get('status', 'new') not in editable_statuses:
+        raise HTTPException(status_code=400, detail='Заказ уже в доставке или закрыт, изменение невозможно')
+
+    # Обновляем товары
+    normalized_items = []
+    for item in body.items:
+        weight = item.get('weight')
+        qty = item.get('quantity', 1)
+        if weight:
+            price_per = item.get('price_kg') or item.get('price_kg_min') or item.get('price_per_unit') or 0
+            subtotal = price_per * weight * qty
+        else:
+            price_per = item.get('price_item') or item.get('price_item_min') or item.get('price_per_unit') or 0
+            subtotal = price_per * qty
+        normalized_items.append({
+            'name': item.get('name', ''),
+            'quantity': qty,
+            'unit': item.get('unit', 'шт'),
+            'weight': weight,
+            'price_per_unit': price_per,
+            'total': subtotal,
+        })
+
+    order['items'] = normalized_items
+    order['comment'] = body.comment
+    order['totals']['items_total'] = body.items_total
+    order['totals']['grand_total'] = body.total
+    order['updated_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    save_orders(orders)
+
+    # Уведомляем маму об изменении заказа
+    customer = order.get('customer', {})
+    name = customer.get('first_name', '—')
+    username = f'@{customer["username"]}' if customer.get('username') else '—'
+
+    lines = [f'✏️ <b>ЗАКАЗ ИЗМЕНЁН</b> — {order_id}\n']
+    lines.append(f'👤 <b>Клиент:</b> {name} ({username})\n')
+    lines.append('📦 <b>Новый состав:</b>')
+    for item in normalized_items:
+        qty = item['quantity']
+        weight = item.get('weight')
+        if weight:
+            amount_str = f'{weight} кг × {qty} шт'
+        else:
+            amount_str = f'{qty} {item.get("unit", "шт")}'
+        subtotal = item.get('total', 0)
+        price_str = f'{subtotal:,.0f} ₽'.replace(',', ' ') if subtotal else '—'
+        lines.append(f'  • {item["name"]} — {amount_str} = {price_str}')
+
+    total_str = f'{body.total:,.0f} ₽'.replace(',', ' ')
+    lines.append(f'\n💰 <b>Новый итого:</b> {total_str}')
+
+    if body.comment:
+        lines.append(f'💬 <b>Комментарий:</b> {body.comment}')
+
+    mama_text = '\n'.join(lines)
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            await client.post(
+                f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage',
+                json={'chat_id': MAIN_CHAT_ID, 'text': mama_text, 'parse_mode': 'HTML'},
+            )
+    except Exception as exc:
+        log.error('Не удалось отправить обновлённый заказ маме: %s', exc)
+
+    return {'ok': True, 'order_id': order_id}
+
+
+@app.delete('/api/orders/my/{order_id}')
+async def cancel_my_order(
+    order_id: str,
+    x_init_data: str | None = Header(default=None),
+) -> dict:
+    """Пользователь отменяет свой заказ (статусы: new, accepted, cooking)."""
+    user = require_user(x_init_data)
+    user_id = user.get('id')
+
+    orders = load_orders()
+    order = None
+    for o in orders:
+        if o.get('order_id') == order_id:
+            order = o
+            break
+
+    if not order:
+        raise HTTPException(status_code=404, detail='Заказ не найден')
+
+    owner_id = order.get('customer', {}).get('user_id') or order.get('user', {}).get('id')
+    if owner_id != user_id:
+        raise HTTPException(status_code=403, detail='Это не ваш заказ')
+
+    editable_statuses = ('new', 'accepted', 'cooking')
+    if order.get('status', 'new') not in editable_statuses:
+        raise HTTPException(status_code=400, detail='Заказ уже в доставке или закрыт, отмена невозможна')
+
+    # Удаляем заказ
+    orders = [o for o in orders if o.get('order_id') != order_id]
+    save_orders(orders)
+
+    # Уведомляем маму об отмене
+    customer = order.get('customer', {})
+    name = customer.get('first_name', '—')
+    username = f'@{customer["username"]}' if customer.get('username') else '—'
+    mama_text = (f'❌ <b>ЗАКАЗ ОТМЕНЁН</b> — {order_id}\n\n'
+                 f'👤 <b>Клиент:</b> {name} ({username})\n'
+                 f'Клиент отменил заказ.')
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            await client.post(
+                f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage',
+                json={'chat_id': MAIN_CHAT_ID, 'text': mama_text, 'parse_mode': 'HTML'},
+            )
+    except Exception as exc:
+        log.error('Не удалось отправить отмену заказа маме: %s', exc)
+
+    return {'ok': True, 'order_id': order_id}
 
 
 # ──────────────────────────────────────────────
