@@ -18,11 +18,26 @@ import './AssistantModal.css'
 const API_URL = import.meta.env.VITE_API_URL || ''
 
 const THINKING_PHRASES = [
-    'Изучаю наше меню...',
-    'Подбираю лучшие варианты...',
-    'Думаю что подойдёт...',
-    'Советуюсь с Надеждой...',
-    'Оцениваю сочетания...',
+    'Изучаю наше меню',
+    'Подбираю лучшие варианты',
+    'Думаю что подойдёт',
+    'Советуюсь с Надеждой',
+    'Оцениваю сочетания',
+    'Листаю рецепты',
+    'Прикидываю порции',
+    'Смотрю что свежее',
+    'Считаю стоимость',
+    'Подбираю к чаю',
+    'Вспоминаю фирменное',
+    'Проверяю наличие',
+    'Ищу идеальный вариант',
+    'Сравниваю начинки',
+    'Учитываю сезон',
+    'Вдохновляюсь рецептами',
+    'Оцениваю размер порций',
+    'Подбираю по вкусу',
+    'Составляю подборку',
+    'Продумываю сочетание',
 ]
 
 export default function AssistantModal({ isOpen, onClose }) {
@@ -203,7 +218,7 @@ export default function AssistantModal({ isOpen, onClose }) {
                                 >
                                     <div className="loading-spinner assistant-spinner" />
                                     <p className="assistant-thinking-text" key={thinkingPhrase}>
-                                        {thinkingPhrase}
+                                        {thinkingPhrase}<span className="thinking-dots"><span>.</span><span>.</span><span>.</span></span>
                                     </p>
                                 </motion.div>
                             )}
