@@ -129,23 +129,21 @@ export default function Header() {
                 </div>
             </div>
 
-            {/* Клиентский sub-nav */}
-            {!isAdminPage && !hideClientNav && (
-                <div className={`header-nav-wrap ${navHidden ? 'nav-hidden' : ''}`}>
-                    <div className="header-panel-title">Панель управления</div>
-                    <div className="header-nav-grid">
-                        {[...CLIENT_NAV_ROW1, ...CLIENT_NAV_ROW2].map(item => (
-                            <button
-                                key={item.path}
-                                className={`header-grid-btn ${location.pathname === item.path ? 'active' : ''}`}
-                                onClick={() => navigate(item.path)}
-                            >
-                                {item.label}
-                            </button>
-                        ))}
-                    </div>
+            {/* Клиентский sub-nav — всегда в DOM, скрыт через CSS */}
+            <div className={`header-nav-wrap ${navHidden || isAdminPage || hideClientNav ? 'nav-hidden' : ''}`}>
+                <div className="header-panel-title">Панель управления</div>
+                <div className="header-nav-grid">
+                    {[...CLIENT_NAV_ROW1, ...CLIENT_NAV_ROW2].map(item => (
+                        <button
+                            key={item.path}
+                            className={`header-grid-btn ${location.pathname === item.path ? 'active' : ''}`}
+                            onClick={() => navigate(item.path)}
+                        >
+                            {item.label}
+                        </button>
+                    ))}
                 </div>
-            )}
+            </div>
         </header>
     )
 }
