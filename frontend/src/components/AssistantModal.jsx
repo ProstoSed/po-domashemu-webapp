@@ -17,6 +17,34 @@ import './AssistantModal.css'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
+const HINT_POOL = [
+    'Что взять на день рождения?',
+    'Хочу к чаю что-нибудь вкусное',
+    'Нужен торт на 10 человек',
+    'Что посоветуете из постного?',
+    'Что заказать на детский праздник?',
+    'Посоветуйте пироги на семейный ужин',
+    'Хочу сладкое к завтраку',
+    'Что подарить коллеге?',
+    'Нужна выпечка на 5 человек',
+    'Что есть с мясной начинкой?',
+    'Посоветуйте что-нибудь с ягодами',
+    'Хочу попробовать что-то новое',
+    'Что взять на пикник?',
+    'Нужен десерт для свидания',
+    'Какие пироги самые популярные?',
+    'Что заказать на юбилей бабушке?',
+    'Есть что-нибудь без сахара?',
+    'Хочу большой пирог с капустой',
+    'Что подойдёт к кофе?',
+    'Посоветуйте банкетное меню',
+]
+
+function pickRandomHints(count = 4) {
+    const shuffled = [...HINT_POOL].sort(() => Math.random() - 0.5)
+    return shuffled.slice(0, count)
+}
+
 const THINKING_PHRASES = [
     'Изучаю наше меню',
     'Подбираю лучшие варианты',
@@ -55,6 +83,12 @@ export default function AssistantModal({ isOpen, onClose }) {
     const { categories: banquetCategories } = useBanquetPrices()
     const { categories: kidsCategories } = useKidsPrices()
     const [addedItems, setAddedItems] = useState(new Set())
+    const [hints, setHints] = useState(() => pickRandomHints())
+
+    // Обновляем подсказки при каждом открытии
+    useEffect(() => {
+        if (isOpen) setHints(pickRandomHints())
+    }, [isOpen])
 
     // Не фокусируем поле автоматически — пусть пользователь сначала прочитает подсказки
 
@@ -275,12 +309,7 @@ export default function AssistantModal({ isOpen, onClose }) {
                             {!loading && !result && !error && (
                                 <div className="assistant-hints">
                                     <p className="assistant-hints-title">Попробуйте спросить:</p>
-                                    {[
-                                        'Что взять на день рождения?',
-                                        'Хочу к чаю что-нибудь вкусное',
-                                        'Нужен торт на 10 человек',
-                                        'Что посоветуете из постного?',
-                                    ].map(hint => (
+                                    {hints.map(hint => (
                                         <button
                                             key={hint}
                                             className="assistant-hint-chip"
