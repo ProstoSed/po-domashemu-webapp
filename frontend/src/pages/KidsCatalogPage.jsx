@@ -82,7 +82,7 @@ export default function KidsCatalogPage() {
                 animate={{ opacity: 1, x: 0 }}
                 whileTap={{ scale: 0.95 }}
             >
-                ← Наше меню
+                <span className="back-arrow">←</span> Наше меню
             </motion.button>
 
             <h2 className="catalog-title">🧸 Детское меню</h2>

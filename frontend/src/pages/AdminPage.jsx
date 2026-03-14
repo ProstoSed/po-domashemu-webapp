@@ -838,6 +838,7 @@ function UsersSection() {
 // ──────────────────────────────────────────
 
 function AdminsSection() {
+    const { userId: myUserId } = useIsAdmin()
     const [admins, setAdmins] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -895,10 +896,17 @@ function AdminsSection() {
 
     const handleRemove = async (userId) => {
         const adm = admins.find(a => a.user_id === userId)
-        const msg = adm?.is_static
-            ? 'Заблокировать этого админа? (env-админ — можно будет вернуть)'
-            : 'Убрать этого администратора?'
+        const isSelf = userId === myUserId
+        let msg
+        if (isSelf) {
+            msg = '⚠️ Вы блокируете СЕБЯ!\n\nВы потеряете доступ к админке.\nВернуть доступ сможет только другой админ.\n\nТочно заблокировать?'
+        } else if (adm?.is_static) {
+            msg = 'Заблокировать этого админа? (env-админ — можно будет вернуть)'
+        } else {
+            msg = 'Убрать этого администратора?'
+        }
         if (!window.confirm(msg)) return
+        if (isSelf && !window.confirm('Последнее предупреждение: вы точно хотите заблокировать СЕБЯ?')) return
         setRemoving(userId)
         try {
             await removeAdmin(userId)
@@ -1365,7 +1373,7 @@ export default function AdminPage() {
                 onClick={() => navigate('/')}
                 whileTap={{ scale: 0.95 }}
             >
-                ← Назад
+                <span className="back-arrow">←</span> Назад
             </motion.button>
 
             <div className="admin-header">

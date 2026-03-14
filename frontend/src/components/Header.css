@@ -82,6 +82,19 @@
     letter-spacing: 0.02em;
 }
 
+/* Обёртка для плавного появления/скрытия админ-вкладок */
+.header-main-tabs-wrap {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.25s ease;
+}
+
+.header-main-tabs-wrap.visible {
+    max-height: 50px;
+    opacity: 1;
+}
+
 /* Главные вкладки: Админка | Клиентское */
 .header-main-tabs {
     display: flex;

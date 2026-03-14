@@ -42,7 +42,7 @@ export default function SearchPage() {
         addItem(
             { ...item, categoryKey: item.categoryKey },
             1,
-            item.price_kg || item.price_kg_min ? 0.5 : null
+            item.price_kg || item.price_kg_min ? 1 : null
         )
         setAdded(prev => ({ ...prev, [item.id]: true }))
         setTimeout(() => setAdded(prev => ({ ...prev, [item.id]: false })), 1200)
@@ -67,7 +67,7 @@ export default function SearchPage() {
                 onClick={() => navigate('/')}
                 whileTap={{ scale: 0.95 }}
             >
-                ← Назад
+                <span className="back-arrow">←</span> Назад
             </motion.button>
 
             <h2 className="search-title">🔍 Поиск</h2>

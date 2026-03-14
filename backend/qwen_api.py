@@ -13,7 +13,8 @@ from pathlib import Path
 import httpx
 
 from config import (QWEN_PROXY_URL, QWEN_MODEL, PRICES_FILE,
-                    LENTEN_PRICES_FILE, HOLIDAYS_FILE)
+                    LENTEN_PRICES_FILE, BANQUET_PRICES_FILE,
+                    KIDS_PRICES_FILE, HOLIDAYS_FILE)
 
 logger = logging.getLogger(__name__)
 
@@ -130,22 +131,24 @@ def _format_menu_for_prompt(prices: dict, label: str = "Основное мен�
 
 
 def _load_menu_context() -> str:
-    """Загружает оба меню и форматирует для промпта."""
+    """Загружает все меню и форматирует для промпта."""
     parts = []
 
-    if PRICES_FILE.exists():
-        try:
-            prices = json.loads(PRICES_FILE.read_text(encoding='utf-8'))
-            parts.append(_format_menu_for_prompt(prices, "main"))
-        except Exception:
-            parts.append("(Основное меню недоступно)")
+    menus = [
+        (PRICES_FILE, "main", "Основное меню"),
+        (LENTEN_PRICES_FILE, "lenten", "Постное меню"),
+        (BANQUET_PRICES_FILE, "banquet", "Фуршетное/банкетное меню"),
+        (KIDS_PRICES_FILE, "kids", "Детское меню"),
+    ]
 
-    if LENTEN_PRICES_FILE.exists():
-        try:
-            lenten = json.loads(LENTEN_PRICES_FILE.read_text(encoding='utf-8'))
-            parts.append(_format_menu_for_prompt(lenten, "lenten"))
-        except Exception:
-            pass
+    for file, label, desc in menus:
+        if file.exists():
+            try:
+                data = json.loads(file.read_text(encoding='utf-8'))
+                parts.append(_format_menu_for_prompt(data, label))
+            except Exception:
+                if label == "main":
+                    parts.append("(Основное меню недоступно)")
 
     return "\n".join(parts)
 

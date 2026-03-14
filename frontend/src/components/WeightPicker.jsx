@@ -1,6 +1,6 @@
 import './WeightPicker.css'
 
-const DEFAULT_OPTIONS = [0.5, 1, 1.5, 2, 3]
+const DEFAULT_OPTIONS = [1, 1.5, 2, 3]
 
 export default function WeightPicker({ value, onChange, options = DEFAULT_OPTIONS }) {
     return (

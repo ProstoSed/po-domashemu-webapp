@@ -47,7 +47,7 @@ export default function CategoryPage() {
                 animate={{ opacity: 1, x: 0 }}
                 whileTap={{ scale: 0.95 }}
             >
-                ← Назад
+                <span className="back-arrow">←</span> Назад
             </motion.button>
 
             <motion.div

@@ -9,6 +9,8 @@ import { useCart } from '../hooks/useCart'
 import { useTelegram } from '../hooks/useTelegram'
 import { usePrices } from '../hooks/usePrices'
 import { useLentenPrices } from '../hooks/useLentenPrices'
+import { useBanquetPrices } from '../hooks/useBanquetPrices'
+import { useKidsPrices } from '../hooks/useKidsPrices'
 import { askAssistant } from '../utils/api'
 import { formatItemPrice } from '../utils/formatPrice'
 import './AssistantModal.css'
@@ -35,13 +37,11 @@ export default function AssistantModal({ isOpen, onClose }) {
     const { haptic } = useTelegram()
     const { categories: mainCategories } = usePrices()
     const { categories: lentenCategories } = useLentenPrices()
+    const { categories: banquetCategories } = useBanquetPrices()
+    const { categories: kidsCategories } = useKidsPrices()
     const [addedItems, setAddedItems] = useState(new Set())
 
-    useEffect(() => {
-        if (isOpen && inputRef.current) {
-            setTimeout(() => inputRef.current?.focus(), 300)
-        }
-    }, [isOpen])
+    // Не фокусируем поле автоматически — пусть пользователь сначала прочитает подсказки
 
     useEffect(() => {
         if (!loading) return
@@ -54,9 +54,11 @@ export default function AssistantModal({ isOpen, onClose }) {
         return () => clearInterval(id)
     }, [loading])
 
+    const catalogMap = { main: mainCategories, lenten: lentenCategories, banquet: banquetCategories, kids: kidsCategories }
+
     // Найти товар по category_key и item_id в загруженных данных
     const findProduct = (categoryKey, itemId, source) => {
-        const cats = source === 'lenten' ? lentenCategories : mainCategories
+        const cats = catalogMap[source] || mainCategories
         const cat = cats.find(c => c.key === categoryKey)
         if (!cat) return null
         const item = cat.items.find(i => i.id === itemId)

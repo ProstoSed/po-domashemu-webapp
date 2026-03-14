@@ -48,6 +48,25 @@ async def keep_alive() -> None:
                 log.warning('Keep-alive error: %s', exc)
 
 
+async def warmup_qwen() -> None:
+    """Фоновый прогрев qwen-proxy — запускает Chromium заранее."""
+    from config import QWEN_PROXY_URL
+    if not QWEN_PROXY_URL:
+        return
+    url = f'{QWEN_PROXY_URL}/api/v1/chat/completions'
+    log.info('Прогрев qwen-proxy: %s', url)
+    await asyncio.sleep(5)  # подождать запуск FastAPI
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            r = await client.post(url, json={
+                'model': 'qwen-max-latest',
+                'messages': [{'role': 'user', 'content': 'ping'}],
+            })
+            log.info('Qwen-proxy warmup: %s', r.status_code)
+    except Exception as exc:
+        log.warning('Qwen-proxy warmup failed (не критично): %s', exc)
+
+
 async def run_all() -> None:
     log.info('Запуск WebApp-бота + API...')
 
@@ -58,6 +77,9 @@ async def run_all() -> None:
 
     # Keep-alive пинг (только на Render)
     asyncio.create_task(keep_alive())
+
+    # Прогрев qwen-proxy (фоново, не блокирует старт)
+    asyncio.create_task(warmup_qwen())
 
     # Бот в основном event loop
     await bot_main()

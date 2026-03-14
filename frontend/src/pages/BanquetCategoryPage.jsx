@@ -47,7 +47,7 @@ export default function BanquetCategoryPage() {
                 animate={{ opacity: 1, x: 0 }}
                 whileTap={{ scale: 0.95 }}
             >
-                ← Фуршетное меню
+                <span className="back-arrow">←</span> Фуршетное меню
             </motion.button>
 
             <motion.div

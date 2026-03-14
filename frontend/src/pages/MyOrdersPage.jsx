@@ -150,7 +150,7 @@ export default function MyOrdersPage() {
                 onClick={() => navigate('/')}
                 whileTap={{ scale: 0.95 }}
             >
-                ← Назад
+                <span className="back-arrow">←</span> Назад
             </motion.button>
 
             <h2 className="page-title">📦 Мои заказы</h2>

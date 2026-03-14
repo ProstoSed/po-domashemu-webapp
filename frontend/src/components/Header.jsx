@@ -18,7 +18,7 @@ const CLIENT_NAV_ROW2 = [
 export default function Header() {
     const navigate = useNavigate()
     const location = useLocation()
-    const { isAdmin: isMama } = useIsAdmin()
+    const { isAdmin: isMama, checked: adminChecked } = useIsAdmin()
     const isAdminPage = location.pathname.startsWith('/admin')
 
     // Скрыть клиентский sub-nav на служебных страницах
@@ -111,8 +111,8 @@ export default function Header() {
                 <div className="header-baking-anim" aria-hidden="true" />
             </div>
 
-            {/* Главные вкладки: Админка | Клиентское */}
-            {isMama && (
+            {/* Главные вкладки: Админка | Клиентское — плавное появление */}
+            <div className={`header-main-tabs-wrap ${adminChecked && isMama ? 'visible' : ''}`}>
                 <div className="header-main-tabs">
                     <button
                         className={`header-main-tab ${isAdminPage ? 'active' : ''}`}
@@ -127,7 +127,7 @@ export default function Header() {
                         🥧 Клиентское
                     </button>
                 </div>
-            )}
+            </div>
 
             {/* Клиентский sub-nav */}
             {!isAdminPage && !hideClientNav && (

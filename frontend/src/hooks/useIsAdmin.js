@@ -1,7 +1,7 @@
 /**
  * useIsAdmin — проверяет, является ли текущий пользователь админом.
- * Мгновенный результат по статическому списку VITE_ADMIN_IDS,
- * затем фоново уточняет через бэкенд /api/check-admin.
+ * Ждёт ответа от /api/check-admin, пока не ответит — checked=false.
+ * Если API недоступен — fallback на статический список.
  */
 import { useState, useEffect } from 'react'
 import { checkAdmin } from '../utils/api'
@@ -20,21 +20,33 @@ function staticCheck() {
     return false
 }
 
-export function useIsAdmin() {
-    // checked=true сразу — статической проверки достаточно для показа UI
-    const [isAdmin, setIsAdmin] = useState(staticCheck)
-    const [checked] = useState(true)
+function getUserId() {
+    if (IS_DEV) return DEV_USER_ID
+    return window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 0
+}
 
-    // Фоновая проверка через API — уточняет результат (динамические админы)
+export function useIsAdmin() {
+    const [isAdmin, setIsAdmin] = useState(false)
+    const [checked, setChecked] = useState(false)
+
     useEffect(() => {
         let cancelled = false
         checkAdmin()
             .then(data => {
-                if (!cancelled) setIsAdmin(data.admin === true)
+                if (!cancelled) {
+                    setIsAdmin(data.admin === true)
+                    setChecked(true)
+                }
             })
-            .catch(() => {})
+            .catch(() => {
+                // API недоступен — fallback на статический список
+                if (!cancelled) {
+                    setIsAdmin(staticCheck())
+                    setChecked(true)
+                }
+            })
         return () => { cancelled = true }
     }, [])
 
-    return { isAdmin, checked }
+    return { isAdmin, checked, userId: getUserId() }
 }

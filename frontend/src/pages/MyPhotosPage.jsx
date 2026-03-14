@@ -99,7 +99,7 @@ export default function MyPhotosPage() {
                 onClick={() => navigate('/')}
                 whileTap={{ scale: 0.95 }}
             >
-                ← Назад
+                <span className="back-arrow">←</span> Назад
             </motion.button>
 
             <div className="photos-page-header">

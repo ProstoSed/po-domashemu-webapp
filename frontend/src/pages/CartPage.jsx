@@ -36,7 +36,7 @@ export default function CartPage() {
                 animate={{ opacity: 1, x: 0 }}
                 whileTap={{ scale: 0.95 }}
             >
-                ← В каталог
+                <span className="back-arrow">←</span> В каталог
             </motion.button>
 
             <h2 className="cart-title">Ваша корзина</h2>

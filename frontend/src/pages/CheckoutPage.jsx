@@ -143,7 +143,7 @@ export default function CheckoutPage() {
                 onClick={() => navigate('/cart')}
                 whileTap={{ scale: 0.95 }}
             >
-                ← Корзина
+                <span className="back-arrow">←</span> Корзина
             </motion.button>
 
             <h2 className="checkout-title">Оформление</h2>
