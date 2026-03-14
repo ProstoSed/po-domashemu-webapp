@@ -15,6 +15,8 @@ const CLIENT_NAV_ROW2 = [
     { path: '/invite',    label: '🎁 Пригласить' },
 ]
 
+const CLIENT_NAV_CENTER = { path: '/reviews', label: '⭐ Отзывы' }
+
 export default function Header() {
     const navigate = useNavigate()
     const location = useLocation()
@@ -143,6 +145,12 @@ export default function Header() {
                         </button>
                     ))}
                 </div>
+                <button
+                    className={`header-grid-btn header-center-btn ${location.pathname === CLIENT_NAV_CENTER.path ? 'active' : ''}`}
+                    onClick={() => navigate(CLIENT_NAV_CENTER.path)}
+                >
+                    {CLIENT_NAV_CENTER.label}
+                </button>
             </div>
         </header>
     )

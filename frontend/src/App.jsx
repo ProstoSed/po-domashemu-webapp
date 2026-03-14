@@ -17,6 +17,7 @@ import MyPhotosPage from './pages/MyPhotosPage'
 import DeliveryPage from './pages/DeliveryPage'
 import AboutPage from './pages/AboutPage'
 import InvitePage from './pages/InvitePage'
+import ReviewsPage from './pages/ReviewsPage'
 import LentenCatalogPage from './pages/LentenCatalogPage'
 import LentenCategoryPage from './pages/LentenCategoryPage'
 import BanquetCatalogPage from './pages/BanquetCatalogPage'
@@ -52,6 +53,7 @@ export default function App() {
                             <Route path="/delivery" element={<DeliveryPage />} />
                             <Route path="/about" element={<AboutPage />} />
                             <Route path="/invite" element={<InvitePage />} />
+                            <Route path="/reviews" element={<ReviewsPage />} />
                             <Route path="*" element={<Navigate to="/" replace />} />
                         </Routes>
                     </main>

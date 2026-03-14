@@ -249,6 +249,18 @@ export async function fetchMyReferral() {
     return apiFetch('/api/referral/my', { headers: userHeaders() })
 }
 
+export async function fetchReviews() {
+    return apiFetch('/api/reviews')
+}
+
+export async function createReview(text, rating = 5) {
+    return apiFetch('/api/reviews', {
+        method: 'POST',
+        headers: userHeaders(),
+        body: JSON.stringify({ text, rating }),
+    })
+}
+
 export async function askAssistant(message) {
     return apiFetch('/api/assistant', {
         method: 'POST',

@@ -1,0 +1,210 @@
+.reviews-page {
+    padding: var(--space-md);
+    padding-bottom: 100px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Сводка */
+.reviews-summary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-md);
+    justify-content: center;
+}
+
+.reviews-summary-rating {
+    font-size: var(--font-size-xl);
+    font-weight: 800;
+    color: var(--color-text);
+}
+
+.reviews-summary-count {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+/* Кнопка написать */
+.reviews-write-btn {
+    width: 100%;
+    margin-bottom: var(--space-md);
+}
+
+/* Уведомление */
+.reviews-success {
+    text-align: center;
+    padding: var(--space-sm);
+    background: #d1fae5;
+    color: #065f46;
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-md);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+/* Форма отзыва */
+.review-form {
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+    overflow: hidden;
+}
+
+.review-form-title {
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    margin: 0 0 var(--space-sm);
+}
+
+.review-form-rating {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.review-form-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    font-weight: 600;
+}
+
+.review-form-textarea {
+    width: 100%;
+    padding: var(--space-sm);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    resize: vertical;
+    background: var(--color-bg);
+    color: var(--color-text);
+    box-sizing: border-box;
+}
+
+.review-form-textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.review-form-counter {
+    text-align: right;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    margin-top: 4px;
+    margin-bottom: var(--space-sm);
+}
+
+.review-form-actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.review-form-actions .btn {
+    flex: 1;
+}
+
+/* Звёзды */
+.star-rating {
+    display: flex;
+    gap: 2px;
+}
+
+.star {
+    font-size: 1.4rem;
+    color: var(--color-border);
+    cursor: pointer;
+    transition: color 0.15s, transform 0.15s;
+    user-select: none;
+}
+
+.star--filled {
+    color: #f59e0b;
+}
+
+.star:hover {
+    transform: scale(1.15);
+}
+
+.star-rating--readonly .star {
+    cursor: default;
+    font-size: 1rem;
+}
+
+.star-rating--readonly .star:hover {
+    transform: none;
+}
+
+/* Список отзывов */
+.reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+/* Карточка отзыва */
+.review-card {
+    padding: var(--space-md);
+}
+
+.review-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-sm);
+}
+
+.review-card-author {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.review-card-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: var(--font-size-md);
+    flex-shrink: 0;
+}
+
+.review-card-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.review-card-name {
+    font-weight: 700;
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+a.review-card-name {
+    color: var(--color-primary);
+}
+
+a.review-card-name:hover {
+    text-decoration: underline;
+}
+
+.review-card-date {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+.review-card-text {
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+    color: var(--color-text);
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}

@@ -49,7 +49,8 @@ from config import (PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE,
                      DEV_MODE, DEV_USER_ID, MAIN_CHAT_ID, ADMINS_FILE,
                      LENTEN_PRICES_FILE, LENTEN_SHEET_GID,
                      BANQUET_PRICES_FILE, BANQUET_SHEET_GID,
-                     KIDS_PRICES_FILE, KIDS_SHEET_GID)
+                     KIDS_PRICES_FILE, KIDS_SHEET_GID,
+                     REVIEWS_FILE, GOOGLE_APPS_SCRIPT_URL)
 
 log = logging.getLogger(__name__)
 app = FastAPI(title='По-домашнему API', version='1.3')
@@ -111,6 +112,11 @@ class UpdateOrderBody(BaseModel):
     total: float = 0
     items_total: float = 0
     comment: str = ''
+
+
+class ReviewBody(BaseModel):
+    text: str
+    rating: int = 5
 
 
 # ──────────────────────────────────────────────
@@ -428,6 +434,39 @@ def save_photo_requests(requests: dict) -> None:
         json.dumps(data, ensure_ascii=False, indent=2),
         encoding='utf-8'
     )
+
+
+def load_reviews() -> list:
+    if not REVIEWS_FILE.exists():
+        return []
+    data = json.loads(REVIEWS_FILE.read_text(encoding='utf-8'))
+    if isinstance(data, list):
+        return data
+    return data.get('reviews', [])
+
+
+def save_reviews(reviews: list) -> None:
+    REVIEWS_FILE.write_text(
+        json.dumps({'reviews': reviews}, ensure_ascii=False, indent=2),
+        encoding='utf-8'
+    )
+
+
+async def _export_to_sheets(action: str, data: dict) -> None:
+    """Отправляет данные в Google Sheets через Google Apps Script webhook."""
+    if not GOOGLE_APPS_SCRIPT_URL:
+        log.debug('GOOGLE_APPS_SCRIPT_URL не задан, экспорт пропущен')
+        return
+    try:
+        payload = {'action': action, **data}
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            r = await client.post(GOOGLE_APPS_SCRIPT_URL, json=payload)
+            if r.status_code == 200:
+                log.info('Экспорт в Sheets (%s): OK', action)
+            else:
+                log.warning('Экспорт в Sheets (%s): %s %s', action, r.status_code, r.text[:200])
+    except Exception as exc:
+        log.warning('Ошибка экспорта в Sheets (%s): %s', action, exc)
 
 
 # ──────────────────────────────────────────────
@@ -1064,6 +1103,80 @@ async def get_my_referral(x_init_data: str | None = Header(default=None)) -> dic
         'referrals_count': u.get('referrals_count', 0),
         'bot_username': 'VypechkaNadezhda_App_bot',
     }
+
+
+# ──────────────────────────────────────────────
+# Отзывы (публичное чтение, авторизованная запись)
+# ──────────────────────────────────────────────
+
+@app.get('/api/reviews')
+async def get_reviews() -> dict:
+    """Все отзывы (публичный эндпоинт)."""
+    reviews = load_reviews()
+    # Сортируем по дате (новые сверху)
+    reviews.sort(key=lambda r: r.get('created_at', ''), reverse=True)
+    return {'reviews': reviews, 'total': len(reviews)}
+
+
+@app.post('/api/reviews')
+async def create_review(
+    body: ReviewBody,
+    x_init_data: str | None = Header(default=None),
+) -> dict:
+    """Оставить отзыв (авторизованный пользователь)."""
+    user = require_user(x_init_data)
+    user_id = user.get('id')
+
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail='Текст отзыва не может быть пустым')
+    if len(text) > 1000:
+        raise HTTPException(status_code=400, detail='Отзыв слишком длинный (макс. 1000 символов)')
+
+    rating = max(1, min(5, body.rating))
+
+    # Данные пользователя из users.json (для телефона)
+    users = load_users()
+    user_data = users.get(str(user_id), {})
+
+    # Ищем телефон: из users.json или из последнего заказа
+    phone = user_data.get('phone', '')
+    if not phone:
+        orders = load_orders()
+        user_orders = [o for o in orders if o.get('customer', {}).get('user_id') == user_id]
+        if user_orders:
+            user_orders.sort(key=lambda o: o.get('created_at', ''), reverse=True)
+            phone = user_orders[0].get('customer', {}).get('phone', '')
+
+    now = datetime.now(timezone(timedelta(hours=3)))  # МСК
+
+    review = {
+        'id': f'REV-{now.strftime("%y%m%d%H%M%S")}-{user_id}',
+        'user_id': user_id,
+        'first_name': user.get('first_name', ''),
+        'username': user.get('username', ''),
+        'text': text,
+        'rating': rating,
+        'created_at': now.strftime('%Y-%m-%d %H:%M:%S'),
+    }
+
+    reviews = load_reviews()
+    reviews.append(review)
+    save_reviews(reviews)
+
+    # Экспорт в Google Sheets (фоново, не блокируем ответ)
+    import asyncio
+    asyncio.create_task(_export_to_sheets('add_review', {
+        'date': now.strftime('%d.%m.%Y %H:%M'),
+        'name': user.get('first_name', ''),
+        'username': user.get('username', ''),
+        'phone': phone,
+        'rating': rating,
+        'text': text,
+    }))
+
+    log.info('Отзыв создан: user_id=%s, rating=%d', user_id, rating)
+    return {'ok': True, 'review': review}
 
 
 # ──────────────────────────────────────────────

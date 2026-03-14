@@ -46,6 +46,9 @@ PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
 _admins_path = os.getenv('ADMINS_FILE', '../../data/admins.json')
 ADMINS_FILE: Path = (BASE_DIR / _admins_path).resolve()
 
+_reviews_path = os.getenv('REVIEWS_FILE', '../../data/reviews.json')
+REVIEWS_FILE: Path = (BASE_DIR / _reviews_path).resolve()
+
 GOOGLE_SHEET_ID: str = os.getenv('GOOGLE_SHEET_ID', '13N8s8Bl3J_LFt_j96nZX-kUgXJ4nKq5gWj8u4U2PgfQ')
 LENTEN_SHEET_GID: str = os.getenv('LENTEN_SHEET_GID', '1656336604')
 BANQUET_SHEET_GID: str = os.getenv('BANQUET_SHEET_GID', '1286891366')
@@ -70,11 +73,15 @@ _DATA_FILES = {
     PHOTO_REQUESTS_FILE: {'requests': {}},
     HOLIDAYS_FILE: {'holidays': {}},
     ADMINS_FILE: {'admins': []},
+    REVIEWS_FILE: {'reviews': []},
 }
 for _path, _default in _DATA_FILES.items():
     _path.parent.mkdir(parents=True, exist_ok=True)
     if not _path.exists():
         _path.write_text(json.dumps(_default, ensure_ascii=False, indent=2), encoding='utf-8')
+
+# Google Apps Script webhook для экспорта отзывов и пользователей в Google Sheets
+GOOGLE_APPS_SCRIPT_URL: str = os.getenv('GOOGLE_APPS_SCRIPT_URL', '')
 
 # AI-помощник (FreeQwenApi прокси)
 QWEN_PROXY_URL: str = os.getenv('QWEN_PROXY_URL', 'http://localhost:3264')

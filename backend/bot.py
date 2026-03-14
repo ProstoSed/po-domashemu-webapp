@@ -25,7 +25,7 @@ from aiogram.types import (
 )
 from aiogram.types.web_app_data import WebAppData
 
-from config import BOT_TOKEN, MAIN_CHAT_ID, WEBAPP_URL, USERS_FILE, ORDERS_FILE
+from config import BOT_TOKEN, MAIN_CHAT_ID, WEBAPP_URL, USERS_FILE, ORDERS_FILE, GOOGLE_APPS_SCRIPT_URL
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger(__name__)
@@ -54,6 +54,23 @@ def _save_users(users: dict) -> None:
     USERS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
+async def _export_user_to_sheets(user, registered_at: str) -> None:
+    """Отправляет данные нового пользователя в Google Sheets."""
+    import httpx
+    try:
+        payload = {
+            'action': 'add_user',
+            'user_id': user.id,
+            'first_name': user.first_name or '',
+            'username': user.username or '',
+            'registered_at': registered_at,
+        }
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            await client.post(GOOGLE_APPS_SCRIPT_URL, json=payload)
+    except Exception as exc:
+        log.warning('Ошибка экспорта пользователя в Sheets: %s', exc)
+
+
 def _register_user(user) -> bool:
     """Регистрирует пользователя, возвращает True если новый."""
     users = _load_users()
@@ -75,6 +92,11 @@ def _register_user(user) -> bool:
         'referrals_count': 0,
     }
     _save_users(users)
+
+    # Экспорт нового пользователя в Google Sheets (фоново)
+    if GOOGLE_APPS_SCRIPT_URL:
+        asyncio.create_task(_export_user_to_sheets(user, now))
+
     return True
 
 
