@@ -137,6 +137,19 @@
     background: linear-gradient(90deg, transparent, rgba(212,163,115,0.15), transparent);
 }
 
+/* Баннер «Добавление к заказу» */
+.cart-edit-banner {
+    background: #fffbeb;
+    border: 1.5px solid #fbbf24;
+    border-radius: 10px;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.85rem;
+    color: #92400e;
+    margin-bottom: var(--space-md);
+    text-align: center;
+    line-height: 1.4;
+}
+
 /* Кнопки */
 .cart-buttons {
     display: flex;

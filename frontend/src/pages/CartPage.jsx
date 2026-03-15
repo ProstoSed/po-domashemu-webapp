@@ -2,9 +2,11 @@
  * CartPage — страница корзины.
  * Показывает товары, количество, цены, итог.
  */
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../hooks/useCart'
+import { updateMyOrder } from '../utils/api'
 import { formatPrice, getUnitLabel } from '../utils/formatPrice'
 import QuantityPicker from '../components/QuantityPicker'
 import WeightPicker from '../components/WeightPicker'
@@ -13,6 +15,80 @@ import './CartPage.css'
 export default function CartPage() {
     const { items, updateQuantity, updateWeight, removeItem, clearCart, totalPrice } = useCart()
     const navigate = useNavigate()
+    const [editOrderId, setEditOrderId] = useState(null)
+    const [merging, setMerging] = useState(false)
+
+    useEffect(() => {
+        const id = sessionStorage.getItem('editOrderId')
+        if (id) setEditOrderId(id)
+    }, [])
+
+    const handleMergeToOrder = async () => {
+        if (!editOrderId || items.length === 0) return
+        setMerging(true)
+        try {
+            const existingItems = JSON.parse(sessionStorage.getItem('editOrderItems') || '[]')
+            const deliveryTotal = parseFloat(sessionStorage.getItem('editOrderDeliveryTotal') || '0')
+            const comment = sessionStorage.getItem('editOrderComment') || ''
+
+            // Мёрж: добавляем новые товары из корзины к существующим
+            const merged = [...existingItems]
+            for (const cartItem of items) {
+                const existingIdx = merged.findIndex(m => m.name === cartItem.name)
+                if (existingIdx >= 0) {
+                    // Суммируем количество
+                    const ex = merged[existingIdx]
+                    ex.quantity = (ex.quantity ?? 1) + cartItem.quantity
+                    ex.total = (ex.price_per_unit || 0) * ex.quantity * (ex.weight || 1)
+                } else {
+                    // Новый товар
+                    const price = cartItem.weight
+                        ? (cartItem.price_kg || cartItem.price_kg_min || 0)
+                        : (cartItem.price_item || cartItem.price_item_min || 0)
+                    merged.push({
+                        name: cartItem.name,
+                        quantity: cartItem.quantity,
+                        unit: cartItem.unit || 'шт',
+                        weight: cartItem.weight || null,
+                        price_per_unit: price,
+                        total: price * cartItem.quantity * (cartItem.weight || 1),
+                        category_key: cartItem.categoryKey,
+                    })
+                }
+            }
+
+            const itemsTotal = merged.reduce((s, i) => s + (i.total || 0), 0)
+            await updateMyOrder(editOrderId, {
+                items: merged,
+                total: itemsTotal + deliveryTotal,
+                items_total: itemsTotal,
+                comment,
+            })
+
+            // Очистка
+            clearCart()
+            sessionStorage.removeItem('editOrderId')
+            sessionStorage.removeItem('editOrderItems')
+            sessionStorage.removeItem('editOrderDeliveryTotal')
+            sessionStorage.removeItem('editOrderComment')
+            setEditOrderId(null)
+            navigate('/my-orders')
+        } catch (err) {
+            alert(err.message || 'Не удалось обновить заказ')
+        } finally {
+            setMerging(false)
+        }
+    }
+
+    const handleCancelEditMode = () => {
+        sessionStorage.removeItem('editOrderId')
+        sessionStorage.removeItem('editOrderItems')
+        sessionStorage.removeItem('editOrderDeliveryTotal')
+        sessionStorage.removeItem('editOrderComment')
+        setEditOrderId(null)
+        clearCart()
+        navigate('/my-orders')
+    }
 
     if (items.length === 0) {
         return (
@@ -39,7 +115,15 @@ export default function CartPage() {
                 <span className="back-arrow">←</span> В каталог
             </motion.button>
 
-            <h2 className="cart-title">Ваша корзина</h2>
+            <h2 className="cart-title">
+                {editOrderId ? `Добавление к ${editOrderId}` : 'Ваша корзина'}
+            </h2>
+
+            {editOrderId && (
+                <div className="cart-edit-banner">
+                    Выберите товары в каталоге и вернитесь сюда — они добавятся к вашему заказу
+                </div>
+            )}
 
             <div className="cart-items">
                 <AnimatePresence>
@@ -119,18 +203,38 @@ export default function CartPage() {
             </motion.div>
 
             <div className="cart-buttons">
-                <button
-                    className="btn btn-primary btn-block btn-lg"
-                    onClick={() => navigate('/checkout')}
-                >
-                    Оформить заказ
-                </button>
-                <button
-                    className="btn btn-danger btn-block"
-                    onClick={clearCart}
-                >
-                    Очистить корзину
-                </button>
+                {editOrderId ? (
+                    <>
+                        <button
+                            className="btn btn-primary btn-block btn-lg"
+                            onClick={handleMergeToOrder}
+                            disabled={merging || items.length === 0}
+                        >
+                            {merging ? 'Сохраняю...' : `Добавить в заказ`}
+                        </button>
+                        <button
+                            className="btn btn-outline btn-block"
+                            onClick={handleCancelEditMode}
+                        >
+                            Отмена
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <button
+                            className="btn btn-primary btn-block btn-lg"
+                            onClick={() => navigate('/checkout')}
+                        >
+                            Оформить заказ
+                        </button>
+                        <button
+                            className="btn btn-danger btn-block"
+                            onClick={clearCart}
+                        >
+                            Очистить корзину
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     )

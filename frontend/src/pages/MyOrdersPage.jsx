@@ -20,7 +20,7 @@ const STATUS_LABEL = {
     closed:   { text: 'Закрыт',     cls: 'status-closed' },
 }
 
-function OrderHistoryCard({ order, onRepeat, onUpdate, onCancel }) {
+function OrderHistoryCard({ order, onRepeat, onUpdate, onCancel, onAddMore }) {
     const [expanded, setExpanded] = useState(false)
     const [editing, setEditing] = useState(false)
     const [editItems, setEditItems] = useState([])
@@ -150,6 +150,12 @@ function OrderHistoryCard({ order, onRepeat, onUpdate, onCancel }) {
                                     {editItems.length === 0 && (
                                         <p className="my-order-empty-edit">Все товары удалены. Отмените заказ или добавьте товары.</p>
                                     )}
+                                    <button
+                                        className="btn btn-outline my-order-add-more-btn"
+                                        onClick={(e) => { e.stopPropagation(); onAddMore(order, editItems, editComment) }}
+                                    >
+                                        ➕ Добавить ещё
+                                    </button>
                                     <div className="my-order-edit-total">
                                         Итого: {formatPrice(editTotal)}
                                     </div>
@@ -269,7 +275,14 @@ export default function MyOrdersPage() {
             .finally(() => setLoading(false))
     }
 
-    useEffect(() => { loadOrders() }, [])
+    useEffect(() => {
+        // Если вернулись в «Мои заказы» — чистим edit-mode
+        sessionStorage.removeItem('editOrderId')
+        sessionStorage.removeItem('editOrderItems')
+        sessionStorage.removeItem('editOrderDeliveryTotal')
+        sessionStorage.removeItem('editOrderComment')
+        loadOrders()
+    }, [])
 
     const handleRepeat = (order) => {
         clearCart()
@@ -297,6 +310,17 @@ export default function MyOrdersPage() {
     const handleCancel = async (orderId) => {
         await cancelMyOrder(orderId)
         loadOrders()
+    }
+
+    const handleAddMore = (order, currentEditItems, currentComment) => {
+        // Сохраняем контекст редактирования в sessionStorage
+        sessionStorage.setItem('editOrderId', order.order_id)
+        sessionStorage.setItem('editOrderItems', JSON.stringify(currentEditItems))
+        sessionStorage.setItem('editOrderDeliveryTotal', String(order.totals?.delivery_total || 0))
+        if (currentComment) sessionStorage.setItem('editOrderComment', currentComment)
+        // Очищаем корзину и идём в каталог
+        clearCart()
+        navigate('/')
     }
 
     const active = orders.filter(o => o.status !== 'closed')
@@ -359,6 +383,7 @@ export default function MyOrdersPage() {
                                         onRepeat={handleRepeat}
                                         onUpdate={handleUpdate}
                                         onCancel={handleCancel}
+                                        onAddMore={handleAddMore}
                                     />
                                 ))}
                             </div>
@@ -376,6 +401,7 @@ export default function MyOrdersPage() {
                                         onRepeat={handleRepeat}
                                         onUpdate={handleUpdate}
                                         onCancel={handleCancel}
+                                        onAddMore={handleAddMore}
                                     />
                                 ))}
                             </div>
