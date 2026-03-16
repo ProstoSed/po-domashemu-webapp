@@ -1,0 +1,201 @@
+/* TimePicker — drum-style scroll time picker */
+
+.time-picker-trigger {
+    text-align: left;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.time-picker-trigger:not(.has-value) {
+    color: var(--color-text-muted);
+}
+
+/* Overlay */
+.time-picker-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 600;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    animation: tpFadeIn 0.2s ease-out;
+}
+
+@keyframes tpFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Bottom sheet */
+.time-picker-sheet {
+    width: 100%;
+    max-width: 400px;
+    background: var(--color-bg);
+    border-radius: 20px 20px 0 0;
+    padding: 0 0 env(safe-area-inset-bottom, 16px);
+    position: relative;
+    animation: tpSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tpSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+/* Header */
+.time-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.time-picker-title {
+    font-weight: 700;
+    font-size: var(--font-size-base);
+    color: var(--color-text);
+}
+
+.time-picker-clear,
+.time-picker-done {
+    background: none;
+    border: none;
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+}
+
+.time-picker-clear {
+    color: var(--color-text-muted);
+}
+
+.time-picker-done {
+    color: var(--color-primary);
+}
+
+/* Drums container */
+.time-picker-drums {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 220px; /* 5 items visible: 5 * 44px = 220px */
+    position: relative;
+    padding: 0 24px;
+}
+
+/* Highlight bar — selected row */
+.time-picker-sheet .drum-highlight {
+    position: absolute;
+    left: 24px;
+    right: 24px;
+    top: calc(50% + 34px); /* header height offset included in drums container */
+    height: 44px;
+    transform: translateY(-50%);
+    background: rgba(212, 163, 115, 0.12);
+    border-radius: 12px;
+    border: 1px solid rgba(212, 163, 115, 0.25);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Actually position highlight within drums */
+.time-picker-drums::before {
+    content: '';
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: 50%;
+    height: 44px;
+    transform: translateY(-50%);
+    background: rgba(212, 163, 115, 0.12);
+    border-radius: 12px;
+    border: 1px solid rgba(212, 163, 115, 0.25);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Hide the separate highlight, use ::before instead */
+.time-picker-sheet > .drum-highlight {
+    display: none;
+}
+
+/* Fade masks top/bottom */
+.time-picker-drums::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    background:
+        linear-gradient(to bottom,
+            var(--color-bg) 0%,
+            transparent 30%,
+            transparent 70%,
+            var(--color-bg) 100%
+        );
+}
+
+/* Column */
+.drum-col {
+    flex: 1;
+    max-width: 80px;
+    height: 100%;
+    position: relative;
+    z-index: 3;
+}
+
+.drum-scroll {
+    height: 100%;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.drum-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+/* Padding to center first/last items */
+.drum-pad {
+    height: 88px; /* (220 - 44) / 2 */
+    flex-shrink: 0;
+}
+
+/* Individual item */
+.drum-item {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    scroll-snap-align: center;
+    transition: color 0.15s, font-weight 0.15s;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.drum-item.active {
+    color: var(--color-text);
+    font-weight: 700;
+    font-size: 1.4rem;
+}
+
+/* Separator colon */
+.drum-separator {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text);
+    padding: 0 4px;
+    z-index: 3;
+    margin-top: -2px;
+}

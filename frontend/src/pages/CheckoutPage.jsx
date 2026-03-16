@@ -9,6 +9,7 @@ import { useCart } from '../hooks/useCart'
 import { useTelegram } from '../hooks/useTelegram'
 import { formatPrice } from '../utils/formatPrice'
 import { geocodeAddress, submitOrder } from '../utils/api'
+import TimePicker from '../components/TimePicker'
 import './CheckoutPage.css'
 
 export default function CheckoutPage() {
@@ -234,12 +235,10 @@ export default function CheckoutPage() {
                         onChange={e => setDate(e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
                     />
-                    <input
-                        type="text"
-                        className="form-input checkout-time-input"
-                        placeholder="К скольки?"
+                    <TimePicker
                         value={time}
-                        onChange={e => setTime(e.target.value)}
+                        onChange={setTime}
+                        placeholder="К скольки?"
                     />
                 </div>
             </motion.div>
