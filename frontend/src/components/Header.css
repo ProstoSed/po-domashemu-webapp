@@ -192,14 +192,38 @@
     opacity: 0.7;
 }
 
-/* Центральная кнопка под сеткой */
+/* Центральная кнопка «Отзывы» с декоративным окружением */
+.header-center-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-top: 5px;
+}
+
+.header-center-decor {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+    opacity: 0.4;
+}
+
 .header-center-btn {
     display: block;
-    width: 50%;
-    margin: 5px auto 0;
-    background: var(--color-surface);
-    border: 1.5px solid var(--color-border);
+    padding: 6px 20px;
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    border: 1.5px solid #fbbf24;
     border-radius: calc(var(--radius-md) - 4px);
+    color: #92400e;
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+}
+
+.header-center-btn.active {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-color: #f59e0b;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
 }
 
 /* ── CSS Pixel-art анимация выпечки ── */

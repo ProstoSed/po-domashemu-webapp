@@ -14,7 +14,7 @@ import httpx
 
 from config import (QWEN_PROXY_URL, QWEN_MODEL, PRICES_FILE,
                     LENTEN_PRICES_FILE, BANQUET_PRICES_FILE,
-                    KIDS_PRICES_FILE, HOLIDAYS_FILE)
+                    KIDS_PRICES_FILE, HOLIDAYS_FILE, ORDERS_FILE)
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +98,27 @@ def _get_time_context() -> dict:
     }
 
 
+def _get_popular_items(top_n: int = 10) -> str:
+    """Возвращает список популярных товаров из заказов (только названия)."""
+    try:
+        if not ORDERS_FILE.exists():
+            return ""
+        orders = json.loads(ORDERS_FILE.read_text(encoding='utf-8'))
+        counts: dict[str, int] = {}
+        for order in orders:
+            for item in order.get('items', []):
+                name = item.get('name', '')
+                if name:
+                    counts[name] = counts.get(name, 0) + item.get('quantity', 1)
+        if not counts:
+            return ""
+        top = sorted(counts.items(), key=lambda x: x[1], reverse=True)[:top_n]
+        items_str = ', '.join(name for name, _ in top)
+        return f"\nПОПУЛЯРНЫЕ ТОВАРЫ (чаще всего заказывают): {items_str}"
+    except Exception:
+        return ""
+
+
 def _format_menu_for_prompt(prices: dict, label: str = "Основное меню") -> str:
     """Форматирует prices.json в текст для промпта."""
     lines = [f"\n=== {label} ==="]
@@ -157,6 +178,7 @@ def _build_system_prompt() -> str:
     """Собирает полный системный промпт с контекстом."""
     ctx = _get_time_context()
     menu = _load_menu_context()
+    popular = _get_popular_items()
 
     holidays_text = ""
     if ctx["upcoming_holidays"]:
@@ -165,7 +187,7 @@ def _build_system_prompt() -> str:
     return f"""Ты — дружелюбный помощник домашней пекарни «По-домашнему» из д. Зимёнки (Нижегородская область).
 Хозяйка — Надежда, она готовит всё вручную из натуральных продуктов, с любовью и заботой.
 
-СЕГОДНЯ: {ctx['date']} ({ctx['weekday']}), {ctx['time_of_day']}, сезон: {ctx['season']}.{holidays_text}
+СЕГОДНЯ: {ctx['date']} ({ctx['weekday']}), {ctx['time_of_day']}, сезон: {ctx['season']}.{holidays_text}{popular}
 {ctx['lenten_note']}
 
 ТВОЯ ЗАДАЧА:

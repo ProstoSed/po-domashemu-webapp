@@ -145,12 +145,16 @@ export default function Header() {
                         </button>
                     ))}
                 </div>
-                <button
-                    className={`header-grid-btn header-center-btn ${location.pathname === CLIENT_NAV_CENTER.path ? 'active' : ''}`}
-                    onClick={() => navigate(CLIENT_NAV_CENTER.path)}
-                >
-                    {CLIENT_NAV_CENTER.label}
-                </button>
+                <div className="header-center-row">
+                    <span className="header-center-decor" />
+                    <button
+                        className={`header-grid-btn header-center-btn ${location.pathname === CLIENT_NAV_CENTER.path ? 'active' : ''}`}
+                        onClick={() => navigate(CLIENT_NAV_CENTER.path)}
+                    >
+                        {CLIENT_NAV_CENTER.label}
+                    </button>
+                    <span className="header-center-decor" />
+                </div>
             </div>
         </header>
     )

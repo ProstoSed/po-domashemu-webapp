@@ -70,7 +70,7 @@
   /* Glassmorphism */
   --glass-bg: rgba(255, 255, 255, 0.05);
   --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-blur: blur(16px);
+  --glass-blur: blur(10px);
 }
 
 /* ---------- Telegram theme adaptation ---------- */
@@ -159,6 +159,7 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
+  will-change: transform;
   transition: transform var(--duration-normal) var(--ease-out),
               box-shadow var(--duration-normal) var(--ease-out);
 }

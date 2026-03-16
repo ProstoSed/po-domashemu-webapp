@@ -55,9 +55,9 @@ async def warmup_qwen() -> None:
         return
     url = f'{QWEN_PROXY_URL}/api/v1/chat/completions'
     log.info('Прогрев qwen-proxy: %s', url)
-    await asyncio.sleep(5)  # подождать запуск FastAPI
+    await asyncio.sleep(8)  # подождать запуск FastAPI + qwen-proxy
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             r = await client.post(url, json={
                 'model': 'qwen-max-latest',
                 'messages': [{'role': 'user', 'content': 'ping'}],
