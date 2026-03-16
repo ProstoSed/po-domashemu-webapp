@@ -36,8 +36,13 @@ function OrderHistoryCard({ order, onRepeat, onUpdate, onCancel, onAddMore }) {
 
     const rawDate = order.schedule?.date || order.date
         || order.created_at?.slice(0, 10) || '—'
-    const timeStr = order.schedule?.time || ''
-    const dateStr = timeStr ? `${rawDate} к ${timeStr}` : rawDate
+    const timeStr = order.schedule?.time || order.time || ''
+    // Форматируем дату: 2026-03-17 → 17.03.2026
+    let displayDate = rawDate
+    const isoMatch = rawDate.match?.(/^(\d{4})-(\d{2})-(\d{2})$/)
+    if (isoMatch) displayDate = `${isoMatch[3]}.${isoMatch[2]}.${isoMatch[1]}`
+    let dateStr = `На ${displayDate}`
+    if (timeStr) dateStr += ` к ${timeStr}`
 
     const startEditing = (e) => {
         e.stopPropagation()
@@ -138,7 +143,9 @@ function OrderHistoryCard({ order, onRepeat, onUpdate, onCancel, onAddMore }) {
                                         const lineTotal = item.total ?? (ppu * qty)
                                         return (
                                             <div key={i} className="my-order-item-row my-order-item-row--edit">
-                                                <span className="my-order-item-name">{item.name}</span>
+                                                <span className="my-order-item-name">
+                                                    {item.name}{item.weight ? ` (${item.weight} кг)` : ''}
+                                                </span>
                                                 <div className="my-order-edit-controls">
                                                     <button className="qty-btn" onClick={() => handleQtyChange(i, -1)}>−</button>
                                                     <span className="qty-val">{qty}</span>
@@ -180,7 +187,9 @@ function OrderHistoryCard({ order, onRepeat, onUpdate, onCancel, onAddMore }) {
                                         <div key={i} className="my-order-item-row">
                                             <span className="my-order-item-name">{item.name}</span>
                                             <span className="my-order-item-qty">
-                                                {qty} {item.unit || 'шт'}
+                                                {item.weight
+                                                    ? `${item.weight} кг × ${qty} шт`
+                                                    : `${qty} ${item.unit || 'шт'}`}
                                                 {ppu > 0 && ` × ${ppu.toLocaleString('ru')} ₽`}
                                                 {lineTotal > 0 && ` = ${lineTotal.toLocaleString('ru')} ₽`}
                                             </span>
