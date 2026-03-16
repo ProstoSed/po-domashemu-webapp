@@ -6,7 +6,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import './TimePicker.css'
 
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 7)   // 7..23
-const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5) // 0,5,10,...,55
+const MINUTES = [0, 15, 30, 45]
 const ITEM_H = 44 // px — height of one drum item
 
 function DrumColumn({ items, value, onChange, formatFn }) {
