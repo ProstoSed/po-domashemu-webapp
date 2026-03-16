@@ -348,6 +348,41 @@
     white-space: nowrap;
 }
 
+/* Доставка vs Самовывоз — горизонтальный бар */
+.stats-delivery-bar {
+    display: flex;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 32px;
+    gap: 2px;
+}
+
+.stats-bar-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 0 8px;
+}
+
+.stats-bar-delivery {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.stats-bar-pickup {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+/* Лояльность */
+.stats-loyalty-row {
+    font-size: 0.85rem;
+    color: var(--color-text);
+}
+
 /* ── График заказов ── */
 .chart-section {
     padding: 0.85rem 0.4rem 0.5rem;

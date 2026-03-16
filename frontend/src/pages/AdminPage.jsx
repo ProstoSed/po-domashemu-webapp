@@ -552,6 +552,9 @@ function StatsSection() {
         orders_by_date = {},
         closed_by_date = {},
         revenue_by_date = {},
+        delivery_count = 0, pickup_count = 0,
+        avg_daily_revenue = 0, repeat_customers = 0,
+        repeat_rate = 0, avg_items_per_order = 0,
     } = stats
 
     return (
@@ -576,6 +579,43 @@ function StatsSection() {
                     <div className="stat-icon">👥</div>
                     <div className="stat-value">{users_count}</div>
                     <div className="stat-label">клиентов</div>
+                </div>
+                <div className="stat-card glass-card">
+                    <div className="stat-icon">📅</div>
+                    <div className="stat-value">{avg_daily_revenue.toLocaleString('ru')} ₽</div>
+                    <div className="stat-label">в день (ср.)</div>
+                </div>
+                <div className="stat-card glass-card">
+                    <div className="stat-icon">📋</div>
+                    <div className="stat-value">{avg_items_per_order}</div>
+                    <div className="stat-label">позиций/заказ</div>
+                </div>
+            </div>
+
+            {/* Доставка vs Самовывоз */}
+            <div className="stats-row glass-card">
+                <div className="stats-row-title">🚗 Доставка vs Самовывоз</div>
+                <div className="stats-delivery-bar">
+                    {delivery_count > 0 && (
+                        <div className="stats-bar-segment stats-bar-delivery"
+                            style={{ flex: delivery_count }}>
+                            🚗 {delivery_count} ({total_orders ? Math.round(delivery_count / total_orders * 100) : 0}%)
+                        </div>
+                    )}
+                    {pickup_count > 0 && (
+                        <div className="stats-bar-segment stats-bar-pickup"
+                            style={{ flex: pickup_count }}>
+                            🏡 {pickup_count} ({total_orders ? Math.round(pickup_count / total_orders * 100) : 0}%)
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Повторные заказы */}
+            <div className="stats-row glass-card">
+                <div className="stats-row-title">🔄 Лояльность клиентов</div>
+                <div className="stats-loyalty-row">
+                    <span>Повторные заказы: <b>{repeat_customers}</b> клиентов ({repeat_rate}%)</span>
                 </div>
             </div>
 

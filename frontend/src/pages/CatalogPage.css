@@ -1,3 +1,52 @@
+/* Welcome overlay */
+.welcome-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.welcome-card {
+    max-width: 360px;
+    width: 100%;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    border-radius: 20px;
+    background: var(--color-bg);
+}
+
+.welcome-emoji {
+    font-size: 3.5rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.welcome-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 0.75rem;
+    color: var(--color-text);
+}
+
+.welcome-text {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.6rem;
+}
+
+.welcome-btn {
+    margin-top: 1rem;
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+    border-radius: 14px;
+}
+
 .catalog-page {
     padding-top: 4px;
 }

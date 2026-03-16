@@ -1379,7 +1379,17 @@ async def admin_get_stats(x_init_data: str | None = Header(default=None)) -> dic
             name = item.get('name', '?')
             qty = item.get('quantity', 1)
             item_counts[name] = item_counts.get(name, 0) + (qty if isinstance(qty, (int, float)) else 1)
-    top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+    top_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+
+    # Доставка vs самовывоз
+    delivery_count = 0
+    pickup_count = 0
+    for o in orders:
+        dtype = o.get('delivery', {}).get('type', o.get('delivery_type', 'pickup'))
+        if dtype == 'delivery':
+            delivery_count += 1
+        else:
+            pickup_count += 1
 
     # Заказы по дням (для графика): все заказы, закрытые, выручка
     daily_all: dict = {}
@@ -1395,6 +1405,26 @@ async def admin_get_stats(x_init_data: str | None = Header(default=None)) -> dic
             rev = o.get('totals', {}).get('grand_total') or o.get('total') or 0
             daily_revenue[date_str] = daily_revenue.get(date_str, 0) + rev
 
+    # Средняя выручка в день (только дни с закрытыми заказами)
+    days_with_revenue = len(daily_revenue)
+    avg_daily_revenue = round(total_revenue / days_with_revenue) if days_with_revenue else 0
+
+    # Повторные заказы (клиенты с 2+ заказами)
+    user_order_counts: dict = {}
+    for o in orders:
+        uid = o.get('customer', {}).get('user_id') or o.get('user', {}).get('id')
+        if uid:
+            user_order_counts[uid] = user_order_counts.get(uid, 0) + 1
+    repeat_customers = sum(1 for c in user_order_counts.values() if c >= 2)
+    total_customers_with_orders = len(user_order_counts)
+    repeat_rate = round(repeat_customers / total_customers_with_orders * 100) if total_customers_with_orders else 0
+
+    # Средний состав заказа (позиций на заказ)
+    total_items_in_orders = sum(
+        len(o.get('items', [])) for o in orders
+    )
+    avg_items_per_order = round(total_items_in_orders / len(orders), 1) if orders else 0
+
     return {
         'total_orders': len(orders),
         'total_revenue': total_revenue,
@@ -1405,6 +1435,12 @@ async def admin_get_stats(x_init_data: str | None = Header(default=None)) -> dic
         'orders_by_date': daily_all,
         'closed_by_date': daily_closed,
         'revenue_by_date': daily_revenue,
+        'delivery_count': delivery_count,
+        'pickup_count': pickup_count,
+        'avg_daily_revenue': avg_daily_revenue,
+        'repeat_customers': repeat_customers,
+        'repeat_rate': repeat_rate,
+        'avg_items_per_order': avg_items_per_order,
     }
 
 

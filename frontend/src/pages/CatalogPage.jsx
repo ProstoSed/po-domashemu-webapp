@@ -4,7 +4,7 @@
  */
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { usePrices } from '../hooks/usePrices'
 import CategoryCard from '../components/CategoryCard'
 import './CatalogPage.css'
@@ -86,6 +86,18 @@ export default function CatalogPage() {
     const { categories, loading, error } = usePrices()
     const navigate = useNavigate()
     const [loadingPhrase, setLoadingPhrase] = useState(() => getRandomPhrase())
+    const [showWelcome, setShowWelcome] = useState(false)
+
+    useEffect(() => {
+        if (!localStorage.getItem('po_domashemu_welcomed')) {
+            setShowWelcome(true)
+        }
+    }, [])
+
+    const dismissWelcome = () => {
+        localStorage.setItem('po_domashemu_welcomed', '1')
+        setShowWelcome(false)
+    }
 
     useEffect(() => {
         if (!loading) return
@@ -116,6 +128,38 @@ export default function CatalogPage() {
 
     return (
         <div className="catalog-page">
+            <AnimatePresence>
+                {showWelcome && (
+                    <motion.div
+                        className="welcome-overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <motion.div
+                            className="welcome-card glass-card"
+                            initial={{ scale: 0.85, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.85, opacity: 0 }}
+                            transition={{ delay: 0.1, duration: 0.35 }}
+                        >
+                            <span className="welcome-emoji">🥧</span>
+                            <h2 className="welcome-title">Добро пожаловать!</h2>
+                            <p className="welcome-text">
+                                Домашняя пекарня <b>«По-домашнему»</b> — выпечка с любовью и заботой от Надежды из д. Зимёнки.
+                            </p>
+                            <p className="welcome-text">
+                                Здесь вы можете выбрать любимую выпечку, оформить заказ и задать вопросы нашему помощнику.
+                            </p>
+                            <button className="btn btn-primary btn-lg welcome-btn" onClick={dismissWelcome}>
+                                Перейти к меню
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <h2 className="catalog-title">Наше меню</h2>
             <p className="catalog-subtitle">
                 {categories.length} категорий — выбирайте с любовью 💛
