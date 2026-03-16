@@ -126,7 +126,7 @@ export default function SearchPage() {
                                 >
                                     <div
                                         className="search-result-main"
-                                        onClick={() => navigate(`/category/${item.categoryKey}`)}
+                                        onClick={() => navigate(`/category/${item.categoryKey}?highlight=${item.id}`)}
                                     >
                                         <div className="search-result-name">{item.name}</div>
                                         <div className="search-result-cat">{item.categoryName}</div>

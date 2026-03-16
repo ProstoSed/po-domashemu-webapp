@@ -265,18 +265,21 @@ function OrderCard({ order, onStatusChange, onDelete }) {
                                     👩‍🍳 В готовку
                                 </button>
                             )}
-                            {status === 'cooking' && (<>
-                                <button className="btn btn-success btn-sm"
-                                    onClick={() => act(() => onStatusChange(order.order_id, 'ready'))}
-                                    disabled={loading}>
-                                    ✔️ Готов
-                                </button>
-                                <button className="btn btn-primary btn-sm"
-                                    onClick={() => act(() => onStatusChange(order.order_id, 'delivery'))}
-                                    disabled={loading}>
-                                    🚗 Доставка
-                                </button>
-                            </>)}
+                            {status === 'cooking' && (
+                                order.delivery?.type === 'delivery' ? (
+                                    <button className="btn btn-primary btn-sm"
+                                        onClick={() => act(() => onStatusChange(order.order_id, 'delivery'))}
+                                        disabled={loading}>
+                                        🚗 В доставку
+                                    </button>
+                                ) : (
+                                    <button className="btn btn-success btn-sm"
+                                        onClick={() => act(() => onStatusChange(order.order_id, 'ready'))}
+                                        disabled={loading}>
+                                        ✔️ Готов к выдаче
+                                    </button>
+                                )
+                            )}
                             {(status === 'ready' || status === 'delivery') && (
                                 <button className="btn btn-success btn-sm"
                                     onClick={() => act(() => onStatusChange(order.order_id, 'closed'))}

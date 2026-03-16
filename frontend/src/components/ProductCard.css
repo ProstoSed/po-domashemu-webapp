@@ -1,5 +1,17 @@
 .product-card-wrapper {
     margin-bottom: var(--space-sm);
+    border-radius: var(--radius-lg);
+    transition: box-shadow 0.3s ease;
+}
+
+/* Подсветка при переходе из поиска */
+.product-highlight {
+    animation: highlight-flash 2.5s ease-out;
+}
+
+@keyframes highlight-flash {
+    0%, 15% { box-shadow: 0 0 0 3px var(--color-primary), 0 0 16px rgba(212, 163, 115, 0.4); }
+    100% { box-shadow: none; }
 }
 
 .product-card {

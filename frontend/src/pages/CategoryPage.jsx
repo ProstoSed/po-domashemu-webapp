@@ -2,7 +2,8 @@
  * CategoryPage — страница товаров внутри категории.
  * Показывает все товары выбранной категории.
  */
-import { useParams, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { usePrices } from '../hooks/usePrices'
 import ProductCard from '../components/ProductCard'
@@ -11,7 +12,25 @@ import './CategoryPage.css'
 export default function CategoryPage() {
     const { categoryKey } = useParams()
     const navigate = useNavigate()
+    const [searchParams, setSearchParams] = useSearchParams()
     const { getCategory, loading } = usePrices()
+    const [highlightId, setHighlightId] = useState(null)
+
+    useEffect(() => {
+        const hid = searchParams.get('highlight')
+        if (hid) {
+            setHighlightId(hid)
+            // Убираем из URL чтобы не повторялось при навигации
+            setSearchParams({}, { replace: true })
+            // Скроллим к элементу
+            setTimeout(() => {
+                const el = document.getElementById(`product-${hid}`)
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }, 300)
+            // Убираем подсветку через 2.5 секунды
+            setTimeout(() => setHighlightId(null), 2800)
+        }
+    }, [searchParams])
 
     if (loading) {
         return (
@@ -71,6 +90,7 @@ export default function CategoryPage() {
                         item={item}
                         categoryKey={categoryKey}
                         index={i}
+                        highlight={item.id === highlightId}
                     />
                 ))}
             </div>

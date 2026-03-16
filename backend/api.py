@@ -998,13 +998,16 @@ async def update_my_order(
 
     save_orders(orders)
 
-    # Уведомляем маму об изменении заказа
+    # Уведомляем маму об изменении заказа (полный формат как в новом заказе)
     customer = order.get('customer', {})
     name = customer.get('first_name', '—')
     username = f'@{customer["username"]}' if customer.get('username') else '—'
+    phone = customer.get('phone', '—')
 
     lines = [f'✏️ <b>ЗАКАЗ ИЗМЕНЁН</b> — {order_id}\n']
-    lines.append(f'👤 <b>Клиент:</b> {name} ({username})\n')
+    lines.append(f'👤 <b>Клиент:</b> {name} ({username})')
+    lines.append(f'📞 <b>Телефон:</b> {phone}\n')
+
     lines.append('📦 <b>Новый состав:</b>')
     for item in normalized_items:
         qty = item['quantity']
@@ -1019,6 +1022,27 @@ async def update_my_order(
 
     total_str = f'{body.total:,.0f} ₽'.replace(',', ' ')
     lines.append(f'\n💰 <b>Новый итого:</b> {total_str}')
+
+    # Доставка
+    delivery = order.get('delivery', {})
+    delivery_type = delivery.get('type', order.get('delivery_type', 'pickup'))
+    address = delivery.get('address', order.get('address', '—'))
+    delivery_label = '🚗 Доставка' if delivery_type == 'delivery' else '🏡 Самовывоз'
+    lines.append(f'\n{delivery_label}: {address}')
+
+    # Дата и время
+    date = order.get('schedule', {}).get('date', order.get('date', '—'))
+    time_str = order.get('schedule', {}).get('time', order.get('time', ''))
+    date_line = f'📅 <b>Дата:</b> {date}'
+    if time_str:
+        date_line += f'  ⏰ <b>К:</b> {time_str}'
+    lines.append(date_line)
+
+    # Оплата
+    payment = order.get('payment', {}).get('method', '')
+    if payment:
+        pay_label = 'Наличными' if payment == 'cash' else 'Переводом'
+        lines.append(f'💳 <b>Оплата:</b> {pay_label}')
 
     if body.comment:
         lines.append(f'💬 <b>Комментарий:</b> {body.comment}')
@@ -1068,13 +1092,33 @@ async def cancel_my_order(
     orders = [o for o in orders if o.get('order_id') != order_id]
     save_orders(orders)
 
-    # Уведомляем маму об отмене
+    # Уведомляем маму об отмене (полный формат)
     customer = order.get('customer', {})
     name = customer.get('first_name', '—')
     username = f'@{customer["username"]}' if customer.get('username') else '—'
-    mama_text = (f'❌ <b>ЗАКАЗ ОТМЕНЁН</b> — {order_id}\n\n'
-                 f'👤 <b>Клиент:</b> {name} ({username})\n'
-                 f'Клиент отменил заказ.')
+    phone = customer.get('phone', '—')
+
+    cancel_lines = [f'❌ <b>ЗАКАЗ ОТМЕНЁН</b> — {order_id}\n']
+    cancel_lines.append(f'👤 <b>Клиент:</b> {name} ({username})')
+    cancel_lines.append(f'📞 <b>Телефон:</b> {phone}\n')
+
+    cancel_lines.append('📦 <b>Был состав:</b>')
+    for item in order.get('items', []):
+        qty = item.get('quantity', 1)
+        weight = item.get('weight')
+        if weight:
+            amount_str = f'{weight} кг × {qty} шт'
+        else:
+            amount_str = f'{qty} {item.get("unit", "шт")}'
+        subtotal = item.get('total', 0)
+        price_str = f'{subtotal:,.0f} ₽'.replace(',', ' ') if subtotal else '—'
+        cancel_lines.append(f'  • {item.get("name", "?")} — {amount_str} = {price_str}')
+
+    grand = order.get('totals', {}).get('grand_total', 0)
+    cancel_lines.append(f'\n💰 <b>Было итого:</b> {grand:,.0f} ₽'.replace(',', ' '))
+    cancel_lines.append('\n🚫 Клиент отменил заказ.')
+
+    mama_text = '\n'.join(cancel_lines)
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:

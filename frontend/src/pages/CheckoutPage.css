@@ -156,6 +156,21 @@
     margin-bottom: 4px;
 }
 
+/* Дата + время в одну строку */
+.checkout-datetime-row {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.checkout-datetime-row .form-input:first-child {
+    flex: 1;
+}
+
+.checkout-time-input {
+    flex: 0.7;
+    min-width: 0;
+}
+
 .checkout-delivery-hint {
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);

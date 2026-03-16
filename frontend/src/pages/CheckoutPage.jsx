@@ -20,6 +20,7 @@ export default function CheckoutPage() {
     const [address, setAddress] = useState('')
     const [phone, setPhone] = useState('')
     const [date, setDate] = useState('')
+    const [time, setTime] = useState('')
     const [comment, setComment] = useState('')
     const [payment, setPayment] = useState('cash')
     const [sending, setSending] = useState(false)
@@ -110,6 +111,7 @@ export default function CheckoutPage() {
                 : null,
             phone,
             date: date || 'Как можно скорее',
+            time: time || '',
             comment,
             payment_method: payment,
             user: user ? {
@@ -221,16 +223,25 @@ export default function CheckoutPage() {
                 />
             </motion.div>
 
-            {/* Дата */}
+            {/* Дата и время */}
             <motion.div className="form-group glass-card" {...card(0.15)}>
                 <label className="form-label">Когда нужно?</label>
-                <input
-                    type="date"
-                    className="form-input"
-                    value={date}
-                    onChange={e => setDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                />
+                <div className="checkout-datetime-row">
+                    <input
+                        type="date"
+                        className="form-input"
+                        value={date}
+                        onChange={e => setDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                    />
+                    <input
+                        type="text"
+                        className="form-input checkout-time-input"
+                        placeholder="К скольки?"
+                        value={time}
+                        onChange={e => setTime(e.target.value)}
+                    />
+                </div>
             </motion.div>
 
             {/* Комментарий */}

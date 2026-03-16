@@ -54,6 +54,17 @@ def _save_users(users: dict) -> None:
     USERS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
+async def _export_order_to_sheets(**kwargs) -> None:
+    """Отправляет заказ в Google Sheets."""
+    import httpx
+    try:
+        payload = {'action': 'new_order', **kwargs}
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            await client.post(GOOGLE_APPS_SCRIPT_URL, json=payload)
+    except Exception as exc:
+        log.warning('Ошибка экспорта заказа в Sheets: %s', exc)
+
+
 async def _export_user_to_sheets(user, registered_at: str) -> None:
     """Отправляет данные нового пользователя в Google Sheets."""
     import httpx
@@ -278,6 +289,7 @@ def _save_order(order_data: dict, message: Message) -> str:
         },
         'schedule': {
             'date': order_data.get('date', ''),
+            'time': order_data.get('time', ''),
         },
         'comment': order_data.get('comment', ''),
         'totals': {
@@ -298,6 +310,29 @@ def _save_order(order_data: dict, message: Message) -> str:
         _save_users(users)
 
     log.info('Заказ %s сохранён: user_id=%s, items=%d', order_id, user.id, len(normalized_items))
+
+    # Экспорт заказа в Google Sheets (фоново)
+    if GOOGLE_APPS_SCRIPT_URL:
+        items_details = '; '.join(
+            f'{it["name"]} x{it.get("quantity", 1)}' for it in normalized_items
+        )
+        delivery_type = order_data.get('delivery_type', 'pickup')
+        schedule_time = order_data.get('time', '')
+        date_str = order_data.get('date', '')
+        if schedule_time:
+            date_str = f'{date_str} к {schedule_time}' if date_str else schedule_time
+        asyncio.create_task(_export_order_to_sheets(
+            order_id=order_id,
+            datetime_str=normalized['created_at'],
+            customer=f'{user.first_name or ""} (@{user.username or "—"})',
+            phone=order_data.get('phone', ''),
+            items_details=items_details,
+            delivery_type='Доставка' if delivery_type == 'delivery' else 'Самовывоз',
+            address=order_data.get('address', ''),
+            total=order_data.get('total', 0),
+            date=date_str,
+        ))
+
     return order_id
 
 
@@ -392,9 +427,13 @@ def _format_order_for_mama(order: dict, message: Message, order_id: str = None) 
     delivery_label = '🚗 Доставка' if delivery_type == 'delivery' else '🏡 Самовывоз'
     lines.append(f'\n{delivery_label}: {address}')
 
-    # Дата
+    # Дата и время
     date = order.get('date', '—')
-    lines.append(f'📅 <b>Дата:</b> {date}')
+    time_str = order.get('time', '')
+    date_line = f'📅 <b>Дата:</b> {date}'
+    if time_str:
+        date_line += f'  ⏰ <b>К:</b> {time_str}'
+    lines.append(date_line)
 
     # Комментарий
     comment = order.get('comment', '').strip()

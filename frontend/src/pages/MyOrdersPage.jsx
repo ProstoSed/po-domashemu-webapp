@@ -34,8 +34,10 @@ function OrderHistoryCard({ order, onRepeat, onUpdate, onCancel, onAddMore }) {
     const total = order.totals?.grand_total ?? order.total ?? '—'
     const totalStr = typeof total === 'number' ? formatPrice(total) : total
 
-    const dateStr = order.schedule?.date || order.date
+    const rawDate = order.schedule?.date || order.date
         || order.created_at?.slice(0, 10) || '—'
+    const timeStr = order.schedule?.time || ''
+    const dateStr = timeStr ? `${rawDate} к ${timeStr}` : rawDate
 
     const startEditing = (e) => {
         e.stopPropagation()
@@ -110,8 +112,10 @@ function OrderHistoryCard({ order, onRepeat, onUpdate, onCancel, onAddMore }) {
                 </div>
                 <div className="my-order-right">
                     <span className={`order-status ${info.cls}`}>{info.text}</span>
-                    <span className="my-order-total">{totalStr}</span>
-                    <span className="order-chevron">{expanded ? '▲' : '▼'}</span>
+                    <div className="my-order-right-row">
+                        <span className="my-order-total">{totalStr}</span>
+                        <span className="order-chevron">{expanded ? '▲' : '▼'}</span>
+                    </div>
                 </div>
             </div>
 

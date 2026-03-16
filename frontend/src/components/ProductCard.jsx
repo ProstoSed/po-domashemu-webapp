@@ -9,7 +9,7 @@ import './ProductCard.css'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
-export default function ProductCard({ item, categoryKey, index }) {
+export default function ProductCard({ item, categoryKey, index, highlight }) {
     const { addItem } = useCart()
     const { haptic } = useTelegram()
     const [added, setAdded] = useState(false)
@@ -36,7 +36,7 @@ export default function ProductCard({ item, categoryKey, index }) {
     const photoUrl = hasPhoto ? `${API_URL}/api/photos/${item.photo_filename}` : null
 
     return (
-        <div className="product-card-wrapper">
+        <div className={`product-card-wrapper${highlight ? ' product-highlight' : ''}`} id={`product-${item.id}`}>
             <motion.div
                 className="product-card glass-card"
                 initial={{ opacity: 0, y: 15 }}
