@@ -30,29 +30,12 @@ export default function ProductCard({ item, categoryKey, index, highlight }) {
     const hasDesc = !!item.description
 
     const handleAdd = () => {
-        if (!hasPrice || qty === 0) return
+        if (!hasPrice) return
         addItem({ ...item, categoryKey }, qty, isKg ? weight : null)
         haptic('medium')
         setAdded(true)
         setTimeout(() => setAdded(false), 1200)
         setQty(minQty)
-    }
-
-    // Обработка -/+ с порогом: ниже минимума → сброс к 0 (убрать)
-    const handleQtyChange = (newQty) => {
-        if (minQty > 1) {
-            if (qty >= minQty && newQty < minQty) {
-                // Был на минимуме, нажали — → убрать (0)
-                setQty(0)
-                return
-            }
-            if (qty === 0) {
-                // Был на 0, нажали + → вернуть к минимуму
-                setQty(minQty)
-                return
-            }
-        }
-        setQty(newQty)
     }
 
     const photoUrl = hasPhoto ? `${API_URL}/api/photos/${item.photo_filename}` : null
@@ -118,16 +101,16 @@ export default function ProductCard({ item, categoryKey, index, highlight }) {
                         <div className="product-actions-row">
                             <QuantityPicker
                                 value={qty}
-                                onChange={handleQtyChange}
-                                min={qty === 0 ? 0 : (minQty > 1 ? minQty : 1)}
+                                onChange={setQty}
+                                min={minQty}
                                 max={20}
                             />
                             <motion.button
-                                className={`btn-add ${added ? 'btn-add--success' : ''} ${qty === 0 ? 'btn-add--disabled' : ''}`}
-                                onClick={qty === 0 ? () => setQty(minQty) : handleAdd}
+                                className={`btn-add ${added ? 'btn-add--success' : ''}`}
+                                onClick={handleAdd}
                                 whileTap={{ scale: 0.9 }}
                             >
-                                {added ? '✓' : qty === 0 ? `+${minQty}` : '+'}
+                                {added ? '✓' : '+'}
                             </motion.button>
                         </div>
                     </div>

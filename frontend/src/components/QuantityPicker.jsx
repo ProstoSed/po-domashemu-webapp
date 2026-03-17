@@ -6,7 +6,7 @@ export default function QuantityPicker({ value, onChange, min = 1, max = 99 }) {
             <button
                 className="qty-btn"
                 onClick={() => onChange(value - 1)}
-                disabled={value <= 0}
+                disabled={value <= min}
             >
                 −
             </button>
