@@ -13,24 +13,46 @@ export default function ProductCard({ item, categoryKey, index, highlight }) {
     const { addItem } = useCart()
     const { haptic } = useTelegram()
     const [added, setAdded] = useState(false)
-    const [qty, setQty] = useState(1)
-    const [weight, setWeight] = useState(1)
+
+    const isKg = item.unit === 'кг'
+    const minOrder = item.min_order || null
+    const minQty = (!isKg && minOrder) ? minOrder : 1
+    const minWeight = (isKg && minOrder) ? minOrder : 0.5
+
+    const [qty, setQty] = useState(minQty)
+    const [weight, setWeight] = useState(isKg ? Math.max(1, minWeight) : 1)
     const [showPhoto, setShowPhoto] = useState(false)
     const [photoError, setPhotoError] = useState(false)
     const [showDesc, setShowDesc] = useState(false)
 
-    const isKg = item.unit === 'кг'
     const hasPrice = !item.price_note  // не «индивидуально»
     const hasPhoto = !!item.photo_filename
     const hasDesc = !!item.description
 
     const handleAdd = () => {
-        if (!hasPrice) return
+        if (!hasPrice || qty === 0) return
         addItem({ ...item, categoryKey }, qty, isKg ? weight : null)
         haptic('medium')
         setAdded(true)
         setTimeout(() => setAdded(false), 1200)
-        setQty(1)
+        setQty(minQty)
+    }
+
+    // Обработка -/+ с порогом: ниже минимума → сброс к 0 (убрать)
+    const handleQtyChange = (newQty) => {
+        if (minQty > 1) {
+            if (qty >= minQty && newQty < minQty) {
+                // Был на минимуме, нажали — → убрать (0)
+                setQty(0)
+                return
+            }
+            if (qty === 0) {
+                // Был на 0, нажали + → вернуть к минимуму
+                setQty(minQty)
+                return
+            }
+        }
+        setQty(newQty)
     }
 
     const photoUrl = hasPhoto ? `${API_URL}/api/photos/${item.photo_filename}` : null
@@ -72,16 +94,21 @@ export default function ProductCard({ item, categoryKey, index, highlight }) {
                 {hasPrice && (
                     <div className={`product-actions ${isKg ? 'product-actions--kg' : ''}`}>
                         {isKg && (
-                            <WeightPicker value={weight} onChange={setWeight} />
+                            <WeightPicker value={weight} onChange={setWeight} minWeight={minWeight} />
                         )}
                         <div className="product-actions-row">
-                            <QuantityPicker value={qty} onChange={setQty} min={1} max={20} />
+                            <QuantityPicker
+                                value={qty}
+                                onChange={handleQtyChange}
+                                min={qty === 0 ? 0 : (minQty > 1 ? minQty : 1)}
+                                max={20}
+                            />
                             <motion.button
-                                className={`btn-add ${added ? 'btn-add--success' : ''}`}
-                                onClick={handleAdd}
+                                className={`btn-add ${added ? 'btn-add--success' : ''} ${qty === 0 ? 'btn-add--disabled' : ''}`}
+                                onClick={qty === 0 ? () => setQty(minQty) : handleAdd}
                                 whileTap={{ scale: 0.9 }}
                             >
-                                {added ? '✓' : '+'}
+                                {added ? '✓' : qty === 0 ? `+${minQty}` : '+'}
                             </motion.button>
                         </div>
                     </div>

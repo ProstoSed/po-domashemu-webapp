@@ -95,6 +95,12 @@
     animation: pulse 0.4s var(--ease-spring);
 }
 
+.btn-add--disabled {
+    background: linear-gradient(135deg, #9ca3af, #6b7280);
+    box-shadow: none;
+    font-size: 0.9rem;
+}
+
 /* ── Кнопки фото/описание ── */
 .product-btns-row {
     display: flex;

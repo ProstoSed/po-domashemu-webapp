@@ -51,6 +51,26 @@ HEADER_MAP = {
 }
 
 
+def _parse_min_order(note: str, unit: str) -> int | float | None:
+    """
+    Извлекает минимальный заказ из примечания.
+    Форматы: 'от 4шт', 'от 5 штук', 'от 1.5кг', 'от 10 шт', 'от 1.5 кг'
+    """
+    import re
+    if not note:
+        return None
+    # Ищем паттерн "от X шт/штук/кг"
+    m = re.search(r'от\s+(\d+(?:[.,]\d+)?)\s*(?:шт|штук|кг|kg)', note, re.IGNORECASE)
+    if m:
+        val = m.group(1).replace(',', '.')
+        num = float(val)
+        # Для штук — всегда целое
+        if unit.strip().lower() != 'кг' and num == int(num):
+            return int(num)
+        return num
+    return None
+
+
 def _parse_price(price_str: str, unit: str) -> dict:
     """
     Разбирает строку цены из таблицы в поля prices.json.
@@ -177,13 +197,15 @@ def _csv_to_prices_json(csv_text: str) -> dict:
         photo_url = _normalize_photo_url(raw_photo)
 
         item_desc = normalized.get("description", "").strip()
+        note_val = normalized.get("note", "")
+        min_order = _parse_min_order(note_val, unit_val)
         item = {
             "id": item_id,
             "name": normalized.get("item_name", item_id),
             "unit": unit_val,
             **price_fields,
-            "min_order": None,
-            "note": normalized.get("note", ""),
+            "min_order": min_order,
+            "note": note_val,
             "description": item_desc if item_desc else "",
         }
         if photo_url:
