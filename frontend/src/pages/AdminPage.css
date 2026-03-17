@@ -1236,3 +1236,71 @@
     color: var(--color-text-secondary);
     font-size: 0.85rem;
 }
+
+/* ── Чек-лист ингредиентов ── */
+.ingredients-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.ingredients-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-xs);
+}
+
+.ingredients-badge {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1e40af;
+    background: #dbeafe;
+    padding: 4px 12px;
+    border-radius: 12px;
+}
+
+.ingredients-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ingredient-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+}
+
+.ingredient-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ingredient-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.ingredient-orders {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.ingredient-amount {
+    flex-shrink: 0;
+    text-align: right;
+}
+
+.ingredient-weight,
+.ingredient-qty {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    background: #fef3c7;
+    padding: 4px 10px;
+    border-radius: 8px;
+}

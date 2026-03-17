@@ -208,3 +208,50 @@ a.review-card-name:hover {
     white-space: pre-wrap;
     word-break: break-word;
 }
+
+.review-card-photo {
+    width: 100%;
+    max-height: 300px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    margin-top: var(--space-sm);
+}
+
+/* ── Фото в форме ── */
+.review-form-photo {
+    margin-bottom: var(--space-sm);
+}
+
+.review-photo-btn {
+    width: 100%;
+    font-size: var(--font-size-sm);
+}
+
+.review-photo-preview {
+    position: relative;
+    display: inline-block;
+}
+
+.review-photo-preview img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+}
+
+.review-photo-remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

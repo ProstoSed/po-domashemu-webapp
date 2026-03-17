@@ -2,11 +2,12 @@
  * CatalogPage — главная страница каталога.
  * Показывает все категории товаров из prices.json.
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePrices } from '../hooks/usePrices'
 import CategoryCard from '../components/CategoryCard'
+import ProductCard from '../components/ProductCard'
 import './CatalogPage.css'
 
 const LOADING_PHRASES = [
@@ -126,6 +127,19 @@ export default function CatalogPage() {
         )
     }
 
+    // Собираем "товары дня" из всех категорий
+    const featuredItems = useMemo(() => {
+        const items = []
+        for (const cat of categories) {
+            for (const item of cat.items || []) {
+                if (item.featured) {
+                    items.push({ ...item, categoryKey: cat.key })
+                }
+            }
+        }
+        return items
+    }, [categories])
+
     return (
         <div className="catalog-page">
             <AnimatePresence>
@@ -212,6 +226,20 @@ export default function CatalogPage() {
                 </div>
                 <span className="category-arrow">›</span>
             </motion.div>
+
+            {featuredItems.length > 0 && (
+                <div className="featured-section">
+                    <h3 className="featured-title">⭐ Товар дня</h3>
+                    {featuredItems.map((item, i) => (
+                        <ProductCard
+                            key={item.id}
+                            item={item}
+                            categoryKey={item.categoryKey}
+                            index={i}
+                        />
+                    ))}
+                </div>
+            )}
 
             <div className="catalog-list">
                 {categories.map((cat, i) => (

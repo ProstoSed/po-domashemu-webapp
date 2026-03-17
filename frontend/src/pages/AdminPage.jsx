@@ -11,7 +11,7 @@ import {
     fetchOrders, deleteOrder, updateOrderStatus,
     fetchStats, fetchUsers, sendBroadcast,
     fetchReminders, remindSleeping,
-    syncPrices, fetchUserOrders,
+    syncPrices, fetchUserOrders, fetchIngredients,
     fetchAdmins, addAdmin, removeAdmin, restoreAdmin, searchUsers,
 } from '../utils/api'
 import './AdminPage.css'
@@ -31,9 +31,10 @@ const SECTIONS_ROW1 = [
     { key: 'users',     label: '👥 Клиенты' },
 ]
 const SECTIONS_ROW2 = [
-    { key: 'admins',    label: '👑 Админы' },
-    { key: 'reminders', label: '⏰ Напоминалки' },
-    { key: 'broadcast', label: '📨 Рассылка' },
+    { key: 'admins',      label: '👑 Админы' },
+    { key: 'ingredients', label: '🧾 Чек-лист' },
+    { key: 'reminders',   label: '⏰ Напоминалки' },
+    { key: 'broadcast',   label: '📨 Рассылка' },
 ]
 const SECTIONS = [...SECTIONS_ROW1, ...SECTIONS_ROW2]
 
@@ -1102,6 +1103,68 @@ function AdminsSection() {
 // ──────────────────────────────────────────
 // Секция: Напоминалки
 // ──────────────────────────────────────────
+// Секция: Чек-лист ингредиентов
+// ──────────────────────────────────────────
+
+function IngredientsSection() {
+    const [data, setData] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    const load = () => {
+        setLoading(true)
+        fetchIngredients()
+            .then(d => { setData(d); setError(null) })
+            .catch(e => setError(e.message))
+            .finally(() => setLoading(false))
+    }
+
+    useEffect(() => { load() }, [])
+
+    if (loading) return <Spinner text="Считаем ингредиенты..." />
+    if (error) return <ErrorBox msg={error} onRetry={load} />
+
+    const items = data?.items || []
+    const activeOrders = data?.active_orders || 0
+
+    if (items.length === 0) {
+        return (
+            <div className="empty-state">
+                <span className="empty-state-emoji">📋</span>
+                <p className="empty-state-title">Нет активных заказов</p>
+                <p className="empty-state-text">Когда появятся заказы со статусом «Новый», «Принят» или «Готовится» — здесь будет чек-лист</p>
+            </div>
+        )
+    }
+
+    return (
+        <div className="ingredients-section">
+            <div className="ingredients-header">
+                <span className="ingredients-badge">{activeOrders} активных заказов</span>
+                <button className="btn btn-outline btn-sm" onClick={load}>🔄 Обновить</button>
+            </div>
+            <div className="ingredients-list">
+                {items.map(item => (
+                    <div key={item.name} className="ingredient-row glass-card">
+                        <div className="ingredient-info">
+                            <span className="ingredient-name">{item.name}</span>
+                            <span className="ingredient-orders">в {item.orders_count} заказах</span>
+                        </div>
+                        <div className="ingredient-amount">
+                            {item.total_weight_kg > 0 ? (
+                                <span className="ingredient-weight">{item.total_weight_kg} кг × {item.total_qty} шт</span>
+                            ) : (
+                                <span className="ingredient-qty">{item.total_qty} {item.unit}</span>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+// ──────────────────────────────────────────
 
 function RemindersSection() {
     const [data, setData] = useState(null)
@@ -1530,9 +1593,10 @@ export default function AdminPage() {
 
             {section === 'stats'     && <StatsSection />}
             {section === 'users'     && <UsersSection />}
-            {section === 'admins'    && <AdminsSection />}
-            {section === 'reminders' && <RemindersSection />}
-            {section === 'broadcast' && <BroadcastSection />}
+            {section === 'admins'      && <AdminsSection />}
+            {section === 'ingredients' && <IngredientsSection />}
+            {section === 'reminders'   && <RemindersSection />}
+            {section === 'broadcast'   && <BroadcastSection />}
         </div>
     )
 }

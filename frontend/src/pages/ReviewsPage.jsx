@@ -2,12 +2,14 @@
  * ReviewsPage — страница отзывов.
  * Все пользователи видят отзывы, авторизованные могут оставить свой.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTelegram } from '../hooks/useTelegram'
 import { fetchReviews, createReview } from '../utils/api'
 import './ReviewsPage.css'
+
+const API_URL = import.meta.env.VITE_API_URL || ''
 
 const STARS = [1, 2, 3, 4, 5]
 
@@ -62,6 +64,14 @@ function ReviewCard({ review }) {
                 <StarRating value={review.rating || 5} readonly />
             </div>
             <p className="review-card-text">{review.text}</p>
+            {review.photo && (
+                <img
+                    className="review-card-photo"
+                    src={`${API_URL}/api/photos/${review.photo}`}
+                    alt="Фото к отзыву"
+                    loading="lazy"
+                />
+            )}
         </motion.div>
     )
 }
@@ -77,6 +87,9 @@ export default function ReviewsPage() {
     const [showForm, setShowForm] = useState(false)
     const [text, setText] = useState('')
     const [rating, setRating] = useState(5)
+    const [photo, setPhoto] = useState(null)
+    const [photoPreview, setPhotoPreview] = useState(null)
+    const fileRef = useRef(null)
     const [submitting, setSubmitting] = useState(false)
     const [submitted, setSubmitted] = useState(false)
 
@@ -90,13 +103,31 @@ export default function ReviewsPage() {
 
     useEffect(() => { loadReviews() }, [])
 
+    const handlePhotoChange = (e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Фото слишком большое (макс. 5 МБ)')
+            return
+        }
+        setPhoto(file)
+        setPhotoPreview(URL.createObjectURL(file))
+    }
+
+    const clearPhoto = () => {
+        setPhoto(null)
+        setPhotoPreview(null)
+        if (fileRef.current) fileRef.current.value = ''
+    }
+
     const handleSubmit = async () => {
         if (!text.trim()) return
         setSubmitting(true)
         try {
-            await createReview(text.trim(), rating)
+            await createReview(text.trim(), rating, photo)
             setText('')
             setRating(5)
+            clearPhoto()
             setShowForm(false)
             setSubmitted(true)
             loadReviews()
@@ -184,6 +215,31 @@ export default function ReviewsPage() {
 
                         <div className="review-form-counter">
                             {text.length}/1000
+                        </div>
+
+                        {/* Фото */}
+                        <div className="review-form-photo">
+                            <input
+                                ref={fileRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoChange}
+                                hidden
+                            />
+                            {photoPreview ? (
+                                <div className="review-photo-preview">
+                                    <img src={photoPreview} alt="Превью" />
+                                    <button className="review-photo-remove" onClick={clearPhoto}>✕</button>
+                                </div>
+                            ) : (
+                                <button
+                                    className="btn btn-outline review-photo-btn"
+                                    onClick={() => fileRef.current?.click()}
+                                    type="button"
+                                >
+                                    📷 Прикрепить фото
+                                </button>
+                            )}
                         </div>
 
                         <div className="review-form-actions">

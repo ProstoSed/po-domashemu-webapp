@@ -38,7 +38,7 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl
 
 import httpx
-from fastapi import FastAPI, HTTPException, Header, UploadFile, File
+from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -1223,6 +1223,81 @@ async def create_review(
     return {'ok': True, 'review': review}
 
 
+@app.post('/api/reviews/with-photo')
+async def create_review_with_photo(
+    text: str = Form(...),
+    rating: int = Form(5),
+    photo: UploadFile | None = File(None),
+    x_init_data: str | None = Header(default=None),
+) -> dict:
+    """Оставить отзыв с фото (multipart/form-data)."""
+    user = require_user(x_init_data)
+    user_id = user.get('id')
+
+    text = text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail='Текст отзыва не может быть пустым')
+    if len(text) > 1000:
+        raise HTTPException(status_code=400, detail='Отзыв слишком длинный (макс. 1000 символов)')
+
+    rating = max(1, min(5, rating))
+
+    # Сохраняем фото если есть
+    photo_filename = None
+    if photo and photo.filename:
+        content = await photo.read()
+        if len(content) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail='Фото слишком большое (макс. 5 МБ)')
+        ext = Path(photo.filename).suffix.lower() or '.jpg'
+        if ext not in ('.jpg', '.jpeg', '.png', '.webp'):
+            ext = '.jpg'
+        photo_filename = f'review_{user_id}_{int(datetime.now().timestamp())}{ext}'
+        photos_dir = PHOTOS_DIR
+        photos_dir.mkdir(parents=True, exist_ok=True)
+        (photos_dir / photo_filename).write_bytes(content)
+
+    users = load_users()
+    user_data = users.get(str(user_id), {})
+    phone = user_data.get('phone', '')
+    if not phone:
+        orders = load_orders()
+        user_orders = [o for o in orders if o.get('customer', {}).get('user_id') == user_id]
+        if user_orders:
+            user_orders.sort(key=lambda o: o.get('created_at', ''), reverse=True)
+            phone = user_orders[0].get('customer', {}).get('phone', '')
+
+    now = datetime.now(timezone(timedelta(hours=3)))
+
+    review = {
+        'id': f'REV-{now.strftime("%y%m%d%H%M%S")}-{user_id}',
+        'user_id': user_id,
+        'first_name': user.get('first_name', ''),
+        'username': user.get('username', ''),
+        'text': text,
+        'rating': rating,
+        'created_at': now.strftime('%Y-%m-%d %H:%M:%S'),
+    }
+    if photo_filename:
+        review['photo'] = photo_filename
+
+    reviews = load_reviews()
+    reviews.append(review)
+    save_reviews(reviews)
+
+    import asyncio
+    asyncio.create_task(_export_to_sheets('add_review', {
+        'date': now.strftime('%d.%m.%Y %H:%M'),
+        'name': user.get('first_name', ''),
+        'username': user.get('username', ''),
+        'phone': phone,
+        'rating': rating,
+        'text': text,
+    }))
+
+    log.info('Отзыв с фото создан: user_id=%s, rating=%d, photo=%s', user_id, rating, photo_filename)
+    return {'ok': True, 'review': review}
+
+
 # ──────────────────────────────────────────────
 # Пользователь: Запросы на фото
 # ──────────────────────────────────────────────
@@ -1557,6 +1632,50 @@ async def admin_reject_photo(
 # ──────────────────────────────────────────────
 # Админ: Напоминалки (праздники + спящие клиенты)
 # ──────────────────────────────────────────────
+
+@app.get('/api/admin/ingredients')
+async def admin_ingredients_checklist(x_init_data: str | None = Header(default=None)) -> dict:
+    """Чек-лист ингредиентов: агрегирует товары из активных заказов (new/accepted/cooking)."""
+    require_admin(x_init_data)
+    orders = load_orders()
+    active_statuses = ('new', 'accepted', 'cooking')
+
+    # Агрегация: name → { total_qty, total_weight_kg, unit, orders_count }
+    items_map: dict[str, dict] = {}
+    active_orders = 0
+
+    for order in orders:
+        if order.get('status', 'new') not in active_statuses:
+            continue
+        active_orders += 1
+        for item in order.get('items', []):
+            name = item.get('name', '?')
+            qty = item.get('quantity', 1)
+            weight = item.get('weight')
+            unit = item.get('unit', 'шт')
+
+            if name not in items_map:
+                items_map[name] = {
+                    'name': name,
+                    'unit': unit,
+                    'total_qty': 0,
+                    'total_weight_kg': 0,
+                    'orders_count': 0,
+                }
+
+            items_map[name]['total_qty'] += qty
+            if weight:
+                items_map[name]['total_weight_kg'] += weight * qty
+            items_map[name]['orders_count'] += 1
+
+    # Сортируем по количеству заказов (чаще = выше)
+    items_list = sorted(items_map.values(), key=lambda x: x['orders_count'], reverse=True)
+
+    return {
+        'items': items_list,
+        'active_orders': active_orders,
+    }
+
 
 @app.get('/api/admin/reminders')
 async def admin_get_reminders(x_init_data: str | None = Header(default=None)) -> dict:

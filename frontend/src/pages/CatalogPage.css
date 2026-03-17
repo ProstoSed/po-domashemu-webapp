@@ -66,6 +66,19 @@
     animation: fadeInUp var(--duration-slow) var(--ease-out) 0.1s both;
 }
 
+/* ── Товар дня ── */
+.featured-section {
+    margin-bottom: var(--space-lg);
+}
+
+.featured-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #92400e;
+    margin-bottom: var(--space-sm);
+    padding-left: 4px;
+}
+
 .catalog-list {
     display: flex;
     flex-direction: column;

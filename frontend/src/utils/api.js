@@ -160,6 +160,10 @@ export async function rejectPhotoRequest(reqId) {
     })
 }
 
+export async function fetchIngredients() {
+    return apiFetch('/api/admin/ingredients', { headers: adminHeaders() })
+}
+
 export async function syncPrices() {
     return apiFetch('/api/admin/sync-prices', {
         method: 'POST',
@@ -253,7 +257,18 @@ export async function fetchReviews() {
     return apiFetch('/api/reviews')
 }
 
-export async function createReview(text, rating = 5) {
+export async function createReview(text, rating = 5, photo = null) {
+    if (photo) {
+        const form = new FormData()
+        form.append('text', text)
+        form.append('rating', String(rating))
+        form.append('photo', photo)
+        return apiFetch('/api/reviews/with-photo', {
+            method: 'POST',
+            headers: { 'x-init-data': getInitData() },
+            body: form,
+        })
+    }
     return apiFetch('/api/reviews', {
         method: 'POST',
         headers: userHeaders(),
