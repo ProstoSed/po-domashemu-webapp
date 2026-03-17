@@ -36,6 +36,8 @@ HEADER_MAP = {
     "фото": "photo_url",
     "описание": "description",
     "описание категории": "category_description",
+    "ингредиенты": "ingredients",
+    "состав": "ingredients",
     # Английские заголовки (обратная совместимость)
     "category_key": "category_key",
     "category_name": "category_name",
@@ -48,6 +50,7 @@ HEADER_MAP = {
     "photo url": "photo_url",
     "description": "description",
     "category_description": "category_description",
+    "ingredients": "ingredients",
 }
 
 
@@ -97,6 +100,60 @@ def _parse_note_flags(note: str) -> dict:
         flags['featured'] = True
 
     return flags
+
+
+def _parse_ingredients(raw: str) -> list[dict] | None:
+    """
+    Парсит строку ингредиентов: 'мука 500г, яйца 3шт, сахар 200г, молоко 300мл'
+    Возвращает список: [{'name': 'мука', 'amount': 500, 'unit': 'г'}, ...]
+    Количество — на 1 кг (для весовых) или на 1 шт (для штучных).
+
+    Гибкий парсер — принимает разные форматы:
+      мука 500г | мука 500 г | Мука 0.5кг | мука 0,5 кг
+      яйца 3шт | яйца 3 шт | Яйца 3 штуки | яйца 3 штук
+      молоко 300мл | молоко 0.3л | масло 50 гр | масло 50 грамм
+    Разделитель: запятая или точка с запятой.
+    """
+    import re
+    if not raw or not raw.strip():
+        return None
+
+    # Нормализация единиц
+    unit_map = {
+        'г': 'г', 'гр': 'г', 'грамм': 'г', 'граммов': 'г',
+        'кг': 'кг', 'килограмм': 'кг', 'килограммов': 'кг',
+        'шт': 'шт', 'штук': 'шт', 'штуки': 'шт', 'штука': 'шт',
+        'мл': 'мл', 'миллилитров': 'мл', 'миллилитр': 'мл',
+        'л': 'л', 'литр': 'л', 'литров': 'л', 'литра': 'л',
+        'ст': 'ст', 'стакан': 'ст', 'стаканов': 'ст', 'стакана': 'ст',
+        'ст.л': 'ст.л', 'ст. л': 'ст.л', 'ст.л.': 'ст.л',
+        'ч.л': 'ч.л', 'ч. л': 'ч.л', 'ч.л.': 'ч.л',
+    }
+
+    items = []
+    # Разделяем по запятой или точке с запятой
+    for part in re.split(r'[,;]', raw):
+        part = part.strip()
+        if not part:
+            continue
+        # Паттерн: "название число единица" (гибкий)
+        m = re.match(
+            r'(.+?)\s+(\d+(?:[.,]\d+)?)\s*'
+            r'(г|гр|грамм|граммов|кг|килограмм|килограммов|'
+            r'шт|штук|штуки|штука|мл|миллилитров|миллилитр|'
+            r'л|литр|литров|литра|ст\.?\s*л\.?|ч\.?\s*л\.?|ст|стакан|стаканов|стакана)\b\.?',
+            part, re.IGNORECASE
+        )
+        if m:
+            name = m.group(1).strip().capitalize()
+            amount = float(m.group(2).replace(',', '.'))
+            raw_unit = m.group(3).strip().lower().replace(' ', '').rstrip('.')
+            unit = unit_map.get(raw_unit, raw_unit)
+            items.append({'name': name, 'amount': amount, 'unit': unit})
+        else:
+            # Если формат не распознан — сохраняем как есть
+            items.append({'name': part.strip().capitalize(), 'amount': 0, 'unit': ''})
+    return items if items else None
 
 
 def _parse_price(price_str: str, unit: str) -> dict:
@@ -237,6 +294,9 @@ def _csv_to_prices_json(csv_text: str) -> dict:
             "note": note_val,
             "description": item_desc if item_desc else "",
         }
+        ingredients = _parse_ingredients(normalized.get("ingredients", ""))
+        if ingredients:
+            item['ingredients'] = ingredients
         if note_flags.get('seasons'):
             item['seasons'] = note_flags['seasons']
         if note_flags.get('featured'):

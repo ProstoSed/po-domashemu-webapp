@@ -1635,12 +1635,22 @@ async def admin_reject_photo(
 
 @app.get('/api/admin/ingredients')
 async def admin_ingredients_checklist(x_init_data: str | None = Header(default=None)) -> dict:
-    """Чек-лист ингредиентов: агрегирует товары из активных заказов (new/accepted/cooking)."""
+    """Чек-лист ингредиентов: агрегирует товары + рассчитывает ингредиенты из активных заказов."""
     require_admin(x_init_data)
     orders = load_orders()
     active_statuses = ('new', 'accepted', 'cooking')
 
-    # Агрегация: name → { total_qty, total_weight_kg, unit, orders_count }
+    # Загружаем prices.json для получения ингредиентов товаров
+    prices_data = {}
+    try:
+        prices_raw = json.loads(PRICES_FILE.read_text(encoding='utf-8'))
+        for cat in prices_raw.get('categories', []):
+            for item in cat.get('items', []):
+                prices_data[item['name']] = item
+    except Exception:
+        pass
+
+    # Агрегация товаров: name → { total_qty, total_weight_kg, unit, orders_count }
     items_map: dict[str, dict] = {}
     active_orders = 0
 
@@ -1668,11 +1678,49 @@ async def admin_ingredients_checklist(x_init_data: str | None = Header(default=N
                 items_map[name]['total_weight_kg'] += weight * qty
             items_map[name]['orders_count'] += 1
 
-    # Сортируем по количеству заказов (чаще = выше)
+    # Рассчитываем ингредиенты
+    # Ингредиенты в prices.json указаны на 1 кг (весовые) или 1 шт (штучные)
+    ingredients_map: dict[str, dict] = {}  # ingredient_name → { amount, unit }
+
+    for product_name, product_data in items_map.items():
+        price_item = prices_data.get(product_name, {})
+        item_ingredients = price_item.get('ingredients', [])
+        if not item_ingredients:
+            continue
+
+        # Множитель: сколько "единиц" нужно приготовить
+        if product_data['total_weight_kg'] > 0:
+            multiplier = product_data['total_weight_kg']  # ингредиенты на 1 кг × кг
+        else:
+            multiplier = product_data['total_qty']  # ингредиенты на 1 шт × шт
+
+        for ing in item_ingredients:
+            ing_name = ing.get('name', '')
+            ing_amount = ing.get('amount', 0)
+            ing_unit = ing.get('unit', '')
+            if not ing_name:
+                continue
+
+            key = f'{ing_name}|{ing_unit}'
+            if key not in ingredients_map:
+                ingredients_map[key] = {
+                    'name': ing_name,
+                    'amount': 0,
+                    'unit': ing_unit,
+                }
+            ingredients_map[key]['amount'] += ing_amount * multiplier
+
+    # Округляем и сортируем ингредиенты
+    ingredients_list = sorted(ingredients_map.values(), key=lambda x: x['name'])
+    for ing in ingredients_list:
+        ing['amount'] = round(ing['amount'], 1)
+
+    # Сортируем товары по количеству заказов
     items_list = sorted(items_map.values(), key=lambda x: x['orders_count'], reverse=True)
 
     return {
         'items': items_list,
+        'ingredients': ingredients_list,
         'active_orders': active_orders,
     }
 

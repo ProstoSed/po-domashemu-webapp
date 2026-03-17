@@ -1304,3 +1304,38 @@
     padding: 4px 10px;
     border-radius: 8px;
 }
+
+.ingredients-subtitle {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: var(--space-md) 0 var(--space-xs);
+    color: var(--color-text);
+}
+
+.ingredient-row--raw {
+    padding: 8px 14px;
+}
+
+.ingredient-raw-amount {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1e40af;
+    background: #dbeafe;
+    padding: 4px 10px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.ingredients-hint {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-top: var(--space-md);
+    line-height: 1.5;
+}
+
+.ingredients-hint code {
+    font-size: 0.75rem;
+    background: var(--color-surface);
+    padding: 2px 6px;
+    border-radius: 4px;
+}

@@ -1137,12 +1137,17 @@ function IngredientsSection() {
         )
     }
 
+    const ingredients = data?.ingredients || []
+
     return (
         <div className="ingredients-section">
             <div className="ingredients-header">
                 <span className="ingredients-badge">{activeOrders} активных заказов</span>
                 <button className="btn btn-outline btn-sm" onClick={load}>🔄 Обновить</button>
             </div>
+
+            {/* Что готовить */}
+            <h4 className="ingredients-subtitle">🍰 Что готовить</h4>
             <div className="ingredients-list">
                 {items.map(item => (
                     <div key={item.name} className="ingredient-row glass-card">
@@ -1160,6 +1165,30 @@ function IngredientsSection() {
                     </div>
                 ))}
             </div>
+
+            {/* Ингредиенты */}
+            {ingredients.length > 0 && (
+                <>
+                    <h4 className="ingredients-subtitle">🧾 Нужно закупить</h4>
+                    <div className="ingredients-list">
+                        {ingredients.map(ing => (
+                            <div key={`${ing.name}-${ing.unit}`} className="ingredient-row ingredient-row--raw glass-card">
+                                <span className="ingredient-name">{ing.name}</span>
+                                <span className="ingredient-raw-amount">
+                                    {ing.amount} {ing.unit}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
+
+            {ingredients.length === 0 && items.length > 0 && (
+                <p className="ingredients-hint">
+                    Добавьте столбец «Ингредиенты» в Google Таблицу для расчёта закупок.
+                    Формат: <code>мука 500г, яйца 3шт, сахар 200г</code>
+                </p>
+            )}
         </div>
     )
 }
