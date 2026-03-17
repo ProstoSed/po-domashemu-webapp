@@ -108,6 +108,19 @@ export default function CatalogPage() {
         return () => clearInterval(id)
     }, [loading])
 
+    // Собираем "товары дня" из всех категорий (хук ДО ранних return!)
+    const featuredItems = useMemo(() => {
+        const items = []
+        for (const cat of categories) {
+            for (const item of cat.items || []) {
+                if (item.featured) {
+                    items.push({ ...item, categoryKey: cat.key })
+                }
+            }
+        }
+        return items
+    }, [categories])
+
     if (loading) {
         return (
             <div className="catalog-loading">
@@ -126,19 +139,6 @@ export default function CatalogPage() {
             </div>
         )
     }
-
-    // Собираем "товары дня" из всех категорий
-    const featuredItems = useMemo(() => {
-        const items = []
-        for (const cat of categories) {
-            for (const item of cat.items || []) {
-                if (item.featured) {
-                    items.push({ ...item, categoryKey: cat.key })
-                }
-            }
-        }
-        return items
-    }, [categories])
 
     return (
         <div className="catalog-page">
