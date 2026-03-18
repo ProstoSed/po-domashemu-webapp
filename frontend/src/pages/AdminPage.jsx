@@ -1817,6 +1817,8 @@ export default function AdminPage() {
                         try {
                             const r = await syncPrices()
                             setSyncResult({ ok: r.ok, message: r.message })
+                            // Сбрасываем кеш цен чтобы изменения были видны сразу
+                            if (r.ok) localStorage.removeItem('po_domashemu_prices')
                         } catch (e) {
                             setSyncResult({ ok: false, message: e.message })
                         } finally { setSyncing(false) }

@@ -2250,7 +2250,9 @@ async def admin_remove_featured(
 async def get_popular():
     """Популярные товары по категориям (минимум 5 заказов)."""
     try:
-        orders = json.loads(ORDERS_FILE.read_text(encoding='utf-8'))
+        raw = json.loads(ORDERS_FILE.read_text(encoding='utf-8'))
+        # Поддержка обоих форматов: список или {"orders": [...]}
+        orders = raw if isinstance(raw, list) else raw.get('orders', [])
     except Exception:
         orders = []
 
@@ -2276,8 +2278,8 @@ async def get_popular():
             name = it.get('name', '')
             if not name:
                 continue
-            # category_key из заказа или из prices.json по имени
-            cat = it.get('category_key', '') or name_to_cat.get(name, '')
+            # category_key / category из заказа или из prices.json по имени
+            cat = it.get('category_key', '') or it.get('category', '') or name_to_cat.get(name, '')
             if not cat:
                 continue
             key = f'{cat}::{name}'

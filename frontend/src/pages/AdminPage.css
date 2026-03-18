@@ -1334,11 +1334,12 @@
 }
 
 .feat-source-btn {
-    padding: 4px 12px;
+    padding: 6px 14px;
     border: 1.5px solid var(--color-border);
     border-radius: 20px;
     background: var(--color-surface);
-    font-size: 0.78rem;
+    color: var(--color-text);
+    font-size: 0.8rem;
     font-weight: 500;
     cursor: pointer;
     font-family: var(--font-family);
@@ -1353,17 +1354,17 @@
 
 .feat-cat-tabs {
     display: flex;
-    gap: 5px;
+    gap: 6px;
     margin-bottom: var(--space-sm);
     flex-wrap: wrap;
 }
 
 .feat-cat-btn {
-    padding: 3px 10px;
-    border: 1px solid var(--color-border);
-    border-radius: 14px;
+    padding: 5px 12px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 16px;
     background: var(--color-surface);
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     font-weight: 500;
     cursor: pointer;
     font-family: var(--font-family);
@@ -1372,9 +1373,9 @@
 }
 
 .feat-cat-btn.active {
-    background: #dbeafe;
-    color: #1e40af;
-    border-color: #93c5fd;
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--color-text);
+    border-color: rgba(59, 130, 246, 0.5);
 }
 
 .feat-seasons-row {
@@ -1385,11 +1386,12 @@
 }
 
 .feat-season-btn {
-    padding: 4px 12px;
+    padding: 6px 14px;
     border: 1.5px solid var(--color-border);
     border-radius: 20px;
     background: var(--color-surface);
-    font-size: 0.78rem;
+    color: var(--color-text);
+    font-size: 0.8rem;
     font-weight: 500;
     cursor: pointer;
     font-family: var(--font-family);
@@ -1397,9 +1399,9 @@
 }
 
 .feat-season-btn.active {
-    background: #86efac;
-    color: #166534;
-    border-color: #86efac;
+    background: rgba(134, 239, 172, 0.25);
+    color: var(--color-text);
+    border-color: rgba(134, 239, 172, 0.6);
 }
 
 .feat-search-results {

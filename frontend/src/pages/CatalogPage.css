@@ -86,7 +86,7 @@
 }
 
 .featured-inner {
-    background: var(--color-bg);
+    background: var(--color-bg-secondary);
     border-radius: 15.5px;
     padding: 14px 12px 8px;
 }
@@ -109,7 +109,7 @@
     background-image: linear-gradient(90deg, #f59e0b, #fcd34d, #f97316, #fbbf24, #f59e0b);
     box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
 }
-.featured-wrap--day .featured-title { color: #92400e; }
+.featured-wrap--day .featured-title { color: #fbbf24; }
 
 /* ── Товар недели (red/coral) ── */
 .featured-wrap--week {
@@ -117,7 +117,7 @@
     box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
     animation-duration: 9s;
 }
-.featured-wrap--week .featured-title { color: #991b1b; }
+.featured-wrap--week .featured-title { color: #f87171; }
 
 /* ── Сезонное: Весна (розовый) ── */
 .featured-wrap--season-spring {
@@ -125,7 +125,7 @@
     box-shadow: 0 0 20px rgba(236, 72, 153, 0.15);
     animation-duration: 10s;
 }
-.featured-wrap--season-spring .featured-title { color: #9d174d; }
+.featured-wrap--season-spring .featured-title { color: #f9a8d4; }
 
 /* ── Сезонное: Лето (зелёный) ── */
 .featured-wrap--season-summer {
@@ -133,7 +133,7 @@
     box-shadow: 0 0 20px rgba(34, 197, 94, 0.15);
     animation-duration: 10s;
 }
-.featured-wrap--season-summer .featured-title { color: #166534; }
+.featured-wrap--season-summer .featured-title { color: #86efac; }
 
 /* ── Сезонное: Осень (оранжевый/тёплый) ── */
 .featured-wrap--season-autumn {
@@ -141,7 +141,7 @@
     box-shadow: 0 0 20px rgba(249, 115, 22, 0.15);
     animation-duration: 10s;
 }
-.featured-wrap--season-autumn .featured-title { color: #9a3412; }
+.featured-wrap--season-autumn .featured-title { color: #fdba74; }
 
 /* ── Сезонное: Зима (ледяной голубой) ── */
 .featured-wrap--season-winter {
@@ -149,7 +149,7 @@
     box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
     animation-duration: 10s;
 }
-.featured-wrap--season-winter .featured-title { color: #0c4a6e; }
+.featured-wrap--season-winter .featured-title { color: #7dd3fc; }
 
 /* ── Выбор покупателей (тёмно-синий → голубой) ── */
 .featured-wrap--popular {
@@ -157,7 +157,19 @@
     box-shadow: 0 0 20px rgba(30, 58, 138, 0.15);
     animation-duration: 11s;
 }
-.featured-wrap--popular .featured-title { color: #1e3a8a; }
+.featured-wrap--popular .featured-title { color: #93c5fd; }
+
+/* ── Light mode: тёмные заголовки ── */
+@media (prefers-color-scheme: light) {
+    .featured-inner { background: #fff; }
+    .featured-wrap--day .featured-title { color: #92400e; }
+    .featured-wrap--week .featured-title { color: #991b1b; }
+    .featured-wrap--season-spring .featured-title { color: #9d174d; }
+    .featured-wrap--season-summer .featured-title { color: #166534; }
+    .featured-wrap--season-autumn .featured-title { color: #9a3412; }
+    .featured-wrap--season-winter .featured-title { color: #0c4a6e; }
+    .featured-wrap--popular .featured-title { color: #1e3a8a; }
+}
 
 .catalog-list {
     display: flex;
