@@ -261,6 +261,7 @@ def _save_order(order_data: dict, message: Message) -> str:
 
         normalized_items.append({
             'name': item.get('name', ''),
+            'category_key': item.get('categoryKey', ''),
             'quantity': qty,
             'unit': item.get('unit', 'шт'),
             'weight': weight,

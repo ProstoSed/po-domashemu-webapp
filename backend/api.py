@@ -2254,6 +2254,17 @@ async def get_popular():
     except Exception:
         orders = []
 
+    # Строим маппинг имя_товара → category_key из prices.json
+    # (для старых заказов, где category_key не сохранялся)
+    name_to_cat: dict[str, str] = {}
+    try:
+        prices = json.loads(PRICES_FILE.read_text(encoding='utf-8'))
+        for cat in prices.get('categories', []):
+            for item in cat.get('items', []):
+                name_to_cat[item['name']] = cat['key']
+    except Exception:
+        pass
+
     # Считаем количество заказов каждого товара
     item_counts: dict[str, int] = {}  # "category_key::item_name" → count
     item_info: dict[str, dict] = {}
@@ -2263,8 +2274,11 @@ async def get_popular():
             continue
         for it in order.get('items', []):
             name = it.get('name', '')
-            cat = it.get('category_key', '')
             if not name:
+                continue
+            # category_key из заказа или из prices.json по имени
+            cat = it.get('category_key', '') or name_to_cat.get(name, '')
+            if not cat:
                 continue
             key = f'{cat}::{name}'
             item_counts[key] = item_counts.get(key, 0) + 1

@@ -74,6 +74,27 @@ def _parse_min_order(note: str, unit: str) -> int | float | None:
     return None
 
 
+def _clean_note(note: str) -> str:
+    """
+    Убирает служебные пометки из примечания, чтобы они не показывались в карточке товара.
+    Убирает: 'от Xшт', 'от Xкг', 'товар дня', 'сезон: весна' и т.п.
+    """
+    import re
+    if not note:
+        return ''
+    cleaned = note
+    # Убираем "от X шт/кг/штук"
+    cleaned = re.sub(r'от\s+\d+(?:[.,]\d+)?\s*(?:шт|штук|кг|kg)\s*', '', cleaned, flags=re.IGNORECASE)
+    # Убираем "товар дня"
+    cleaned = re.sub(r'товар\s+дня\s*', '', cleaned, flags=re.IGNORECASE)
+    # Убираем "сезон: весна/лето/осень/зима" (с возможными запятыми между сезонами)
+    cleaned = re.sub(r'сезон\s*:\s*[\w\s,]+', '', cleaned, flags=re.IGNORECASE)
+    # Убираем лишние разделители
+    cleaned = re.sub(r'[,;]\s*[,;]', ',', cleaned)
+    cleaned = re.sub(r'^[,;\s]+|[,;\s]+$', '', cleaned)
+    return cleaned.strip()
+
+
 
 def _parse_ingredients(raw: str) -> list[dict] | None:
     """
@@ -257,13 +278,14 @@ def _csv_to_prices_json(csv_text: str) -> dict:
         item_desc = normalized.get("description", "").strip()
         note_val = normalized.get("note", "")
         min_order = _parse_min_order(note_val, unit_val)
+        display_note = _clean_note(note_val)
         item = {
             "id": item_id,
             "name": normalized.get("item_name", item_id),
             "unit": unit_val,
             **price_fields,
             "min_order": min_order,
-            "note": note_val,
+            "note": display_note,
             "description": item_desc if item_desc else "",
         }
         ingredients = _parse_ingredients(normalized.get("ingredients", ""))
