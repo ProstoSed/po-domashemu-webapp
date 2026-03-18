@@ -28,10 +28,10 @@ export default function SearchPage() {
         return list
     }, [categories])
 
-    // Фильтрация по запросу
+    // Фильтрация по запросу (пустой → все товары)
     const results = useMemo(() => {
         const q = query.trim().toLowerCase()
-        if (!q) return []
+        if (!q) return allItems
         return allItems.filter(item =>
             item.name.toLowerCase().includes(q) ||
             item.categoryName.toLowerCase().includes(q)
@@ -95,14 +95,7 @@ export default function SearchPage() {
                 </div>
             )}
 
-            {!loading && !query && (
-                <div className="search-hint">
-                    <p>Найдено товаров в каталоге: <b>{allItems.length}</b></p>
-                    <p className="search-hint-sub">Начните вводить название или категорию</p>
-                </div>
-            )}
-
-            {!loading && query && results.length === 0 && (
+            {!loading && results.length === 0 && query && (
                 <div className="empty-state">
                     <span className="empty-state-emoji">🤷</span>
                     <p className="empty-state-title">Ничего не найдено</p>
@@ -113,7 +106,7 @@ export default function SearchPage() {
             {/* Результаты */}
             {results.length > 0 && (
                 <>
-                    <p className="search-count">Найдено: <b>{results.length}</b></p>
+                    <p className="search-count">{query ? `Найдено: ` : `Всего товаров: `}<b>{results.length}</b></p>
                     <div className="search-results">
                         <AnimatePresence>
                             {results.map((item, i) => (

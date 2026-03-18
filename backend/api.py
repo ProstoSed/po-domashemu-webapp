@@ -50,7 +50,8 @@ from config import (PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE,
                      LENTEN_PRICES_FILE, LENTEN_SHEET_GID,
                      BANQUET_PRICES_FILE, BANQUET_SHEET_GID,
                      KIDS_PRICES_FILE, KIDS_SHEET_GID,
-                     REVIEWS_FILE, GOOGLE_APPS_SCRIPT_URL)
+                     REVIEWS_FILE, GOOGLE_APPS_SCRIPT_URL,
+                     FEATURED_FILE)
 
 log = logging.getLogger(__name__)
 app = FastAPI(title='По-домашнему API', version='1.3')
@@ -2125,3 +2126,173 @@ async def admin_search_users(
             break
 
     return {'users': results}
+
+
+# ──────────────────────────────────────────
+# Featured (товар дня / недели / сезонное) — управление из админки
+# ──────────────────────────────────────────
+
+def _load_featured() -> dict:
+    try:
+        return json.loads(FEATURED_FILE.read_text(encoding='utf-8'))
+    except Exception:
+        return {'day': [], 'week': [], 'seasonal': []}
+
+
+def _save_featured(data: dict) -> None:
+    FEATURED_FILE.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8'
+    )
+
+
+class FeaturedItem(BaseModel):
+    category_key: str
+    item_id: str
+    item_name: str
+    source: str = 'main'  # main | lenten | banquet | kids
+    seasons: list[str] | None = None  # только для seasonal
+
+
+@app.get('/api/featured')
+async def get_featured():
+    """Публичный: текущие товары дня/недели/сезонные."""
+    data = _load_featured()
+    # Для сезонных — фильтруем по текущему сезону
+    m = datetime.now().month
+    if m in (3, 4, 5):
+        current_season = 'весна'
+    elif m in (6, 7, 8):
+        current_season = 'лето'
+    elif m in (9, 10, 11):
+        current_season = 'осень'
+    else:
+        current_season = 'зима'
+
+    seasonal_now = [
+        it for it in data.get('seasonal', [])
+        if current_season in (it.get('seasons') or [])
+    ]
+    return {
+        'day': data.get('day', []),
+        'week': data.get('week', []),
+        'seasonal': seasonal_now,
+        'current_season': current_season,
+    }
+
+
+@app.get('/api/admin/featured')
+async def admin_get_featured(x_init_data: str | None = Header(default=None)):
+    """Админ: все featured-товары (включая все сезоны)."""
+    require_admin(x_init_data)
+    return _load_featured()
+
+
+@app.post('/api/admin/featured/{feat_type}')
+async def admin_add_featured(
+    feat_type: str,
+    body: FeaturedItem,
+    x_init_data: str | None = Header(default=None),
+):
+    """Добавить товар в день/неделю/сезон."""
+    require_admin(x_init_data)
+    if feat_type not in ('day', 'week', 'seasonal'):
+        raise HTTPException(400, f'Неизвестный тип: {feat_type}')
+
+    data = _load_featured()
+    lst = data.setdefault(feat_type, [])
+
+    # Проверка дубликата
+    for existing in lst:
+        if existing.get('item_id') == body.item_id and existing.get('source') == body.source:
+            raise HTTPException(409, 'Товар уже добавлен')
+
+    entry = {
+        'category_key': body.category_key,
+        'item_id': body.item_id,
+        'item_name': body.item_name,
+        'source': body.source,
+    }
+    if feat_type == 'seasonal' and body.seasons:
+        entry['seasons'] = body.seasons
+
+    lst.append(entry)
+    _save_featured(data)
+    return {'ok': True}
+
+
+@app.delete('/api/admin/featured/{feat_type}')
+async def admin_remove_featured(
+    feat_type: str,
+    item_id: str,
+    source: str = 'main',
+    x_init_data: str | None = Header(default=None),
+):
+    """Убрать товар из дня/недели/сезона. Query: ?item_id=...&source=main"""
+    require_admin(x_init_data)
+    if feat_type not in ('day', 'week', 'seasonal'):
+        raise HTTPException(400, f'Неизвестный тип: {feat_type}')
+
+    data = _load_featured()
+    lst = data.get(feat_type, [])
+    data[feat_type] = [
+        it for it in lst
+        if not (it.get('item_id') == item_id and it.get('source') == source)
+    ]
+    _save_featured(data)
+    return {'ok': True}
+
+
+# ──────────────────────────────────────────
+# Популярное (автоматически из заказов)
+# ──────────────────────────────────────────
+
+@app.get('/api/popular')
+async def get_popular():
+    """Популярные товары по категориям (минимум 5 заказов)."""
+    try:
+        orders = json.loads(ORDERS_FILE.read_text(encoding='utf-8'))
+    except Exception:
+        orders = []
+
+    # Считаем количество заказов каждого товара
+    item_counts: dict[str, int] = {}  # "category_key::item_name" → count
+    item_info: dict[str, dict] = {}
+
+    for order in orders:
+        if order.get('status') == 'cancelled':
+            continue
+        for it in order.get('items', []):
+            name = it.get('name', '')
+            cat = it.get('category_key', '')
+            if not name:
+                continue
+            key = f'{cat}::{name}'
+            item_counts[key] = item_counts.get(key, 0) + 1
+            if key not in item_info:
+                item_info[key] = {
+                    'name': name,
+                    'category_key': cat,
+                    'count': 0,
+                }
+            item_info[key]['count'] = item_counts[key]
+
+    # Фильтруем: минимум 5 заказов, берём топ по каждой категории
+    popular_by_cat: dict[str, list] = {}
+    for key, count in item_counts.items():
+        if count < 5:
+            continue
+        info = item_info[key]
+        cat = info['category_key']
+        popular_by_cat.setdefault(cat, []).append({
+            'name': info['name'],
+            'category_key': cat,
+            'order_count': count,
+        })
+
+    # Сортируем по популярности, берём топ-3 на категорию
+    result = {}
+    for cat, items in popular_by_cat.items():
+        items.sort(key=lambda x: x['order_count'], reverse=True)
+        result[cat] = items[:3]
+
+    return {'popular': result}

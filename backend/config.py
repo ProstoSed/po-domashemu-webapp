@@ -46,6 +46,9 @@ PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
 _admins_path = os.getenv('ADMINS_FILE', '../../data/admins.json')
 ADMINS_FILE: Path = (BASE_DIR / _admins_path).resolve()
 
+_featured_path = os.getenv('FEATURED_FILE', '../../data/featured.json')
+FEATURED_FILE: Path = (BASE_DIR / _featured_path).resolve()
+
 _reviews_path = os.getenv('REVIEWS_FILE', '../../data/reviews.json')
 REVIEWS_FILE: Path = (BASE_DIR / _reviews_path).resolve()
 
@@ -74,6 +77,7 @@ _DATA_FILES = {
     HOLIDAYS_FILE: {'holidays': {}},
     ADMINS_FILE: {'admins': []},
     REVIEWS_FILE: {'reviews': []},
+    FEATURED_FILE: {'day': [], 'week': [], 'seasonal': []},
 }
 for _path, _default in _DATA_FILES.items():
     _path.parent.mkdir(parents=True, exist_ok=True)

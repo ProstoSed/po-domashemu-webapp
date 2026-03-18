@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePrices } from '../hooks/usePrices'
+import { fetchFeatured, fetchPopular } from '../utils/api'
 import CategoryCard from '../components/CategoryCard'
 import ProductCard from '../components/ProductCard'
 import './CatalogPage.css'
@@ -108,18 +109,53 @@ export default function CatalogPage() {
         return () => clearInterval(id)
     }, [loading])
 
-    // Собираем "товары дня" из всех категорий (хук ДО ранних return!)
-    const featuredItems = useMemo(() => {
-        const items = []
-        for (const cat of categories) {
-            for (const item of cat.items || []) {
-                if (item.featured) {
-                    items.push({ ...item, categoryKey: cat.key })
+    // Загружаем featured/popular с API
+    const [featuredData, setFeaturedData] = useState({ day: [], week: [], seasonal: [] })
+    const [popularData, setPopularData] = useState({})
+
+    useEffect(() => {
+        fetchFeatured().then(d => setFeaturedData(d)).catch(() => {})
+        fetchPopular().then(d => setPopularData(d.popular || {})).catch(() => {})
+    }, [])
+
+    // Резолвим featured items — находим полные данные товара в categories
+    const resolveItems = (list) => {
+        const result = []
+        for (const entry of list) {
+            // Ищем товар в основном меню (source=main)
+            for (const cat of categories) {
+                if (cat.key !== entry.category_key) continue
+                const item = (cat.items || []).find(i => i.id === entry.item_id)
+                if (item) {
+                    result.push({ ...item, categoryKey: cat.key })
+                    break
                 }
             }
         }
-        return items
-    }, [categories])
+        return result
+    }
+
+    const dayItems = useMemo(() => resolveItems(featuredData.day || []), [featuredData.day, categories])
+    const weekItems = useMemo(() => resolveItems(featuredData.week || []), [featuredData.week, categories])
+    const seasonalItems = useMemo(() => resolveItems(featuredData.seasonal || []), [featuredData.seasonal, categories])
+
+    // Популярные товары — находим полные данные
+    const popularItems = useMemo(() => {
+        const result = []
+        for (const [catKey, items] of Object.entries(popularData)) {
+            for (const pop of items) {
+                for (const cat of categories) {
+                    if (cat.key !== catKey) continue
+                    const item = (cat.items || []).find(i => i.name === pop.name)
+                    if (item) {
+                        result.push({ ...item, categoryKey: cat.key, orderCount: pop.order_count })
+                        break
+                    }
+                }
+            }
+        }
+        return result
+    }, [popularData, categories])
 
     if (loading) {
         return (
@@ -227,16 +263,41 @@ export default function CatalogPage() {
                 <span className="category-arrow">›</span>
             </motion.div>
 
-            {featuredItems.length > 0 && (
+            {dayItems.length > 0 && (
                 <div className="featured-section">
                     <h3 className="featured-title">⭐ Товар дня</h3>
-                    {featuredItems.map((item, i) => (
-                        <ProductCard
-                            key={item.id}
-                            item={item}
-                            categoryKey={item.categoryKey}
-                            index={i}
-                        />
+                    {dayItems.map((item, i) => (
+                        <ProductCard key={item.id} item={{ ...item, featured: true }} categoryKey={item.categoryKey} index={i} />
+                    ))}
+                </div>
+            )}
+
+            {weekItems.length > 0 && (
+                <div className="featured-section">
+                    <h3 className="featured-title">🔥 Товар недели</h3>
+                    {weekItems.map((item, i) => (
+                        <ProductCard key={item.id} item={item} categoryKey={item.categoryKey} index={i} />
+                    ))}
+                </div>
+            )}
+
+            {seasonalItems.length > 0 && (
+                <div className="featured-section">
+                    <h3 className="featured-title">{(() => {
+                        const emojis = { весна: '🌸', лето: '☀️', осень: '🍂', зима: '❄️' }
+                        return emojis[featuredData.current_season] || '🌿'
+                    })()} Сезонное</h3>
+                    {seasonalItems.map((item, i) => (
+                        <ProductCard key={item.id} item={{ ...item, seasons: [featuredData.current_season] }} categoryKey={item.categoryKey} index={i} />
+                    ))}
+                </div>
+            )}
+
+            {popularItems.length > 0 && (
+                <div className="featured-section">
+                    <h3 className="featured-title">💜 Выбор покупателей</h3>
+                    {popularItems.map((item, i) => (
+                        <ProductCard key={item.id} item={item} categoryKey={item.categoryKey} index={i} />
                     ))}
                 </div>
             )}

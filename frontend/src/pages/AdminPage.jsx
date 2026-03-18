@@ -13,7 +13,12 @@ import {
     fetchReminders, remindSleeping,
     syncPrices, fetchUserOrders, fetchIngredients,
     fetchAdmins, addAdmin, removeAdmin, restoreAdmin, searchUsers,
+    fetchAdminFeatured, addFeatured, removeFeatured,
 } from '../utils/api'
+import { usePrices } from '../hooks/usePrices'
+import { useLentenPrices } from '../hooks/useLentenPrices'
+import { useBanquetPrices } from '../hooks/useBanquetPrices'
+import { useKidsPrices } from '../hooks/useKidsPrices'
 import './AdminPage.css'
 
 const STATUS_LABEL = {
@@ -31,6 +36,7 @@ const SECTIONS_ROW1 = [
     { key: 'users',     label: '👥 Клиенты' },
 ]
 const SECTIONS_ROW2 = [
+    { key: 'featured',    label: '⭐ Витрина' },
     { key: 'admins',      label: '👑 Админы' },
     { key: 'ingredients', label: '🧾 Чек-лист' },
     { key: 'reminders',   label: '⏰ Напоминалки' },
@@ -1106,6 +1112,252 @@ function AdminsSection() {
 // Секция: Чек-лист ингредиентов
 // ──────────────────────────────────────────
 
+// ──────────────────────────────────────────
+// Секция: Витрина (товар дня / недели / сезонное)
+// ──────────────────────────────────────────
+
+const FEAT_TYPES = [
+    { key: 'day', label: '⭐ Товар дня', emoji: '⭐' },
+    { key: 'week', label: '🔥 Товар недели', emoji: '🔥' },
+    { key: 'seasonal', label: '🌿 Сезонное', emoji: '🌿' },
+]
+
+const SEASONS = ['весна', 'лето', 'осень', 'зима']
+const SEASON_EMOJI = { весна: '🌸', лето: '☀️', осень: '🍂', зима: '❄️' }
+const SOURCES = [
+    { key: 'main', label: 'Основное' },
+    { key: 'lenten', label: 'Постное' },
+    { key: 'banquet', label: 'Фуршетное' },
+    { key: 'kids', label: 'Детское' },
+]
+
+function FeaturedSection() {
+    const [featData, setFeatData] = useState({ day: [], week: [], seasonal: [] })
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+    const [activeType, setActiveType] = useState('day')
+    const [searchQuery, setSearchQuery] = useState('')
+    const [searchSource, setSearchSource] = useState('main')
+    const [selectedSeasons, setSelectedSeasons] = useState([])
+    const [adding, setAdding] = useState(null) // item_id that's being added
+
+    // Load all menus for search
+    const { categories: mainCats } = usePrices()
+    const { categories: lentenCats } = useLentenPrices()
+    const { categories: banquetCats } = useBanquetPrices()
+    const { categories: kidsCats } = useKidsPrices()
+
+    const allMenus = useMemo(() => ({
+        main: mainCats,
+        lenten: lentenCats,
+        banquet: banquetCats,
+        kids: kidsCats,
+    }), [mainCats, lentenCats, banquetCats, kidsCats])
+
+    // All items from selected source
+    const sourceItems = useMemo(() => {
+        const cats = allMenus[searchSource] || []
+        const items = []
+        for (const cat of cats) {
+            for (const item of cat.items || []) {
+                items.push({ ...item, categoryKey: cat.key, categoryName: cat.name, source: searchSource })
+            }
+        }
+        return items
+    }, [allMenus, searchSource])
+
+    // Search results
+    const searchResults = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase()
+        if (!q) return sourceItems  // пустой запрос → все товары
+        return sourceItems.filter(it =>
+            it.name.toLowerCase().includes(q) ||
+            it.categoryName.toLowerCase().includes(q)
+        )
+    }, [sourceItems, searchQuery])
+
+    const loadFeatured = () => {
+        setLoading(true)
+        fetchAdminFeatured()
+            .then(d => { setFeatData(d); setError(null) })
+            .catch(e => setError(e.message))
+            .finally(() => setLoading(false))
+    }
+
+    useEffect(() => { loadFeatured() }, [])
+
+    const handleAdd = async (item) => {
+        setAdding(item.id)
+        try {
+            const body = {
+                category_key: item.categoryKey,
+                item_id: item.id,
+                item_name: item.name,
+                source: item.source,
+            }
+            if (activeType === 'seasonal' && selectedSeasons.length > 0) {
+                body.seasons = selectedSeasons
+            }
+            await addFeatured(activeType, body)
+            loadFeatured()
+        } catch (e) {
+            alert(e.message)
+        } finally {
+            setAdding(null)
+        }
+    }
+
+    const handleRemove = async (item) => {
+        try {
+            await removeFeatured(activeType, item.item_id, item.source || 'main')
+            loadFeatured()
+        } catch (e) {
+            alert(e.message)
+        }
+    }
+
+    const toggleSeason = (s) => {
+        setSelectedSeasons(prev =>
+            prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+        )
+    }
+
+    // Check if item is already in current type
+    const isInList = (itemId, source) => {
+        return (featData[activeType] || []).some(
+            it => it.item_id === itemId && (it.source || 'main') === source
+        )
+    }
+
+    if (loading) return <Spinner text="Загрузка витрины..." />
+    if (error) return <ErrorBox msg={error} onRetry={loadFeatured} />
+
+    const currentList = featData[activeType] || []
+
+    return (
+        <div className="featured-admin-section">
+            {/* Табы: день / неделя / сезон */}
+            <div className="admin-tabs">
+                {FEAT_TYPES.map(t => (
+                    <button
+                        key={t.key}
+                        className={`admin-tab ${activeType === t.key ? 'active' : ''}`}
+                        onClick={() => setActiveType(t.key)}
+                    >
+                        {t.label}
+                        {(featData[t.key] || []).length > 0 && (
+                            <span className="feat-count">{(featData[t.key] || []).length}</span>
+                        )}
+                    </button>
+                ))}
+            </div>
+
+            {/* Текущие товары в списке */}
+            {currentList.length > 0 && (
+                <div className="feat-current-list">
+                    <h4 className="feat-list-title">
+                        {FEAT_TYPES.find(t => t.key === activeType)?.emoji} Текущие
+                    </h4>
+                    {currentList.map(item => (
+                        <div key={`${item.item_id}-${item.source}`} className="feat-item glass-card">
+                            <div className="feat-item-info">
+                                <span className="feat-item-name">{item.item_name}</span>
+                                <span className="feat-item-meta">
+                                    {SOURCES.find(s => s.key === (item.source || 'main'))?.label}
+                                    {item.seasons && ` · ${item.seasons.map(s => SEASON_EMOJI[s]).join('')}`}
+                                </span>
+                            </div>
+                            <button
+                                className="feat-remove-btn"
+                                onClick={() => handleRemove(item)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {currentList.length === 0 && (
+                <EmptyBox emoji={FEAT_TYPES.find(t => t.key === activeType)?.emoji} text="Список пуст" />
+            )}
+
+            {/* Добавить товар */}
+            <div className="feat-add-section">
+                <h4 className="feat-add-title">Добавить товар</h4>
+
+                {/* Выбор меню-источника */}
+                <div className="feat-source-tabs">
+                    {SOURCES.map(s => (
+                        <button
+                            key={s.key}
+                            className={`feat-source-btn ${searchSource === s.key ? 'active' : ''}`}
+                            onClick={() => setSearchSource(s.key)}
+                        >
+                            {s.label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Выбор сезонов (для типа seasonal) */}
+                {activeType === 'seasonal' && (
+                    <div className="feat-seasons-row">
+                        {SEASONS.map(s => (
+                            <button
+                                key={s}
+                                className={`feat-season-btn ${selectedSeasons.includes(s) ? 'active' : ''}`}
+                                onClick={() => toggleSeason(s)}
+                            >
+                                {SEASON_EMOJI[s]} {s}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* Поиск */}
+                <div className="search-input-wrap">
+                    <input
+                        type="search"
+                        className="search-input"
+                        placeholder="Поиск товара..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
+                        <button className="search-clear" onClick={() => setSearchQuery('')}>✕</button>
+                    )}
+                </div>
+
+                {/* Результаты */}
+                <div className="feat-search-results">
+                    {searchResults.slice(0, 50).map(item => {
+                        const already = isInList(item.id, item.source)
+                        return (
+                            <div key={`${item.source}-${item.categoryKey}-${item.id}`} className="feat-search-item glass-card">
+                                <div className="feat-search-info">
+                                    <span className="feat-search-name">{item.name}</span>
+                                    <span className="feat-search-cat">{item.categoryName}</span>
+                                </div>
+                                <button
+                                    className={`feat-add-btn ${already ? 'feat-added' : ''}`}
+                                    disabled={already || adding === item.id}
+                                    onClick={() => handleAdd(item)}
+                                >
+                                    {already ? '✓' : adding === item.id ? '...' : '+'}
+                                </button>
+                            </div>
+                        )
+                    })}
+                    {searchResults.length > 50 && (
+                        <p className="feat-more-hint">Показано 50 из {searchResults.length}. Уточните поиск.</p>
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+}
+
+
 function IngredientsSection() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -1622,6 +1874,7 @@ export default function AdminPage() {
 
             {section === 'stats'     && <StatsSection />}
             {section === 'users'     && <UsersSection />}
+            {section === 'featured'    && <FeaturedSection />}
             {section === 'admins'      && <AdminsSection />}
             {section === 'ingredients' && <IngredientsSection />}
             {section === 'reminders'   && <RemindersSection />}

@@ -74,33 +74,6 @@ def _parse_min_order(note: str, unit: str) -> int | float | None:
     return None
 
 
-def _parse_note_flags(note: str) -> dict:
-    """
-    Извлекает флаги из примечания:
-    - сезон: весна, лето  → seasons: ["весна", "лето"]
-    - товар дня           → featured: True
-    """
-    import re
-    flags = {}
-    if not note:
-        return flags
-
-    # Сезон: "сезон: весна" или "сезон: лето, осень"
-    m = re.search(r'сезон\s*:\s*([^;|]+)', note, re.IGNORECASE)
-    if m:
-        raw = m.group(1).strip()
-        seasons = [s.strip().lower() for s in raw.split(',') if s.strip()]
-        valid = {'весна', 'лето', 'осень', 'зима'}
-        seasons = [s for s in seasons if s in valid]
-        if seasons:
-            flags['seasons'] = seasons
-
-    # Товар дня
-    if re.search(r'товар\s+дня', note, re.IGNORECASE):
-        flags['featured'] = True
-
-    return flags
-
 
 def _parse_ingredients(raw: str) -> list[dict] | None:
     """
@@ -284,7 +257,6 @@ def _csv_to_prices_json(csv_text: str) -> dict:
         item_desc = normalized.get("description", "").strip()
         note_val = normalized.get("note", "")
         min_order = _parse_min_order(note_val, unit_val)
-        note_flags = _parse_note_flags(note_val)
         item = {
             "id": item_id,
             "name": normalized.get("item_name", item_id),
@@ -297,10 +269,6 @@ def _csv_to_prices_json(csv_text: str) -> dict:
         ingredients = _parse_ingredients(normalized.get("ingredients", ""))
         if ingredients:
             item['ingredients'] = ingredients
-        if note_flags.get('seasons'):
-            item['seasons'] = note_flags['seasons']
-        if note_flags.get('featured'):
-            item['featured'] = True
         if photo_url:
             item["photo_url"] = photo_url
 

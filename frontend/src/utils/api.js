@@ -209,6 +209,33 @@ export async function searchUsers(query) {
     })
 }
 
+export async function fetchFeatured() {
+    return apiFetch('/api/featured')
+}
+
+export async function fetchPopular() {
+    return apiFetch('/api/popular')
+}
+
+export async function fetchAdminFeatured() {
+    return apiFetch('/api/admin/featured', { headers: adminHeaders() })
+}
+
+export async function addFeatured(type, item) {
+    return apiFetch(`/api/admin/featured/${type}`, {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify(item),
+    })
+}
+
+export async function removeFeatured(type, itemId, source = 'main') {
+    return apiFetch(`/api/admin/featured/${type}?item_id=${encodeURIComponent(itemId)}&source=${source}`, {
+        method: 'DELETE',
+        headers: adminHeaders(),
+    })
+}
+
 // ── Клиент (требуют initData пользователя) ──
 
 function userHeaders() {

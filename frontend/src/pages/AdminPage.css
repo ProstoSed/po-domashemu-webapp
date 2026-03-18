@@ -1238,6 +1238,213 @@
 }
 
 /* ── Чек-лист ингредиентов ── */
+/* ── Витрина (featured admin) ── */
+
+.featured-admin-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.feat-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: var(--color-primary);
+    color: #fff;
+    border-radius: 9px;
+    padding: 0 4px;
+    margin-left: 4px;
+}
+
+.feat-current-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.feat-list-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.feat-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+}
+
+.feat-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.feat-item-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.feat-item-meta {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.feat-remove-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-full);
+    border: none;
+    background: #fee2e2;
+    color: #dc2626;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.feat-add-section {
+    margin-top: var(--space-md);
+}
+
+.feat-add-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: var(--space-sm);
+}
+
+.feat-source-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.feat-source-btn {
+    padding: 4px 12px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 20px;
+    background: var(--color-surface);
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: all 0.2s;
+}
+
+.feat-source-btn.active {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+}
+
+.feat-seasons-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.feat-season-btn {
+    padding: 4px 12px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 20px;
+    background: var(--color-surface);
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: all 0.2s;
+}
+
+.feat-season-btn.active {
+    background: #86efac;
+    color: #166534;
+    border-color: #86efac;
+}
+
+.feat-search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: var(--space-sm);
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.feat-search-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+}
+
+.feat-search-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+}
+
+.feat-search-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.feat-search-cat {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+}
+
+.feat-add-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-full);
+    border: none;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.feat-add-btn.feat-added {
+    background: var(--color-success);
+}
+
+.feat-add-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.feat-more-hint {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    text-align: center;
+    padding: var(--space-sm);
+}
+
 .ingredients-section {
     display: flex;
     flex-direction: column;
