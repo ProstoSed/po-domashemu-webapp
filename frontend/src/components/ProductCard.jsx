@@ -40,35 +40,16 @@ export default function ProductCard({ item, categoryKey, index, highlight }) {
 
     const photoUrl = hasPhoto ? `${API_URL}/api/photos/${item.photo_filename}` : null
 
-    // Сезонность: проверяем текущий сезон
-    const currentSeason = (() => {
-        const m = new Date().getMonth()
-        if (m >= 2 && m <= 4) return 'весна'
-        if (m >= 5 && m <= 7) return 'лето'
-        if (m >= 8 && m <= 10) return 'осень'
-        return 'зима'
-    })()
-    const isSeasonal = item.seasons?.includes(currentSeason)
-    const seasonEmoji = { весна: '🌸', лето: '☀️', осень: '🍂', зима: '❄️' }
-
     return (
-        <div className={`product-card-wrapper${highlight ? ' product-highlight' : ''}${isSeasonal ? ' product-seasonal' : ''}`} id={`product-${item.id}`}>
+        <div className={`product-card-wrapper${highlight ? ' product-highlight' : ''}`} id={`product-${item.id}`}>
             <motion.div
-                className={`product-card glass-card${item.featured ? ' product-featured' : ''}`}
+                className="product-card glass-card"
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             >
                 <div className="product-info">
-                    <h4 className="product-name">
-                        {item.featured && <span className="product-featured-badge">⭐ </span>}
-                        {item.name}
-                    </h4>
-                    {isSeasonal && (
-                        <span className="product-seasonal-badge">
-                            {seasonEmoji[currentSeason]} Сезонное
-                        </span>
-                    )}
+                    <h4 className="product-name">{item.name}</h4>
                     {item.note && <span className="product-note">{item.note}</span>}
                     <div className="product-price-row">
                         <span className="price-tag">{formatItemPrice(item)}</span>

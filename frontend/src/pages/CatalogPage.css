@@ -66,17 +66,138 @@
     animation: fadeInUp var(--duration-slow) var(--ease-out) 0.1s both;
 }
 
-/* ── Товар дня ── */
-.featured-section {
+/* ══════════════════════════════════════════
+   Featured sections — анимированные блоки
+   ══════════════════════════════════════════ */
+
+@keyframes featured-gradient {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.featured-wrap {
+    position: relative;
+    border-radius: 18px;
+    padding: 2px;
     margin-bottom: var(--space-lg);
+    background-size: 300% 300%;
+    animation: featured-gradient 4s ease infinite;
+}
+
+.featured-inner {
+    background: var(--color-bg);
+    border-radius: 16px;
+    padding: 14px 12px 8px;
 }
 
 .featured-title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: #92400e;
     margin-bottom: var(--space-sm);
     padding-left: 4px;
+}
+
+/* Карточки внутри featured: убираем дефолтную рамку glass-card */
+.featured-wrap .product-card {
+    border: none !important;
+}
+
+/* ── Товар дня (gold/amber) ── */
+.featured-wrap--day {
+    background-image: linear-gradient(90deg, #f59e0b, #fcd34d, #f97316, #fcd34d, #f59e0b);
+    box-shadow: 0 0 24px rgba(245, 158, 11, 0.2);
+}
+.featured-wrap--day .featured-inner {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.07), var(--color-bg) 60%);
+}
+.featured-wrap--day .featured-title { color: #92400e; }
+.featured-wrap--day .product-card {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(255, 255, 255, 0.02));
+}
+
+/* ── Товар недели (red/coral) ── */
+.featured-wrap--week {
+    background-image: linear-gradient(90deg, #ef4444, #f87171, #dc2626, #fb923c, #ef4444);
+    box-shadow: 0 0 24px rgba(239, 68, 68, 0.2);
+    animation-duration: 4.5s;
+}
+.featured-wrap--week .featured-inner {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.06), var(--color-bg) 60%);
+}
+.featured-wrap--week .featured-title { color: #991b1b; }
+.featured-wrap--week .product-card {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(255, 255, 255, 0.02));
+}
+
+/* ── Сезонное: Весна (розовый) ── */
+.featured-wrap--season-spring {
+    background-image: linear-gradient(90deg, #ec4899, #f9a8d4, #fb7185, #f9a8d4, #ec4899);
+    box-shadow: 0 0 24px rgba(236, 72, 153, 0.2);
+    animation-duration: 5s;
+}
+.featured-wrap--season-spring .featured-inner {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.06), var(--color-bg) 60%);
+}
+.featured-wrap--season-spring .featured-title { color: #9d174d; }
+.featured-wrap--season-spring .product-card {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(255, 255, 255, 0.02));
+}
+
+/* ── Сезонное: Лето (зелёный) ── */
+.featured-wrap--season-summer {
+    background-image: linear-gradient(90deg, #22c55e, #86efac, #16a34a, #86efac, #22c55e);
+    box-shadow: 0 0 24px rgba(34, 197, 94, 0.2);
+    animation-duration: 5s;
+}
+.featured-wrap--season-summer .featured-inner {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.06), var(--color-bg) 60%);
+}
+.featured-wrap--season-summer .featured-title { color: #166534; }
+.featured-wrap--season-summer .product-card {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(255, 255, 255, 0.02));
+}
+
+/* ── Сезонное: Осень (оранжевый/тёплый) ── */
+.featured-wrap--season-autumn {
+    background-image: linear-gradient(90deg, #f97316, #fdba74, #ea580c, #fdba74, #f97316);
+    box-shadow: 0 0 24px rgba(249, 115, 22, 0.2);
+    animation-duration: 5s;
+}
+.featured-wrap--season-autumn .featured-inner {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.06), var(--color-bg) 60%);
+}
+.featured-wrap--season-autumn .featured-title { color: #9a3412; }
+.featured-wrap--season-autumn .product-card {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(255, 255, 255, 0.02));
+}
+
+/* ── Сезонное: Зима (ледяной голубой) ── */
+.featured-wrap--season-winter {
+    background-image: linear-gradient(90deg, #38bdf8, #bae6fd, #0ea5e9, #bae6fd, #38bdf8);
+    box-shadow: 0 0 24px rgba(56, 189, 248, 0.2);
+    animation-duration: 5s;
+}
+.featured-wrap--season-winter .featured-inner {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.06), var(--color-bg) 60%);
+}
+.featured-wrap--season-winter .featured-title { color: #0c4a6e; }
+.featured-wrap--season-winter .product-card {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(255, 255, 255, 0.02));
+}
+
+/* ── Выбор покупателей (тёмно-синий → голубой) ── */
+.featured-wrap--popular {
+    background-image: linear-gradient(90deg, #1e3a8a, #3b82f6, #60a5fa, #3b82f6, #1e3a8a);
+    box-shadow: 0 0 24px rgba(30, 58, 138, 0.2);
+    animation-duration: 5.5s;
+}
+.featured-wrap--popular .featured-inner {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), var(--color-bg) 60%);
+}
+.featured-wrap--popular .featured-title { color: #1e3a8a; }
+.featured-wrap--popular .product-card {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(255, 255, 255, 0.02));
 }
 
 .catalog-list {

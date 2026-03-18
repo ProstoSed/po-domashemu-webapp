@@ -118,11 +118,13 @@ export default function CatalogPage() {
         fetchPopular().then(d => setPopularData(d.popular || {})).catch(() => {})
     }, [])
 
+    const SEASON_CLASS = { 'весна': 'spring', 'лето': 'summer', 'осень': 'autumn', 'зима': 'winter' }
+    const SEASON_EMOJI = { 'весна': '🌸', 'лето': '☀️', 'осень': '🍂', 'зима': '❄️' }
+
     // Резолвим featured items — находим полные данные товара в categories
     const resolveItems = (list) => {
         const result = []
         for (const entry of list) {
-            // Ищем товар в основном меню (source=main)
             for (const cat of categories) {
                 if (cat.key !== entry.category_key) continue
                 const item = (cat.items || []).find(i => i.id === entry.item_id)
@@ -156,6 +158,9 @@ export default function CatalogPage() {
         }
         return result
     }, [popularData, categories])
+
+    const currentSeason = featuredData.current_season || 'весна'
+    const seasonClass = SEASON_CLASS[currentSeason] || 'spring'
 
     if (loading) {
         return (
@@ -215,12 +220,78 @@ export default function CatalogPage() {
                 {categories.length} категорий — выбирайте с любовью 💛
             </p>
 
+            {/* ── Featured-секции сверху ── */}
+            {dayItems.length > 0 && (
+                <motion.div
+                    className="featured-wrap featured-wrap--day"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                >
+                    <div className="featured-inner">
+                        <h3 className="featured-title">⭐ Товар дня</h3>
+                        {dayItems.map((item, i) => (
+                            <ProductCard key={item.id} item={item} categoryKey={item.categoryKey} index={i} />
+                        ))}
+                    </div>
+                </motion.div>
+            )}
+
+            {weekItems.length > 0 && (
+                <motion.div
+                    className="featured-wrap featured-wrap--week"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                >
+                    <div className="featured-inner">
+                        <h3 className="featured-title">🔥 Товар недели</h3>
+                        {weekItems.map((item, i) => (
+                            <ProductCard key={item.id} item={item} categoryKey={item.categoryKey} index={i} />
+                        ))}
+                    </div>
+                </motion.div>
+            )}
+
+            {seasonalItems.length > 0 && (
+                <motion.div
+                    className={`featured-wrap featured-wrap--season-${seasonClass}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                >
+                    <div className="featured-inner">
+                        <h3 className="featured-title">{SEASON_EMOJI[currentSeason] || '🌿'} Сезонное</h3>
+                        {seasonalItems.map((item, i) => (
+                            <ProductCard key={item.id} item={item} categoryKey={item.categoryKey} index={i} />
+                        ))}
+                    </div>
+                </motion.div>
+            )}
+
+            {popularItems.length > 0 && (
+                <motion.div
+                    className="featured-wrap featured-wrap--popular"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                >
+                    <div className="featured-inner">
+                        <h3 className="featured-title">💙 Выбор покупателей</h3>
+                        {popularItems.map((item, i) => (
+                            <ProductCard key={item.id} item={item} categoryKey={item.categoryKey} index={i} />
+                        ))}
+                    </div>
+                </motion.div>
+            )}
+
+            {/* ── Спец. меню ── */}
             <motion.div
                 className="lenten-card glass-card"
                 onClick={() => navigate('/lenten')}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay: 0.2, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 whileTap={{ scale: 0.96 }}
             >
                 <span className="lenten-card-icon">🌿</span>
@@ -236,7 +307,7 @@ export default function CatalogPage() {
                 onClick={() => navigate('/banquet')}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay: 0.25, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 whileTap={{ scale: 0.96 }}
             >
                 <span className="lenten-card-icon">🥂</span>
@@ -252,7 +323,7 @@ export default function CatalogPage() {
                 onClick={() => navigate('/kids')}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay: 0.3, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 whileTap={{ scale: 0.96 }}
             >
                 <span className="lenten-card-icon">🧸</span>
@@ -262,45 +333,6 @@ export default function CatalogPage() {
                 </div>
                 <span className="category-arrow">›</span>
             </motion.div>
-
-            {dayItems.length > 0 && (
-                <div className="featured-section">
-                    <h3 className="featured-title">⭐ Товар дня</h3>
-                    {dayItems.map((item, i) => (
-                        <ProductCard key={item.id} item={{ ...item, featured: true }} categoryKey={item.categoryKey} index={i} />
-                    ))}
-                </div>
-            )}
-
-            {weekItems.length > 0 && (
-                <div className="featured-section">
-                    <h3 className="featured-title">🔥 Товар недели</h3>
-                    {weekItems.map((item, i) => (
-                        <ProductCard key={item.id} item={item} categoryKey={item.categoryKey} index={i} />
-                    ))}
-                </div>
-            )}
-
-            {seasonalItems.length > 0 && (
-                <div className="featured-section">
-                    <h3 className="featured-title">{(() => {
-                        const emojis = { весна: '🌸', лето: '☀️', осень: '🍂', зима: '❄️' }
-                        return emojis[featuredData.current_season] || '🌿'
-                    })()} Сезонное</h3>
-                    {seasonalItems.map((item, i) => (
-                        <ProductCard key={item.id} item={{ ...item, seasons: [featuredData.current_season] }} categoryKey={item.categoryKey} index={i} />
-                    ))}
-                </div>
-            )}
-
-            {popularItems.length > 0 && (
-                <div className="featured-section">
-                    <h3 className="featured-title">💜 Выбор покупателей</h3>
-                    {popularItems.map((item, i) => (
-                        <ProductCard key={item.id} item={item} categoryKey={item.categoryKey} index={i} />
-                    ))}
-                </div>
-            )}
 
             <div className="catalog-list">
                 {categories.map((cat, i) => (

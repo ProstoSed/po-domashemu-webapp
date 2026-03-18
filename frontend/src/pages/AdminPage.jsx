@@ -1138,6 +1138,7 @@ function FeaturedSection() {
     const [activeType, setActiveType] = useState('day')
     const [searchQuery, setSearchQuery] = useState('')
     const [searchSource, setSearchSource] = useState('main')
+    const [selectedCategory, setSelectedCategory] = useState('all')
     const [selectedSeasons, setSelectedSeasons] = useState([])
     const [adding, setAdding] = useState(null) // item_id that's being added
 
@@ -1154,6 +1155,15 @@ function FeaturedSection() {
         kids: kidsCats,
     }), [mainCats, lentenCats, banquetCats, kidsCats])
 
+    // Категории текущего меню-источника
+    const menuCategories = useMemo(() => {
+        const cats = allMenus[searchSource] || []
+        return cats.map(c => ({ key: c.key, name: c.name }))
+    }, [allMenus, searchSource])
+
+    // Сброс категории при смене меню
+    useEffect(() => { setSelectedCategory('all') }, [searchSource])
+
     // All items from selected source
     const sourceItems = useMemo(() => {
         const cats = allMenus[searchSource] || []
@@ -1166,15 +1176,19 @@ function FeaturedSection() {
         return items
     }, [allMenus, searchSource])
 
-    // Search results
+    // Search results (категория + текст)
     const searchResults = useMemo(() => {
+        let items = sourceItems
+        if (selectedCategory !== 'all') {
+            items = items.filter(it => it.categoryKey === selectedCategory)
+        }
         const q = searchQuery.trim().toLowerCase()
-        if (!q) return sourceItems  // пустой запрос → все товары
-        return sourceItems.filter(it =>
+        if (!q) return items
+        return items.filter(it =>
             it.name.toLowerCase().includes(q) ||
             it.categoryName.toLowerCase().includes(q)
         )
-    }, [sourceItems, searchQuery])
+    }, [sourceItems, searchQuery, selectedCategory])
 
     const loadFeatured = () => {
         setLoading(true)
@@ -1187,6 +1201,10 @@ function FeaturedSection() {
     useEffect(() => { loadFeatured() }, [])
 
     const handleAdd = async (item) => {
+        if (activeType === 'seasonal' && selectedSeasons.length === 0) {
+            alert('Выберите хотя бы один сезон')
+            return
+        }
         setAdding(item.id)
         try {
             const body = {
@@ -1195,7 +1213,7 @@ function FeaturedSection() {
                 item_name: item.name,
                 source: item.source,
             }
-            if (activeType === 'seasonal' && selectedSeasons.length > 0) {
+            if (activeType === 'seasonal') {
                 body.seasons = selectedSeasons
             }
             await addFeatured(activeType, body)
@@ -1298,6 +1316,27 @@ function FeaturedSection() {
                         </button>
                     ))}
                 </div>
+
+                {/* Фильтр по категориям */}
+                {menuCategories.length > 0 && (
+                    <div className="feat-cat-tabs">
+                        <button
+                            className={`feat-cat-btn ${selectedCategory === 'all' ? 'active' : ''}`}
+                            onClick={() => setSelectedCategory('all')}
+                        >
+                            Все
+                        </button>
+                        {menuCategories.map(c => (
+                            <button
+                                key={c.key}
+                                className={`feat-cat-btn ${selectedCategory === c.key ? 'active' : ''}`}
+                                onClick={() => setSelectedCategory(c.key)}
+                            >
+                                {c.name}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 {/* Выбор сезонов (для типа seasonal) */}
                 {activeType === 'seasonal' && (
