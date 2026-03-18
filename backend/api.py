@@ -2248,16 +2248,11 @@ async def admin_remove_featured(
 
 @app.get('/api/popular')
 async def get_popular():
-    """Популярные товары по категориям (минимум 5 заказов)."""
-    try:
-        raw = json.loads(ORDERS_FILE.read_text(encoding='utf-8'))
-        # Поддержка обоих форматов: список или {"orders": [...]}
-        orders = raw if isinstance(raw, list) else raw.get('orders', [])
-    except Exception:
-        orders = []
+    """Популярные товары по категориям (минимум 5 заказов).
+    Считает общее количество заказанных единиц (quantity), не число заказов."""
+    orders = load_orders()
 
     # Строим маппинг имя_товара → category_key из prices.json
-    # (для старых заказов, где category_key не сохранялся)
     name_to_cat: dict[str, str] = {}
     try:
         prices = json.loads(PRICES_FILE.read_text(encoding='utf-8'))
@@ -2267,8 +2262,8 @@ async def get_popular():
     except Exception:
         pass
 
-    # Считаем количество заказов каждого товара
-    item_counts: dict[str, int] = {}  # "category_key::item_name" → count
+    # Считаем общее количество заказанных единиц каждого товара
+    item_counts: dict[str, float] = {}  # "category_key::item_name" → total qty
     item_info: dict[str, dict] = {}
 
     for order in orders:
@@ -2278,21 +2273,16 @@ async def get_popular():
             name = it.get('name', '')
             if not name:
                 continue
-            # category_key / category из заказа или из prices.json по имени
             cat = it.get('category_key', '') or it.get('category', '') or name_to_cat.get(name, '')
             if not cat:
                 continue
             key = f'{cat}::{name}'
-            item_counts[key] = item_counts.get(key, 0) + 1
+            qty = it.get('quantity', 1)
+            item_counts[key] = item_counts.get(key, 0) + qty
             if key not in item_info:
-                item_info[key] = {
-                    'name': name,
-                    'category_key': cat,
-                    'count': 0,
-                }
-            item_info[key]['count'] = item_counts[key]
+                item_info[key] = {'name': name, 'category_key': cat}
 
-    # Фильтруем: минимум 5 заказов, берём топ по каждой категории
+    # Фильтруем: минимум 5 единиц, берём топ по каждой категории
     popular_by_cat: dict[str, list] = {}
     for key, count in item_counts.items():
         if count < 5:
@@ -2302,7 +2292,7 @@ async def get_popular():
         popular_by_cat.setdefault(cat, []).append({
             'name': info['name'],
             'category_key': cat,
-            'order_count': count,
+            'order_count': int(count),
         })
 
     # Сортируем по популярности, берём топ-3 на категорию

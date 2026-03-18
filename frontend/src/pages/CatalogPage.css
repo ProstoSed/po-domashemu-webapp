@@ -98,10 +98,26 @@
     padding-left: 4px;
 }
 
-/* Карточки внутри featured: чистый фон, без рамки */
+/* Карточки внутри featured: компактные, без рамки */
+.featured-wrap .product-card-wrapper {
+    margin-bottom: 2px;
+}
 .featured-wrap .product-card {
     border: none !important;
     background: transparent !important;
+    padding: 8px 10px;
+    gap: 8px;
+}
+.featured-wrap .product-name {
+    font-size: 0.82rem;
+}
+.featured-wrap .price-tag {
+    font-size: 0.8rem;
+}
+.featured-wrap .btn-add {
+    width: 38px;
+    height: 38px;
+    font-size: 1.2rem;
 }
 
 /* ── Товар дня (gold/amber) ── */
