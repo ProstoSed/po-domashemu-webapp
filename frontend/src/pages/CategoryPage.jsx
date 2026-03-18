@@ -2,19 +2,42 @@
  * CategoryPage — страница товаров внутри категории.
  * Показывает все товары выбранной категории.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { usePrices } from '../hooks/usePrices'
+import { fetchPopular } from '../utils/api'
 import ProductCard from '../components/ProductCard'
 import './CategoryPage.css'
+import './CatalogPage.css'
 
 export default function CategoryPage() {
     const { categoryKey } = useParams()
     const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams()
-    const { getCategory, loading } = usePrices()
+    const { getCategory, categories, loading } = usePrices()
     const [highlightId, setHighlightId] = useState(null)
+    const [popularData, setPopularData] = useState({})
+
+    useEffect(() => {
+        fetchPopular().then(d => setPopularData(d.popular || {})).catch(() => {})
+    }, [])
+
+    // Популярные товары для текущей категории
+    const popularItems = useMemo(() => {
+        const catPopular = popularData[categoryKey] || []
+        if (!catPopular.length || !categories.length) return []
+        const category = categories.find(c => c.key === categoryKey)
+        if (!category) return []
+        const result = []
+        for (const pop of catPopular) {
+            const item = (category.items || []).find(i => i.name === pop.name)
+            if (item) {
+                result.push({ ...item, categoryKey, orderCount: pop.order_count })
+            }
+        }
+        return result
+    }, [popularData, categoryKey, categories])
 
     useEffect(() => {
         const hid = searchParams.get('highlight')
@@ -82,6 +105,22 @@ export default function CategoryPage() {
                 )}
                 <p className="category-page-count">{category.items.length} позиций</p>
             </motion.div>
+
+            {popularItems.length > 0 && (
+                <motion.div
+                    className="featured-wrap featured-wrap--popular"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                >
+                    <div className="featured-inner">
+                        <h3 className="featured-title">💙 Выбор покупателей</h3>
+                        {popularItems.map((item, i) => (
+                            <ProductCard key={`pop-${item.id}`} item={item} categoryKey={categoryKey} index={i} />
+                        ))}
+                    </div>
+                </motion.div>
+            )}
 
             <div className="products-list">
                 {category.items.map((item, i) => (

@@ -1144,9 +1144,9 @@ function FeaturedSection() {
 
     // Load all menus for search
     const { categories: mainCats } = usePrices()
-    const { categories: lentenCats } = useLentenPrices()
-    const { categories: banquetCats } = useBanquetPrices()
-    const { categories: kidsCats } = useKidsPrices()
+    const { categories: lentenCats, loading: lentenLoading } = useLentenPrices()
+    const { categories: banquetCats, loading: banquetLoading } = useBanquetPrices()
+    const { categories: kidsCats, loading: kidsLoading } = useKidsPrices()
 
     const allMenus = useMemo(() => ({
         main: mainCats,
@@ -1318,7 +1318,9 @@ function FeaturedSection() {
                 </div>
 
                 {/* Фильтр по категориям */}
-                {menuCategories.length > 0 && (
+                {(searchSource !== 'main' && { lenten: lentenLoading, banquet: banquetLoading, kids: kidsLoading }[searchSource]) ? (
+                    <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', padding: '4px 0' }}>Загрузка меню...</p>
+                ) : menuCategories.length > 0 ? (
                     <div className="feat-cat-tabs">
                         <button
                             className={`feat-cat-btn ${selectedCategory === 'all' ? 'active' : ''}`}
@@ -1336,7 +1338,9 @@ function FeaturedSection() {
                             </button>
                         ))}
                     </div>
-                )}
+                ) : searchSource !== 'main' ? (
+                    <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', padding: '4px 0' }}>Меню не загружено — синхронизируйте цены</p>
+                ) : null}
 
                 {/* Выбор сезонов (для типа seasonal) */}
                 {activeType === 'seasonal' && (

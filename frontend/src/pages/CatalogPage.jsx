@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePrices } from '../hooks/usePrices'
-import { fetchFeatured, fetchPopular } from '../utils/api'
+import { fetchFeatured } from '../utils/api'
 import CategoryCard from '../components/CategoryCard'
 import ProductCard from '../components/ProductCard'
 import './CatalogPage.css'
@@ -109,13 +109,10 @@ export default function CatalogPage() {
         return () => clearInterval(id)
     }, [loading])
 
-    // Загружаем featured/popular с API
+    // Загружаем featured с API
     const [featuredData, setFeaturedData] = useState({ day: [], week: [], seasonal: [] })
-    const [popularData, setPopularData] = useState({})
-
     useEffect(() => {
         fetchFeatured().then(d => setFeaturedData(d)).catch(() => {})
-        fetchPopular().then(d => setPopularData(d.popular || {})).catch(() => {})
     }, [])
 
     const SEASON_CLASS = { 'весна': 'spring', 'лето': 'summer', 'осень': 'autumn', 'зима': 'winter' }
@@ -140,24 +137,6 @@ export default function CatalogPage() {
     const dayItems = useMemo(() => resolveItems(featuredData.day || []), [featuredData.day, categories])
     const weekItems = useMemo(() => resolveItems(featuredData.week || []), [featuredData.week, categories])
     const seasonalItems = useMemo(() => resolveItems(featuredData.seasonal || []), [featuredData.seasonal, categories])
-
-    // Популярные товары — находим полные данные
-    const popularItems = useMemo(() => {
-        const result = []
-        for (const [catKey, items] of Object.entries(popularData)) {
-            for (const pop of items) {
-                for (const cat of categories) {
-                    if (cat.key !== catKey) continue
-                    const item = (cat.items || []).find(i => i.name === pop.name)
-                    if (item) {
-                        result.push({ ...item, categoryKey: cat.key, orderCount: pop.order_count })
-                        break
-                    }
-                }
-            }
-        }
-        return result
-    }, [popularData, categories])
 
     const currentSeason = featuredData.current_season || 'весна'
     const seasonClass = SEASON_CLASS[currentSeason] || 'spring'
@@ -263,22 +242,6 @@ export default function CatalogPage() {
                     <div className="featured-inner">
                         <h3 className="featured-title">{SEASON_EMOJI[currentSeason] || '🌿'} Сезонное</h3>
                         {seasonalItems.map((item, i) => (
-                            <ProductCard key={item.id} item={item} categoryKey={item.categoryKey} index={i} />
-                        ))}
-                    </div>
-                </motion.div>
-            )}
-
-            {popularItems.length > 0 && (
-                <motion.div
-                    className="featured-wrap featured-wrap--popular"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                >
-                    <div className="featured-inner">
-                        <h3 className="featured-title">💙 Выбор покупателей</h3>
-                        {popularItems.map((item, i) => (
                             <ProductCard key={item.id} item={item} categoryKey={item.categoryKey} index={i} />
                         ))}
                     </div>
