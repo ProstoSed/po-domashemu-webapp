@@ -1247,8 +1247,8 @@ async def create_review_with_photo(
     photo_filename = None
     if photo and photo.filename:
         content = await photo.read()
-        if len(content) > 5 * 1024 * 1024:
-            raise HTTPException(status_code=400, detail='Фото слишком большое (макс. 5 МБ)')
+        if len(content) > 20 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail='Фото слишком большое (макс. 20 МБ)')
         ext = Path(photo.filename).suffix.lower() or '.jpg'
         if ext not in ('.jpg', '.jpeg', '.png', '.webp'):
             ext = '.jpg'

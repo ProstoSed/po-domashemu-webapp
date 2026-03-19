@@ -13,6 +13,45 @@ const API_URL = import.meta.env.VITE_API_URL || ''
 
 const STARS = [1, 2, 3, 4, 5]
 
+/**
+ * Сжатие фото через Canvas.
+ * Уменьшает до maxSide px и конвертирует в JPEG с quality.
+ * Возвращает File.
+ */
+function compressImage(file, maxSide = 1600, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+            const img = new Image()
+            img.onload = () => {
+                let { width, height } = img
+                if (width > maxSide || height > maxSide) {
+                    const ratio = Math.min(maxSide / width, maxSide / height)
+                    width = Math.round(width * ratio)
+                    height = Math.round(height * ratio)
+                }
+                const canvas = document.createElement('canvas')
+                canvas.width = width
+                canvas.height = height
+                const ctx = canvas.getContext('2d')
+                ctx.drawImage(img, 0, 0, width, height)
+                canvas.toBlob(
+                    (blob) => {
+                        if (!blob) return reject(new Error('Не удалось сжать фото'))
+                        resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
+                    },
+                    'image/jpeg',
+                    quality,
+                )
+            }
+            img.onerror = () => reject(new Error('Не удалось прочитать фото'))
+            img.src = e.target.result
+        }
+        reader.onerror = () => reject(new Error('Не удалось прочитать файл'))
+        reader.readAsDataURL(file)
+    })
+}
+
 function StarRating({ value, onChange, readonly = false }) {
     return (
         <div className={`star-rating ${readonly ? 'star-rating--readonly' : ''}`}>
@@ -106,8 +145,8 @@ export default function ReviewsPage() {
     const handlePhotoChange = (e) => {
         const file = e.target.files?.[0]
         if (!file) return
-        if (file.size > 5 * 1024 * 1024) {
-            alert('Фото слишком большое (макс. 5 МБ)')
+        if (file.size > 20 * 1024 * 1024) {
+            alert('Фото слишком большое (макс. 20 МБ)')
             return
         }
         setPhoto(file)
@@ -131,7 +170,12 @@ export default function ReviewsPage() {
         if (!text.trim()) return
         setSubmitting(true)
         try {
-            await createReview(text.trim(), rating, photo)
+            // Сжимаем фото перед отправкой (макс 1600px, JPEG 80%)
+            let photoToSend = photo
+            if (photo) {
+                try { photoToSend = await compressImage(photo) } catch { photoToSend = photo }
+            }
+            await createReview(text.trim(), rating, photoToSend)
             setText('')
             setRating(5)
             clearPhoto()
