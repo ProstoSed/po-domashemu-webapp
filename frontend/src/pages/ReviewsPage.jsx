@@ -111,7 +111,14 @@ export default function ReviewsPage() {
             return
         }
         setPhoto(file)
-        setPhotoPreview(URL.createObjectURL(file))
+        // FileReader надёжнее чем URL.createObjectURL в Telegram WebView
+        const reader = new FileReader()
+        reader.onload = (ev) => setPhotoPreview(ev.target.result)
+        reader.onerror = () => {
+            // Fallback на createObjectURL
+            try { setPhotoPreview(URL.createObjectURL(file)) } catch { setPhotoPreview(null) }
+        }
+        reader.readAsDataURL(file)
     }
 
     const clearPhoto = () => {
@@ -133,7 +140,8 @@ export default function ReviewsPage() {
             loadReviews()
             setTimeout(() => setSubmitted(false), 3000)
         } catch (err) {
-            alert(err.message || 'Не удалось отправить отзыв')
+            const msg = err.message || 'Не удалось отправить отзыв'
+            alert(photo ? `${msg}\n\nПопробуйте отправить без фото или выбрать фото меньшего размера.` : msg)
         } finally {
             setSubmitting(false)
         }

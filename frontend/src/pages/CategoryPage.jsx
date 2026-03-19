@@ -17,10 +17,23 @@ export default function CategoryPage() {
     const [searchParams, setSearchParams] = useSearchParams()
     const { getCategory, categories, loading } = usePrices()
     const [highlightId, setHighlightId] = useState(null)
-    const [popularData, setPopularData] = useState({})
+    const [popularData, setPopularData] = useState(() => {
+        try {
+            const cached = localStorage.getItem('po_domashemu_popular')
+            if (cached) {
+                const { data, ts } = JSON.parse(cached)
+                if (Date.now() - ts < 5 * 60 * 1000) return data
+            }
+        } catch {}
+        return {}
+    })
 
     useEffect(() => {
-        fetchPopular().then(d => setPopularData(d.popular || {})).catch(() => {})
+        fetchPopular().then(d => {
+            const pop = d.popular || {}
+            setPopularData(pop)
+            try { localStorage.setItem('po_domashemu_popular', JSON.stringify({ data: pop, ts: Date.now() })) } catch {}
+        }).catch(() => {})
     }, [])
 
     // Популярные товары для текущей категории

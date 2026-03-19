@@ -33,9 +33,9 @@ export default function Header() {
     const stateRef = useRef({ lastY: 0, hidden: false, accumulated: 0, rafId: 0, changedAt: 0 })
 
     useEffect(() => {
-        const HIDE_THRESHOLD = 50   // px вниз для скрытия
-        const SHOW_THRESHOLD = 30   // px вверх для показа
-        const TOP_ZONE = 40         // у самого верха — всегда показывать
+        const HIDE_THRESHOLD = 25   // px вниз для скрытия (быстро прячем)
+        const SHOW_THRESHOLD = 20   // px вверх для показа
+        const TOP_ZONE = 20         // у самого верха — всегда показывать
         const MIN_INTERVAL = 400    // мс между переключениями (защита от инерции)
 
         const update = () => {

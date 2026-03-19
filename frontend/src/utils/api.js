@@ -290,11 +290,12 @@ export async function createReview(text, rating = 5, photo = null) {
         form.append('text', text)
         form.append('rating', String(rating))
         form.append('photo', photo)
+        // retry=0: FormData body нельзя перечитать при повторе
         return apiFetch('/api/reviews/with-photo', {
             method: 'POST',
             headers: { 'x-init-data': getInitData() },
             body: form,
-        })
+        }, 0)
     }
     return apiFetch('/api/reviews', {
         method: 'POST',

@@ -109,10 +109,22 @@ export default function CatalogPage() {
         return () => clearInterval(id)
     }, [loading])
 
-    // Загружаем featured с API
-    const [featuredData, setFeaturedData] = useState({ day: [], week: [], seasonal: [] })
+    // Загружаем featured с API (с кешем в localStorage)
+    const [featuredData, setFeaturedData] = useState(() => {
+        try {
+            const cached = localStorage.getItem('po_domashemu_featured')
+            if (cached) {
+                const { data, ts } = JSON.parse(cached)
+                if (Date.now() - ts < 5 * 60 * 1000) return data
+            }
+        } catch {}
+        return { day: [], week: [], seasonal: [] }
+    })
     useEffect(() => {
-        fetchFeatured().then(d => setFeaturedData(d)).catch(() => {})
+        fetchFeatured().then(d => {
+            setFeaturedData(d)
+            try { localStorage.setItem('po_domashemu_featured', JSON.stringify({ data: d, ts: Date.now() })) } catch {}
+        }).catch(() => {})
     }, [])
 
     const SEASON_CLASS = { 'весна': 'spring', 'лето': 'summer', 'осень': 'autumn', 'зима': 'winter' }
