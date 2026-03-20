@@ -154,19 +154,16 @@ function Lightbox({ src, onClose }) {
             onTouchEnd={onTouchEnd}
         >
             <button className="lightbox-close" onClick={onClose}>✕</button>
-            <motion.img
-                ref={imgRef}
-                className="lightbox-img"
-                src={src}
-                alt="Фото"
-                draggable={false}
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                style={{ transform: `scale(${transform.scale}) translate(${transform.x / transform.scale}px, ${transform.y / transform.scale}px)` }}
-                onClick={(e) => e.stopPropagation()}
-            />
+            <div className="lightbox-img-wrap" onClick={(e) => e.stopPropagation()}>
+                <img
+                    ref={imgRef}
+                    className="lightbox-img"
+                    src={src}
+                    alt="Фото"
+                    draggable={false}
+                    style={{ transform: `scale(${transform.scale}) translate(${transform.x / transform.scale}px, ${transform.y / transform.scale}px)` }}
+                />
+            </div>
         </motion.div>
     )
 }
