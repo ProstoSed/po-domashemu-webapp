@@ -84,13 +84,14 @@ function Lightbox({ src, onClose }) {
     const clampXY = (x, y, scale) => {
         const img = imgRef.current
         if (!img || scale <= 1) return { x: 0, y: 0 }
-        const rect = img.getBoundingClientRect()
-        // Размер картинки без масштаба
-        const w = rect.width / (tf.scale || 1)
-        const h = rect.height / (tf.scale || 1)
-        // Максимальное смещение: часть картинки, выходящая за экран
-        const maxX = (w * (scale - 1)) / (2 * scale)
-        const maxY = (h * (scale - 1)) / (2 * scale)
+        // offsetWidth/Height — размер элемента ДО CSS-трансформа
+        const baseW = img.offsetWidth
+        const baseH = img.offsetHeight
+        const vw = window.innerWidth
+        const vh = window.innerHeight
+        // Граница = (увеличенное фото − экран) / 2
+        const maxX = Math.max(0, (baseW * scale - vw) / 2)
+        const maxY = Math.max(0, (baseH * scale - vh) / 2)
         return {
             x: Math.max(-maxX, Math.min(maxX, x)),
             y: Math.max(-maxY, Math.min(maxY, y)),
