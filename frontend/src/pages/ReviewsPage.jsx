@@ -119,6 +119,9 @@ function Lightbox({ src, onClose }) {
             s.scale0 = s.scale
             s.x0 = s.x
             s.y0 = s.y
+            // Запоминаем точку между пальцами для zoom к этой точке
+            s.pinchMidX = (e.touches[0].clientX + e.touches[1].clientX) / 2
+            s.pinchMidY = (e.touches[0].clientY + e.touches[1].clientY) / 2
         } else if (e.touches.length === 1) {
             const now = Date.now()
             if (now - s.lastTap < 300) {
@@ -140,9 +143,16 @@ function Lightbox({ src, onClose }) {
             e.preventDefault()
             const d = dist(e.touches)
             const newScale = Math.min(5, Math.max(1, s.scale0 * (d / s.dist0)))
-            // При уменьшении пропорционально уменьшаем pan
-            const ratio = s.scale0 > 1 ? newScale / s.scale0 : 1
-            apply({ scale: newScale, x: s.x0 * ratio, y: s.y0 * ratio })
+            // Zoom к точке между пальцами: эта точка остаётся на месте
+            const cx = window.innerWidth / 2
+            const cy = window.innerHeight / 2
+            // Координаты pinch-точки в пространстве картинки
+            const imgPx = (s.pinchMidX - cx - s.x0) / s.scale0
+            const imgPy = (s.pinchMidY - cy - s.y0) / s.scale0
+            // Новый pan чтобы pinch-точка осталась на том же месте экрана
+            const newX = s.x0 - imgPx * (newScale - s.scale0)
+            const newY = s.y0 - imgPy * (newScale - s.scale0)
+            apply({ scale: newScale, x: newX, y: newY })
         } else if (e.touches.length === 1 && s.panning) {
             e.preventDefault()
             apply({ x: e.touches[0].clientX - s.panStartX, y: e.touches[0].clientY - s.panStartY })
