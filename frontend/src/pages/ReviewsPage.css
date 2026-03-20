@@ -224,12 +224,14 @@ a.review-card-name:hover {
     position: fixed;
     inset: 0;
     z-index: 9999;
-    background: rgba(0, 0, 0, 0.92);
+    background: rgba(0, 0, 0, 0.95);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 16px;
     -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    overscroll-behavior: none;
 }
 
 .lightbox-img {
@@ -239,6 +241,9 @@ a.review-card-name:hover {
     border-radius: 8px;
     user-select: none;
     -webkit-user-drag: none;
+    touch-action: none;
+    will-change: transform;
+    transform-origin: center center;
 }
 
 .lightbox-close {

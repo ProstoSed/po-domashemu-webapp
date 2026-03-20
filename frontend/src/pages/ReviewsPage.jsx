@@ -68,6 +68,109 @@ function StarRating({ value, onChange, readonly = false }) {
     )
 }
 
+/** Lightbox с pinch-zoom и блокировкой фона */
+function Lightbox({ src, onClose }) {
+    const imgRef = useRef(null)
+    const stateRef = useRef({ scale: 1, x: 0, y: 0, startDist: 0, startScale: 1, panning: false, startX: 0, startY: 0, lastTap: 0 })
+    const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 })
+
+    // Блокируем скролл фона
+    useEffect(() => {
+        const prev = document.body.style.overflow
+        document.body.style.overflow = 'hidden'
+        return () => { document.body.style.overflow = prev }
+    }, [])
+
+    const applyTransform = (s) => {
+        stateRef.current = { ...stateRef.current, ...s }
+        setTransform({ scale: stateRef.current.scale, x: stateRef.current.x, y: stateRef.current.y })
+    }
+
+    const reset = () => applyTransform({ scale: 1, x: 0, y: 0 })
+
+    const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY)
+    const getMid = (t) => ({ x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 })
+
+    const onTouchStart = (e) => {
+        const st = stateRef.current
+        if (e.touches.length === 2) {
+            e.preventDefault()
+            st.startDist = getDist(e.touches)
+            st.startScale = st.scale
+            st.pinchMid = getMid(e.touches)
+        } else if (e.touches.length === 1) {
+            // Двойной тап
+            const now = Date.now()
+            if (now - st.lastTap < 300) {
+                e.preventDefault()
+                if (st.scale > 1.1) { reset() } else { applyTransform({ scale: 2.5, x: 0, y: 0 }) }
+                st.lastTap = 0
+                return
+            }
+            st.lastTap = now
+            if (st.scale > 1.05) {
+                st.panning = true
+                st.startX = e.touches[0].clientX - st.x
+                st.startY = e.touches[0].clientY - st.y
+            }
+        }
+    }
+
+    const onTouchMove = (e) => {
+        const st = stateRef.current
+        if (e.touches.length === 2) {
+            e.preventDefault()
+            const dist = getDist(e.touches)
+            const newScale = Math.min(5, Math.max(1, st.startScale * (dist / st.startDist)))
+            applyTransform({ scale: newScale })
+        } else if (e.touches.length === 1 && st.panning) {
+            e.preventDefault()
+            applyTransform({ x: e.touches[0].clientX - st.startX, y: e.touches[0].clientY - st.startY })
+        }
+    }
+
+    const onTouchEnd = (e) => {
+        const st = stateRef.current
+        if (e.touches.length < 2) st.startDist = 0
+        if (e.touches.length === 0) {
+            st.panning = false
+            if (st.scale < 1.05) reset()
+        }
+    }
+
+    const handleOverlayClick = (e) => {
+        if (e.target === e.currentTarget && stateRef.current.scale < 1.05) onClose()
+    }
+
+    return (
+        <motion.div
+            className="lightbox-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleOverlayClick}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+        >
+            <button className="lightbox-close" onClick={onClose}>✕</button>
+            <motion.img
+                ref={imgRef}
+                className="lightbox-img"
+                src={src}
+                alt="Фото"
+                draggable={false}
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                style={{ transform: `scale(${transform.scale}) translate(${transform.x / transform.scale}px, ${transform.y / transform.scale}px)` }}
+                onClick={(e) => e.stopPropagation()}
+            />
+        </motion.div>
+    )
+}
+
 function ReviewCard({ review, onPhotoClick }) {
     const date = review.created_at?.slice(0, 10) || '—'
     const name = review.first_name || 'Аноним'
@@ -362,28 +465,10 @@ export default function ReviewsPage() {
                 </div>
             )}
 
-            {/* Lightbox — полноэкранный просмотр фото */}
+            {/* Lightbox — полноэкранный просмотр фото с pinch-zoom */}
             <AnimatePresence>
                 {lightboxSrc && (
-                    <motion.div
-                        className="lightbox-overlay"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => setLightboxSrc(null)}
-                    >
-                        <button className="lightbox-close" onClick={() => setLightboxSrc(null)}>✕</button>
-                        <motion.img
-                            className="lightbox-img"
-                            src={lightboxSrc}
-                            alt="Фото"
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.8, opacity: 0 }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            onClick={(e) => e.stopPropagation()}
-                        />
-                    </motion.div>
+                    <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
                 )}
             </AnimatePresence>
         </div>
