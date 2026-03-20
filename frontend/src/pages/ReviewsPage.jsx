@@ -71,75 +71,93 @@ function StarRating({ value, onChange, readonly = false }) {
 /** Lightbox с pinch-zoom и блокировкой фона */
 function Lightbox({ src, onClose }) {
     const imgRef = useRef(null)
-    const stateRef = useRef({ scale: 1, x: 0, y: 0, startDist: 0, startScale: 1, panning: false, startX: 0, startY: 0, lastTap: 0 })
-    const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 })
+    const st = useRef({ scale: 1, x: 0, y: 0, dist0: 0, scale0: 1, x0: 0, y0: 0, panning: false, panStartX: 0, panStartY: 0, lastTap: 0 })
+    const [tf, setTf] = useState({ scale: 1, x: 0, y: 0 })
 
-    // Блокируем скролл фона
     useEffect(() => {
         const prev = document.body.style.overflow
         document.body.style.overflow = 'hidden'
         return () => { document.body.style.overflow = prev }
     }, [])
 
-    const applyTransform = (s) => {
-        stateRef.current = { ...stateRef.current, ...s }
-        setTransform({ scale: stateRef.current.scale, x: stateRef.current.x, y: stateRef.current.y })
+    /** Ограничивает pan в пределах изображения */
+    const clampXY = (x, y, scale) => {
+        const img = imgRef.current
+        if (!img || scale <= 1) return { x: 0, y: 0 }
+        const rect = img.getBoundingClientRect()
+        // Размер картинки без масштаба
+        const w = rect.width / (tf.scale || 1)
+        const h = rect.height / (tf.scale || 1)
+        // Максимальное смещение: часть картинки, выходящая за экран
+        const maxX = (w * (scale - 1)) / (2 * scale)
+        const maxY = (h * (scale - 1)) / (2 * scale)
+        return {
+            x: Math.max(-maxX, Math.min(maxX, x)),
+            y: Math.max(-maxY, Math.min(maxY, y)),
+        }
     }
 
-    const reset = () => applyTransform({ scale: 1, x: 0, y: 0 })
+    const apply = (updates) => {
+        Object.assign(st.current, updates)
+        const s = st.current
+        const clamped = clampXY(s.x, s.y, s.scale)
+        s.x = clamped.x
+        s.y = clamped.y
+        setTf({ scale: s.scale, x: s.x, y: s.y })
+    }
 
-    const getDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY)
-    const getMid = (t) => ({ x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 })
+    const reset = () => apply({ scale: 1, x: 0, y: 0 })
+
+    const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY)
 
     const onTouchStart = (e) => {
-        const st = stateRef.current
+        const s = st.current
         if (e.touches.length === 2) {
             e.preventDefault()
-            st.startDist = getDist(e.touches)
-            st.startScale = st.scale
-            st.pinchMid = getMid(e.touches)
+            s.dist0 = dist(e.touches)
+            s.scale0 = s.scale
+            s.x0 = s.x
+            s.y0 = s.y
         } else if (e.touches.length === 1) {
-            // Двойной тап
             const now = Date.now()
-            if (now - st.lastTap < 300) {
+            if (now - s.lastTap < 300) {
                 e.preventDefault()
-                if (st.scale > 1.1) { reset() } else { applyTransform({ scale: 2.5, x: 0, y: 0 }) }
-                st.lastTap = 0
+                s.lastTap = 0
+                if (s.scale > 1.1) { reset() } else { apply({ scale: 2.5, x: 0, y: 0 }) }
                 return
             }
-            st.lastTap = now
-            if (st.scale > 1.05) {
-                st.panning = true
-                st.startX = e.touches[0].clientX - st.x
-                st.startY = e.touches[0].clientY - st.y
-            }
+            s.lastTap = now
+            s.panning = s.scale > 1.05
+            s.panStartX = e.touches[0].clientX - s.x
+            s.panStartY = e.touches[0].clientY - s.y
         }
     }
 
     const onTouchMove = (e) => {
-        const st = stateRef.current
+        const s = st.current
         if (e.touches.length === 2) {
             e.preventDefault()
-            const dist = getDist(e.touches)
-            const newScale = Math.min(5, Math.max(1, st.startScale * (dist / st.startDist)))
-            applyTransform({ scale: newScale })
-        } else if (e.touches.length === 1 && st.panning) {
+            const d = dist(e.touches)
+            const newScale = Math.min(5, Math.max(1, s.scale0 * (d / s.dist0)))
+            // При уменьшении пропорционально уменьшаем pan
+            const ratio = s.scale0 > 1 ? newScale / s.scale0 : 1
+            apply({ scale: newScale, x: s.x0 * ratio, y: s.y0 * ratio })
+        } else if (e.touches.length === 1 && s.panning) {
             e.preventDefault()
-            applyTransform({ x: e.touches[0].clientX - st.startX, y: e.touches[0].clientY - st.startY })
+            apply({ x: e.touches[0].clientX - s.panStartX, y: e.touches[0].clientY - s.panStartY })
         }
     }
 
     const onTouchEnd = (e) => {
-        const st = stateRef.current
-        if (e.touches.length < 2) st.startDist = 0
+        const s = st.current
         if (e.touches.length === 0) {
-            st.panning = false
-            if (st.scale < 1.05) reset()
+            s.panning = false
+            if (s.scale < 1.05) reset()
         }
     }
 
     const handleOverlayClick = (e) => {
-        if (e.target === e.currentTarget && stateRef.current.scale < 1.05) onClose()
+        if (e.target === e.currentTarget && st.current.scale < 1.05) onClose()
     }
 
     return (
@@ -161,7 +179,7 @@ function Lightbox({ src, onClose }) {
                     src={src}
                     alt="Фото"
                     draggable={false}
-                    style={{ transform: `scale(${transform.scale}) translate(${transform.x / transform.scale}px, ${transform.y / transform.scale}px)` }}
+                    style={{ transform: `scale(${tf.scale}) translate(${tf.x / tf.scale}px, ${tf.y / tf.scale}px)` }}
                 />
             </div>
         </motion.div>
