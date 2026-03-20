@@ -24,32 +24,38 @@ if _admin_ids_raw.strip():
             ADMIN_IDS.add(int(_id))
 
 # Пути к файлам данных (относительно webapp-bot/backend/)
-_prices_path = os.getenv('PRICES_FILE', '../../data/prices.json')
+# Пути к данным: ../data/ для Docker (/app/backend → /app/data),
+# ../../data/ для локальной разработки (backend/ → data/).
+# В Docker WORKDIR=/app/backend, значит ../data/ = /app/data/ (volume).
+# Локально backend/ лежит в webapp-bot/backend/, а data/ в корне проекта.
+_data_default = '../data' if Path('/app/data').is_dir() else '../../data'
+
+_prices_path = os.getenv('PRICES_FILE', f'{_data_default}/prices.json')
 PRICES_FILE: Path = (BASE_DIR / _prices_path).resolve()
 
-_orders_path = os.getenv('ORDERS_FILE', '../../data/orders_backup.json')
+_orders_path = os.getenv('ORDERS_FILE', f'{_data_default}/orders_backup.json')
 ORDERS_FILE: Path = (BASE_DIR / _orders_path).resolve()
 
-_users_path = os.getenv('USERS_FILE', '../../data/users.json')
+_users_path = os.getenv('USERS_FILE', f'{_data_default}/users.json')
 USERS_FILE: Path = (BASE_DIR / _users_path).resolve()
 
-_photo_requests_path = os.getenv('PHOTO_REQUESTS_FILE', '../../data/photo_requests.json')
+_photo_requests_path = os.getenv('PHOTO_REQUESTS_FILE', f'{_data_default}/photo_requests.json')
 PHOTO_REQUESTS_FILE: Path = (BASE_DIR / _photo_requests_path).resolve()
 
-_holidays_path = os.getenv('HOLIDAYS_FILE', '../../data/holidays.json')
+_holidays_path = os.getenv('HOLIDAYS_FILE', f'{_data_default}/holidays.json')
 HOLIDAYS_FILE: Path = (BASE_DIR / _holidays_path).resolve()
 
-_photos_dir = os.getenv('PHOTOS_DIR', '../../data/photos')
+_photos_dir = os.getenv('PHOTOS_DIR', f'{_data_default}/photos')
 PHOTOS_DIR: Path = (BASE_DIR / _photos_dir).resolve()
 PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
 
-_admins_path = os.getenv('ADMINS_FILE', '../../data/admins.json')
+_admins_path = os.getenv('ADMINS_FILE', f'{_data_default}/admins.json')
 ADMINS_FILE: Path = (BASE_DIR / _admins_path).resolve()
 
-_featured_path = os.getenv('FEATURED_FILE', '../../data/featured.json')
+_featured_path = os.getenv('FEATURED_FILE', f'{_data_default}/featured.json')
 FEATURED_FILE: Path = (BASE_DIR / _featured_path).resolve()
 
-_reviews_path = os.getenv('REVIEWS_FILE', '../../data/reviews.json')
+_reviews_path = os.getenv('REVIEWS_FILE', f'{_data_default}/reviews.json')
 REVIEWS_FILE: Path = (BASE_DIR / _reviews_path).resolve()
 
 GOOGLE_SHEET_ID: str = os.getenv('GOOGLE_SHEET_ID', '13N8s8Bl3J_LFt_j96nZX-kUgXJ4nKq5gWj8u4U2PgfQ')
@@ -58,15 +64,15 @@ BANQUET_SHEET_GID: str = os.getenv('BANQUET_SHEET_GID', '1286891366')
 KIDS_SHEET_GID: str = os.getenv('KIDS_SHEET_GID', '1718878719')
 
 # Постное меню — отдельный JSON
-_lenten_path = os.getenv('LENTEN_PRICES_FILE', '../../data/lenten_prices.json')
+_lenten_path = os.getenv('LENTEN_PRICES_FILE', f'{_data_default}/lenten_prices.json')
 LENTEN_PRICES_FILE: Path = (BASE_DIR / _lenten_path).resolve()
 
 # Фуршетное меню — отдельный JSON
-_banquet_path = os.getenv('BANQUET_PRICES_FILE', '../../data/banquet_prices.json')
+_banquet_path = os.getenv('BANQUET_PRICES_FILE', f'{_data_default}/banquet_prices.json')
 BANQUET_PRICES_FILE: Path = (BASE_DIR / _banquet_path).resolve()
 
 # Детское меню — отдельный JSON
-_kids_path = os.getenv('KIDS_PRICES_FILE', '../../data/kids_prices.json')
+_kids_path = os.getenv('KIDS_PRICES_FILE', f'{_data_default}/kids_prices.json')
 KIDS_PRICES_FILE: Path = (BASE_DIR / _kids_path).resolve()
 
 # Автосоздание папки data/ и пустых JSON-файлов (для Render и свежих серверов)
