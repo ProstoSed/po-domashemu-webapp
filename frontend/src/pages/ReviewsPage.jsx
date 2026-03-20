@@ -119,8 +119,21 @@ function Lightbox({ src, onClose }) {
             g.x0 = s.current.x
             g.y0 = s.current.y
             // Центр пинча в экранных координатах
-            g.midX = (e.touches[0].clientX + e.touches[1].clientX) / 2
-            g.midY = (e.touches[0].clientY + e.touches[1].clientY) / 2
+            const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2
+            const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2
+            // Фиксируем центр картинки НА МОМЕНТ СТАРТА (не пересчитывать в move!)
+            const img = imgRef.current
+            if (img) {
+                const rect = img.getBoundingClientRect()
+                const imgCX = rect.left + rect.width / 2
+                const imgCY = rect.top + rect.height / 2
+                // Координата пинча в image-space (без масштаба)
+                g.fxImg = (midX - imgCX) / g.scale0
+                g.fyImg = (midY - imgCY) / g.scale0
+            } else {
+                g.fxImg = 0
+                g.fyImg = 0
+            }
         } else if (e.touches.length === 1) {
             // Двойной тап
             const now = Date.now()
@@ -162,21 +175,10 @@ function Lightbox({ src, onClose }) {
             e.preventDefault()
             const d = pinchDist(e.touches)
             const newScale = Math.min(5, Math.max(1, g.scale0 * (d / g.dist0)))
-            // Точка пинча относительно центра img (в экранных px на момент начала)
-            const img = imgRef.current
-            if (!img) return
-            const rect = img.getBoundingClientRect()
-            const imgCX = rect.left + rect.width / 2
-            const imgCY = rect.top + rect.height / 2
-            // Где пинч-центр относительно центра картинки (с учётом текущего pan/scale)
-            const fxScreen = g.midX - imgCX  // в экранных px от центра картинки при g.scale0
-            const fyScreen = g.midY - imgCY
-            // Координата пинча в "картиночных" пикселях (без масштаба)
-            const fxImg = fxScreen / g.scale0
-            const fyImg = fyScreen / g.scale0
-            // Новый pan: fxImg * newScale + newX = fxImg * g.scale0 + g.x0
-            const newX = g.x0 + fxImg * (g.scale0 - newScale)
-            const newY = g.y0 + fyImg * (g.scale0 - newScale)
+            // fxImg/fyImg вычислены в onTouchStart (фиксированная точка в image-space)
+            // Формула: pinch-точка остаётся на месте экрана
+            const newX = g.x0 + g.fxImg * (g.scale0 - newScale)
+            const newY = g.y0 + g.fyImg * (g.scale0 - newScale)
             set(newScale, newX, newY)
         } else if (e.touches.length === 1 && s.current.scale > 1.05) {
             e.preventDefault()
