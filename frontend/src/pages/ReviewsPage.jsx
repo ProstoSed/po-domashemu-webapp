@@ -68,10 +68,11 @@ function StarRating({ value, onChange, readonly = false }) {
     )
 }
 
-function ReviewCard({ review }) {
+function ReviewCard({ review, onPhotoClick }) {
     const date = review.created_at?.slice(0, 10) || '—'
     const name = review.first_name || 'Аноним'
     const username = review.username
+    const photoUrl = review.photo ? `${API_URL}/api/photos/${review.photo}` : null
 
     return (
         <motion.div
@@ -103,12 +104,13 @@ function ReviewCard({ review }) {
                 <StarRating value={review.rating || 5} readonly />
             </div>
             <p className="review-card-text">{review.text}</p>
-            {review.photo && (
+            {photoUrl && (
                 <img
                     className="review-card-photo"
-                    src={`${API_URL}/api/photos/${review.photo}`}
+                    src={photoUrl}
                     alt="Фото к отзыву"
                     loading="lazy"
+                    onClick={() => onPhotoClick?.(photoUrl)}
                 />
             )}
         </motion.div>
@@ -131,6 +133,7 @@ export default function ReviewsPage() {
     const fileRef = useRef(null)
     const [submitting, setSubmitting] = useState(false)
     const [submitted, setSubmitted] = useState(false)
+    const [lightboxSrc, setLightboxSrc] = useState(null)
 
     const loadReviews = () => {
         setLoading(true)
@@ -354,10 +357,35 @@ export default function ReviewsPage() {
             {!loading && !error && reviews.length > 0 && (
                 <div className="reviews-list">
                     {reviews.map(r => (
-                        <ReviewCard key={r.id} review={r} />
+                        <ReviewCard key={r.id} review={r} onPhotoClick={setLightboxSrc} />
                     ))}
                 </div>
             )}
+
+            {/* Lightbox — полноэкранный просмотр фото */}
+            <AnimatePresence>
+                {lightboxSrc && (
+                    <motion.div
+                        className="lightbox-overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setLightboxSrc(null)}
+                    >
+                        <button className="lightbox-close" onClick={() => setLightboxSrc(null)}>✕</button>
+                        <motion.img
+                            className="lightbox-img"
+                            src={lightboxSrc}
+                            alt="Фото"
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }
