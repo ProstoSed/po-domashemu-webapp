@@ -142,22 +142,22 @@ export default function ReviewsPage() {
 
     useEffect(() => { loadReviews() }, [])
 
-    const handlePhotoChange = (e) => {
+    const handlePhotoChange = async (e) => {
         const file = e.target.files?.[0]
         if (!file) return
         if (file.size > 20 * 1024 * 1024) {
             alert('Фото слишком большое (макс. 20 МБ)')
             return
         }
-        setPhoto(file)
-        // FileReader надёжнее чем URL.createObjectURL в Telegram WebView
+        // Сжимаем сразу — и для превью, и для отправки
+        let compressed = file
+        try { compressed = await compressImage(file) } catch { /* используем оригинал */ }
+        setPhoto(compressed)
+        // Превью из сжатого файла (маленький base64)
         const reader = new FileReader()
         reader.onload = (ev) => setPhotoPreview(ev.target.result)
-        reader.onerror = () => {
-            // Fallback на createObjectURL
-            try { setPhotoPreview(URL.createObjectURL(file)) } catch { setPhotoPreview(null) }
-        }
-        reader.readAsDataURL(file)
+        reader.onerror = () => setPhotoPreview(null)
+        reader.readAsDataURL(compressed)
     }
 
     const clearPhoto = () => {
@@ -170,12 +170,21 @@ export default function ReviewsPage() {
         if (!text.trim()) return
         setSubmitting(true)
         try {
-            // Сжимаем фото перед отправкой (макс 1600px, JPEG 80%)
-            let photoToSend = photo
+            // Фото уже сжато при выборе (handlePhotoChange)
+            // Пытаемся отправить с фото, при ошибке — fallback без фото
             if (photo) {
-                try { photoToSend = await compressImage(photo) } catch { photoToSend = photo }
+                try {
+                    await createReview(text.trim(), rating, photo)
+                } catch (photoErr) {
+                    // Фото не отправилось — предлагаем без фото
+                    const sendWithout = confirm('Не удалось отправить фото. Отправить отзыв без фото?')
+                    if (!sendWithout) { setSubmitting(false); return }
+                    await createReview(text.trim(), rating, null)
+                }
+            } else {
+                await createReview(text.trim(), rating, null)
             }
-            await createReview(text.trim(), rating, photoToSend)
+
             setText('')
             setRating(5)
             clearPhoto()
@@ -184,8 +193,7 @@ export default function ReviewsPage() {
             loadReviews()
             setTimeout(() => setSubmitted(false), 3000)
         } catch (err) {
-            const msg = err.message || 'Не удалось отправить отзыв'
-            alert(photo ? `${msg}\n\nПопробуйте отправить без фото или выбрать фото меньшего размера.` : msg)
+            alert(err.message || 'Не удалось отправить отзыв')
         } finally {
             setSubmitting(false)
         }
@@ -280,7 +288,11 @@ export default function ReviewsPage() {
                             />
                             {photoPreview ? (
                                 <div className="review-photo-preview">
-                                    <img src={photoPreview} alt="Превью" />
+                                    <img
+                                        src={photoPreview}
+                                        alt="Превью"
+                                        onError={() => setPhotoPreview(null)}
+                                    />
                                     <button className="review-photo-remove" onClick={clearPhoto}>✕</button>
                                 </div>
                             ) : (
