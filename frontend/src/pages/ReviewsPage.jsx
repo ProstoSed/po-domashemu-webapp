@@ -68,10 +68,18 @@ function StarRating({ value, onChange, readonly = false }) {
     )
 }
 
-/** Lightbox с pinch-zoom и блокировкой фона */
+/**
+ * Lightbox с pinch-zoom, pan и блокировкой фона.
+ *
+ * Трансформ: translate(x, y) scale(S)
+ * - scale применяется первым (от центра элемента)
+ * - translate двигает уже масштабированный элемент
+ * - x, y — смещение в экранных пикселях
+ */
 function Lightbox({ src, onClose }) {
     const imgRef = useRef(null)
-    const st = useRef({ scale: 1, x: 0, y: 0, dist0: 0, scale0: 1, x0: 0, y0: 0, panning: false, panStartX: 0, panStartY: 0, lastTap: 0 })
+    const s = useRef({ scale: 1, x: 0, y: 0 })
+    const gesture = useRef({})
     const [tf, setTf] = useState({ scale: 1, x: 0, y: 0 })
 
     useEffect(() => {
@@ -80,95 +88,111 @@ function Lightbox({ src, onClose }) {
         return () => { document.body.style.overflow = prev }
     }, [])
 
-    /** Ограничивает pan в пределах изображения */
-    const clampXY = (x, y, scale) => {
+    const clamp = (scale, x, y) => {
         const img = imgRef.current
-        if (!img || scale <= 1) return { x: 0, y: 0 }
-        // offsetWidth/Height — размер элемента ДО CSS-трансформа
-        const baseW = img.offsetWidth
-        const baseH = img.offsetHeight
-        const vw = window.innerWidth
-        const vh = window.innerHeight
-        // Граница = (увеличенное фото − экран) / 2
-        const maxX = Math.max(0, (baseW * scale - vw) / 2)
-        const maxY = Math.max(0, (baseH * scale - vh) / 2)
+        if (!img || scale <= 1) return { scale: 1, x: 0, y: 0 }
+        const bw = img.offsetWidth, bh = img.offsetHeight
+        const maxX = Math.max(0, (bw * scale - window.innerWidth) / 2)
+        const maxY = Math.max(0, (bh * scale - window.innerHeight) / 2)
         return {
+            scale,
             x: Math.max(-maxX, Math.min(maxX, x)),
             y: Math.max(-maxY, Math.min(maxY, y)),
         }
     }
 
-    const apply = (updates) => {
-        Object.assign(st.current, updates)
-        const s = st.current
-        const clamped = clampXY(s.x, s.y, s.scale)
-        s.x = clamped.x
-        s.y = clamped.y
-        setTf({ scale: s.scale, x: s.x, y: s.y })
+    const set = (scale, x, y) => {
+        const c = clamp(scale, x, y)
+        s.current = c
+        setTf(c)
     }
 
-    const reset = () => apply({ scale: 1, x: 0, y: 0 })
-
-    const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY)
+    const pinchDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY)
 
     const onTouchStart = (e) => {
-        const s = st.current
+        const g = gesture.current
         if (e.touches.length === 2) {
             e.preventDefault()
-            s.dist0 = dist(e.touches)
-            s.scale0 = s.scale
-            s.x0 = s.x
-            s.y0 = s.y
-            // Запоминаем точку между пальцами для zoom к этой точке
-            s.pinchMidX = (e.touches[0].clientX + e.touches[1].clientX) / 2
-            s.pinchMidY = (e.touches[0].clientY + e.touches[1].clientY) / 2
+            g.type = 'pinch'
+            g.dist0 = pinchDist(e.touches)
+            g.scale0 = s.current.scale
+            g.x0 = s.current.x
+            g.y0 = s.current.y
+            // Центр пинча в экранных координатах
+            g.midX = (e.touches[0].clientX + e.touches[1].clientX) / 2
+            g.midY = (e.touches[0].clientY + e.touches[1].clientY) / 2
         } else if (e.touches.length === 1) {
+            // Двойной тап
             const now = Date.now()
-            if (now - s.lastTap < 300) {
+            if (now - (g.lastTap || 0) < 300) {
                 e.preventDefault()
-                s.lastTap = 0
-                if (s.scale > 1.1) { reset() } else { apply({ scale: 2.5, x: 0, y: 0 }) }
+                g.lastTap = 0
+                if (s.current.scale > 1.1) {
+                    set(1, 0, 0)
+                } else {
+                    // Zoom 2.5x к точке тапа
+                    const img = imgRef.current
+                    if (img) {
+                        const rect = img.getBoundingClientRect()
+                        const imgCX = rect.left + rect.width / 2
+                        const imgCY = rect.top + rect.height / 2
+                        const tapX = e.touches[0].clientX
+                        const tapY = e.touches[0].clientY
+                        // Точка тапа относительно центра картинки (в экранных px при scale=1)
+                        const dx = tapX - imgCX
+                        const dy = tapY - imgCY
+                        // Новый pan: сдвигаем так чтобы точка тапа осталась на месте
+                        set(2.5, dx * (1 - 2.5), dy * (1 - 2.5))
+                    } else {
+                        set(2.5, 0, 0)
+                    }
+                }
                 return
             }
-            s.lastTap = now
-            s.panning = s.scale > 1.05
-            s.panStartX = e.touches[0].clientX - s.x
-            s.panStartY = e.touches[0].clientY - s.y
+            g.lastTap = now
+            g.type = 'pan'
+            g.panX0 = e.touches[0].clientX - s.current.x
+            g.panY0 = e.touches[0].clientY - s.current.y
         }
     }
 
     const onTouchMove = (e) => {
-        const s = st.current
-        if (e.touches.length === 2) {
+        const g = gesture.current
+        if (e.touches.length === 2 && g.type === 'pinch') {
             e.preventDefault()
-            const d = dist(e.touches)
-            const newScale = Math.min(5, Math.max(1, s.scale0 * (d / s.dist0)))
-            // Zoom к точке между пальцами: эта точка остаётся на месте
-            const cx = window.innerWidth / 2
-            const cy = window.innerHeight / 2
-            // Координаты pinch-точки в пространстве картинки
-            const imgPx = (s.pinchMidX - cx - s.x0) / s.scale0
-            const imgPy = (s.pinchMidY - cy - s.y0) / s.scale0
-            // Новый pan чтобы pinch-точка осталась на том же месте экрана
-            const newX = s.x0 - imgPx * (newScale - s.scale0)
-            const newY = s.y0 - imgPy * (newScale - s.scale0)
-            apply({ scale: newScale, x: newX, y: newY })
-        } else if (e.touches.length === 1 && s.panning) {
+            const d = pinchDist(e.touches)
+            const newScale = Math.min(5, Math.max(1, g.scale0 * (d / g.dist0)))
+            // Точка пинча относительно центра img (в экранных px на момент начала)
+            const img = imgRef.current
+            if (!img) return
+            const rect = img.getBoundingClientRect()
+            const imgCX = rect.left + rect.width / 2
+            const imgCY = rect.top + rect.height / 2
+            // Где пинч-центр относительно центра картинки (с учётом текущего pan/scale)
+            const fxScreen = g.midX - imgCX  // в экранных px от центра картинки при g.scale0
+            const fyScreen = g.midY - imgCY
+            // Координата пинча в "картиночных" пикселях (без масштаба)
+            const fxImg = fxScreen / g.scale0
+            const fyImg = fyScreen / g.scale0
+            // Новый pan: fxImg * newScale + newX = fxImg * g.scale0 + g.x0
+            const newX = g.x0 + fxImg * (g.scale0 - newScale)
+            const newY = g.y0 + fyImg * (g.scale0 - newScale)
+            set(newScale, newX, newY)
+        } else if (e.touches.length === 1 && s.current.scale > 1.05) {
             e.preventDefault()
-            apply({ x: e.touches[0].clientX - s.panStartX, y: e.touches[0].clientY - s.panStartY })
+            set(s.current.scale, e.touches[0].clientX - g.panX0, e.touches[0].clientY - g.panY0)
         }
     }
 
     const onTouchEnd = (e) => {
-        const s = st.current
         if (e.touches.length === 0) {
-            s.panning = false
-            if (s.scale < 1.05) reset()
+            gesture.current.type = null
+            if (s.current.scale < 1.05) set(1, 0, 0)
         }
     }
 
     const handleOverlayClick = (e) => {
-        if (e.target === e.currentTarget && st.current.scale < 1.05) onClose()
+        if (e.target === e.currentTarget && s.current.scale < 1.05) onClose()
     }
 
     return (
@@ -190,7 +214,7 @@ function Lightbox({ src, onClose }) {
                     src={src}
                     alt="Фото"
                     draggable={false}
-                    style={{ transform: `scale(${tf.scale}) translate(${tf.x / tf.scale}px, ${tf.y / tf.scale}px)` }}
+                    style={{ transform: `translate(${tf.x}px, ${tf.y}px) scale(${tf.scale})` }}
                 />
             </div>
         </motion.div>
