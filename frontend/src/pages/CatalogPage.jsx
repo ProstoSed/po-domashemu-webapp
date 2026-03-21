@@ -326,9 +326,8 @@ export default function CatalogPage() {
                             const newPrice = Math.round(oldPrice * (100 - item.discount_percent) / 100)
                             return (
                                 <div key={item.id} className="promo-card">
-                                    <ProductCard item={{ ...item, _promoOldPrice: oldPrice, _promoNewPrice: newPrice }} categoryKey={item.categoryKey} index={i} />
+                                    <ProductCard item={{ ...item, _promoOldPrice: oldPrice, _promoNewPrice: newPrice, discount_percent: item.discount_percent }} categoryKey={item.categoryKey} index={i} />
                                     <div className="promo-badge-row">
-                                        <span className="promo-discount-badge">-{item.discount_percent}%</span>
                                         <PromoCountdown endDate={item.end_date} />
                                         {item.max_orders != null && (
                                             <span className="promo-stock">

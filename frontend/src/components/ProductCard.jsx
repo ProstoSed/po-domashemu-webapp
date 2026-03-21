@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../hooks/useCart'
 import { useTelegram } from '../hooks/useTelegram'
-import { formatItemPrice } from '../utils/formatPrice'
+import { formatPrice, formatItemPrice } from '../utils/formatPrice'
 import QuantityPicker from './QuantityPicker'
 import WeightPicker from './WeightPicker'
 import './ProductCard.css'
@@ -52,7 +52,17 @@ export default function ProductCard({ item, categoryKey, index, highlight }) {
                     <h4 className="product-name">{item.name}</h4>
                     {item.note && <span className="product-note">{item.note}</span>}
                     <div className="product-price-row">
-                        <span className="price-tag">{formatItemPrice(item)}</span>
+                        {item._promoNewPrice ? (
+                            <>
+                                <span className="price-tag price-tag--old">{formatItemPrice(item)}</span>
+                                <span className="price-tag price-tag--new">
+                                    {formatPrice(item._promoNewPrice)}{item.unit === 'кг' ? '/кг' : ''}
+                                </span>
+                                <span className="price-tag--discount">-{item.discount_percent}%</span>
+                            </>
+                        ) : (
+                            <span className="price-tag">{formatItemPrice(item)}</span>
+                        )}
                     </div>
                     <div className="product-btns-row">
                         {hasPhoto && (
