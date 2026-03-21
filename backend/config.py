@@ -83,8 +83,15 @@ _DATA_FILES = {
     HOLIDAYS_FILE: {'holidays': {}},
     ADMINS_FILE: {'admins': []},
     REVIEWS_FILE: {'reviews': []},
-    FEATURED_FILE: {'day': [], 'week': [], 'seasonal': []},
+    FEATURED_FILE: {'day': [], 'week': [], 'seasonal': [], 'promo': []},
 }
+
+# Справочник цен ингредиентов
+_ingredient_prices_path = os.getenv('INGREDIENT_PRICES_FILE', f'{_data_default}/ingredient_prices.json')
+INGREDIENT_PRICES_FILE: Path = (BASE_DIR / _ingredient_prices_path).resolve()
+if not INGREDIENT_PRICES_FILE.exists():
+    INGREDIENT_PRICES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    INGREDIENT_PRICES_FILE.write_text('[]', encoding='utf-8')
 for _path, _default in _DATA_FILES.items():
     _path.parent.mkdir(parents=True, exist_ok=True)
     if not _path.exists():

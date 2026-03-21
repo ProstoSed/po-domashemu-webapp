@@ -42,6 +42,9 @@ HEADER_MAP = {
     "стоимость ингредиентов": "cost_ingredients",
     "ингредиенты (стоимость)": "cost_ingredients",
     "цена ингредиентов": "cost_ingredients",
+    "справочник ингредиентов": "ingredient_prices",
+    "цены ингредиентов": "ingredient_prices",
+    "прайс ингредиентов": "ingredient_prices",
     # Английские заголовки (обратная совместимость)
     "category_key": "category_key",
     "category_name": "category_name",
@@ -56,6 +59,7 @@ HEADER_MAP = {
     "category_description": "category_description",
     "ingredients": "ingredients",
     "cost_ingredients": "cost_ingredients",
+    "ingredient_prices": "ingredient_prices",
 }
 
 
@@ -205,6 +209,134 @@ def _parse_cost_price(raw: str) -> dict | None:
     return {'items': items, 'total': round(total, 2)}
 
 
+def _parse_ingredient_prices_cell(raw: str) -> list[dict]:
+    """
+    Парсит одну ячейку со справочником цен ингредиентов.
+    Гибкий формат — понимает всё:
+
+    Построчно или через запятую/точку с запятой:
+      мука 80р/кг
+      мука - 80 руб/кг
+      мука: 80₽/кг
+      мука 80/кг
+      яйца 10р/шт
+      яйца - 10 р. за шт
+      молоко 90р/л
+      масло сливочное 800р/кг
+      сахар 60 рублей за кг
+      разрыхлитель 150/кг
+
+    Возвращает: [{'name': 'мука', 'price': 80.0, 'unit': 'кг'}, ...]
+    """
+    import re
+    if not raw or not raw.strip():
+        return []
+
+    # Маппинг единиц
+    unit_map = {
+        'кг': 'кг', 'килограмм': 'кг', 'килограммов': 'кг',
+        'г': 'г', 'гр': 'г', 'грамм': 'г', 'граммов': 'г',
+        'шт': 'шт', 'штук': 'шт', 'штуки': 'шт', 'штука': 'шт',
+        'л': 'л', 'литр': 'л', 'литров': 'л', 'литра': 'л',
+        'мл': 'мл', 'миллилитров': 'мл',
+    }
+
+    results = []
+    # Разделяем по переносам строк, запятым, точке с запятой
+    parts = re.split(r'[\n;]|,\s*(?=[а-яА-Яa-zA-Z])', raw)
+
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+
+        # Паттерн: название ... число ... единица
+        # Примеры: "мука 80р/кг", "мука - 80 руб/кг", "мука: 80₽/кг", "яйца 10 за шт"
+        m = re.match(
+            r'(.+?)'                             # название (жадно до числа)
+            r'\s*[-:=]?\s*'                       # разделитель (- : = или пробел)
+            r'(\d+(?:[.,]\d+)?)'                  # цена
+            r'\s*(?:₽|р\.?|руб\.?|рублей|рубля)?' # валюта (опц.)
+            r'\s*(?:/|за\s+)?'                    # разделитель: / или "за"
+            r'\s*(\w+)',                           # единица
+            part, re.IGNORECASE
+        )
+        if m:
+            name = m.group(1).strip().rstrip('-:= ').strip().lower()
+            price = float(m.group(2).replace(',', '.'))
+            raw_unit = m.group(3).strip().lower()
+            unit = unit_map.get(raw_unit, raw_unit)
+            if name and price > 0:
+                results.append({'name': name, 'price': price, 'unit': unit})
+
+    return results
+
+
+def _calc_cost_from_ingredients(
+    ingredients: list[dict],
+    price_db: list[dict],
+) -> float | None:
+    """
+    Рассчитывает себестоимость товара из ингредиентов + справочника цен.
+
+    ingredients: [{'name': 'Мука', 'amount': 500, 'unit': 'г'}, ...]
+    price_db: [{'name': 'мука', 'price': 80, 'unit': 'кг'}, ...]
+
+    Конвертация единиц:
+      г → кг: ÷1000
+      мл → л: ÷1000
+      кг → кг: ×1
+      шт → шт: ×1
+    """
+    if not ingredients or not price_db:
+        return None
+
+    # Индекс по имени (lowercase)
+    db = {p['name'].lower(): p for p in price_db}
+
+    total = 0
+    found_any = False
+
+    for ing in ingredients:
+        name = ing.get('name', '').lower()
+        amount = ing.get('amount', 0)
+        ing_unit = ing.get('unit', '')
+
+        # Поиск по точному совпадению → по вхождению
+        price_entry = db.get(name)
+        if not price_entry:
+            # Fuzzy: ищем ключ из db который содержится в name или наоборот
+            for db_name, entry in db.items():
+                if db_name in name or name in db_name:
+                    price_entry = entry
+                    break
+        if not price_entry or amount <= 0:
+            continue
+
+        found_any = True
+        price_per_unit = price_entry['price']
+        price_unit = price_entry['unit']
+
+        # Конвертация единиц
+        if ing_unit == 'г' and price_unit == 'кг':
+            total += (amount / 1000) * price_per_unit
+        elif ing_unit == 'кг' and price_unit == 'кг':
+            total += amount * price_per_unit
+        elif ing_unit == 'мл' and price_unit == 'л':
+            total += (amount / 1000) * price_per_unit
+        elif ing_unit == 'л' and price_unit == 'л':
+            total += amount * price_per_unit
+        elif ing_unit == price_unit:
+            total += amount * price_per_unit
+        elif ing_unit == 'г' and price_unit == 'г':
+            total += amount * price_per_unit
+        else:
+            # Единицы не совпадают, пробуем как есть
+            total += amount * price_per_unit
+
+    return round(total, 2) if found_any else None
+
+
 def _parse_price(price_str: str, unit: str) -> dict:
     """
     Разбирает строку цены из таблицы в поля prices.json.
@@ -285,8 +417,11 @@ def _normalize_photo_url(url: str) -> str:
     return url
 
 
-def _csv_to_prices_json(csv_text: str) -> dict:
-    """Конвертирует CSV из Google Sheets в структуру prices.json."""
+def _csv_to_prices_json(csv_text: str) -> tuple[dict, list[dict]]:
+    """Конвертирует CSV из Google Sheets в структуру prices.json.
+    Возвращает (prices_dict, ingredient_price_db).
+    ingredient_price_db — справочник цен ингредиентов из ячейки столбца 'Справочник ингредиентов'.
+    """
     reader = csv.DictReader(io.StringIO(csv_text))
 
     if reader.fieldnames is None:
@@ -301,8 +436,25 @@ def _csv_to_prices_json(csv_text: str) -> dict:
                              f"Найдены: {reader.fieldnames}")
 
     categories: dict[str, dict] = {}
+    ingredient_price_db: list[dict] = []  # справочник цен ингредиентов
 
-    for row in reader:
+    rows = list(reader)
+
+    # Ищем ячейку справочника ингредиентов (одна заполненная ячейка в столбце)
+    if 'ingredient_prices' in mapped_keys:
+        for row in rows:
+            normalized_row = {}
+            for orig_key, value in row.items():
+                if orig_key and orig_key in header_mapping:
+                    normalized_row[header_mapping[orig_key]] = (value or "").strip()
+            raw_ip = normalized_row.get('ingredient_prices', '').strip()
+            if raw_ip:
+                ingredient_price_db = _parse_ingredient_prices_cell(raw_ip)
+                if ingredient_price_db:
+                    logger.info("Справочник ингредиентов: %d позиций", len(ingredient_price_db))
+                break  # берём только первую непустую ячейку
+
+    for row in rows:
         normalized = {}
         for orig_key, value in row.items():
             if orig_key and orig_key in header_mapping:
@@ -346,24 +498,30 @@ def _csv_to_prices_json(csv_text: str) -> dict:
         ingredients = _parse_ingredients(normalized.get("ingredients", ""))
         if ingredients:
             item['ingredients'] = ingredients
+        # Себестоимость: сначала из явного столбца, потом авто-расчёт из справочника
         cost_data = _parse_cost_price(normalized.get("cost_ingredients", ""))
         if cost_data:
             item['cost_price'] = cost_data['total']
             item['cost_ingredients'] = cost_data['items']
+        elif ingredients and ingredient_price_db:
+            auto_cost = _calc_cost_from_ingredients(ingredients, ingredient_price_db)
+            if auto_cost is not None:
+                item['cost_price'] = auto_cost
         if photo_url:
             item["photo_url"] = photo_url
 
         categories[cat_key]["items"].append(item)
 
-    return {
+    prices = {
         "_comment": "Синхронизировано из Google Sheets",
         "_last_updated": __import__('datetime').datetime.now().strftime("%Y-%m-%d %H:%M"),
         "categories": list(categories.values())
     }
+    return prices, ingredient_price_db
 
 
-async def fetch_prices_from_sheet(sheet_id: str, gid: str | None = None) -> Optional[dict]:
-    """Скачивает данные из Google Sheets (CSV) и возвращает структуру prices.json.
+async def fetch_prices_from_sheet(sheet_id: str, gid: str | None = None) -> tuple[dict | None, list[dict]]:
+    """Скачивает данные из Google Sheets (CSV) и возвращает (prices, ingredient_price_db).
     gid — ID вкладки (None = первая вкладка)."""
     if gid:
         url = SHEETS_CSV_URL_GID.format(sheet_id=sheet_id, gid=gid)
@@ -376,21 +534,21 @@ async def fetch_prices_from_sheet(sheet_id: str, gid: str | None = None) -> Opti
             resp = await client.get(url, timeout=30.0)
             if resp.status_code != 200:
                 logger.error("Google Sheets вернул статус %s", resp.status_code)
-                return None
+                return None, []
             csv_text = resp.content.decode('utf-8-sig')
 
-        prices = _csv_to_prices_json(csv_text)
+        prices, ingredient_price_db = _csv_to_prices_json(csv_text)
         count = sum(len(c['items']) for c in prices['categories'])
         logger.info("Получено %d категорий, %d товаров из Google Sheets",
                      len(prices['categories']), count)
-        return prices
+        return prices, ingredient_price_db
 
     except httpx.ConnectError:
         logger.error("Нет соединения с интернетом, Google Sheets недоступен")
-        return None
+        return None, []
     except Exception as e:
         logger.error("Ошибка синхронизации Google Sheets: %s", e, exc_info=True)
-        return None
+        return None, []
 
 
 async def cache_photos(prices: dict, photos_dir: Path) -> int:
@@ -430,19 +588,20 @@ async def cache_photos(prices: dict, photos_dir: Path) -> int:
 
 
 async def _sync_one(sheet_id: str, prices_file: Path, photos_dir: Path,
-                    gid: str | None = None, label: str = "основное") -> tuple[bool, str]:
-    """Синхронизирует один лист из Google Sheets."""
-    prices = await fetch_prices_from_sheet(sheet_id, gid=gid)
+                    gid: str | None = None, label: str = "основное") -> tuple[bool, str, list[dict]]:
+    """Синхронизирует один лист из Google Sheets.
+    Возвращает (успех, сообщение, ingredient_price_db)."""
+    prices, ingredient_price_db = await fetch_prices_from_sheet(sheet_id, gid=gid)
 
     if prices is None:
-        return False, f"❌ Не удалось получить данные ({label})"
+        return False, f"❌ Не удалось получить данные ({label})", []
 
     items_count = sum(len(c['items']) for c in prices['categories'])
 
     if items_count == 0:
         return False, (f"⚠️ Таблица ({label}) пуста или неправильная структура. "
                        "Убедитесь что первая строка — заголовки: "
-                       "Категория (ключ), Категория, ID товара, Название, Ед.изм., Цена, Примечание")
+                       "Категория (ключ), Категория, ID товара, Название, Ед.изм., Цена, Примечание"), []
 
     # Кешируем фото на VPS
     photo_count = await cache_photos(prices, photos_dir)
@@ -459,26 +618,45 @@ async def _sync_one(sheet_id: str, prices_file: Path, photos_dir: Path,
     )
 
     cats = len(prices['categories'])
-    return True, f"✅ {label.capitalize()}: {cats} кат., {items_count} товаров, {photo_count} новых фото"
+    cost_items = sum(1 for c in prices['categories'] for i in c['items'] if 'cost_price' in i)
+    msg = f"✅ {label.capitalize()}: {cats} кат., {items_count} товаров, {photo_count} новых фото"
+    if cost_items:
+        msg += f", {cost_items} с себестоимостью"
+    return True, msg, ingredient_price_db
 
 
 async def sync_prices(sheet_id: str, prices_file: Path, photos_dir: Path,
-                      extra_menus: list | None = None) -> tuple[bool, str]:
+                      extra_menus: list | None = None,
+                      ingredient_prices_file: Path | None = None) -> tuple[bool, str]:
     """
     Скачивает данные из Google Sheets, кеширует фото и перезаписывает prices.json.
     extra_menus — список кортежей (key, file, gid, label) для доп. меню (постное, фуршетное и т.д.).
+    ingredient_prices_file — куда сохранить справочник ингредиентов.
     Возвращает (успех, сообщение).
     """
-    ok_main, msg_main = await _sync_one(sheet_id, prices_file, photos_dir, label="основное меню")
+    ok_main, msg_main, ingredient_db = await _sync_one(sheet_id, prices_file, photos_dir,
+                                                        label="основное меню")
 
     messages = [msg_main]
     all_ok = ok_main
 
     for _key, extra_file, extra_gid, extra_label in (extra_menus or []):
-        ok_extra, msg_extra = await _sync_one(sheet_id, extra_file, photos_dir,
-                                              gid=extra_gid, label=extra_label)
+        ok_extra, msg_extra, extra_db = await _sync_one(sheet_id, extra_file, photos_dir,
+                                                         gid=extra_gid, label=extra_label)
         messages.append(msg_extra)
         if not ok_extra:
             all_ok = False
+        # Если в доп. меню тоже есть справочник — объединяем
+        if extra_db and not ingredient_db:
+            ingredient_db = extra_db
+
+    # Сохраняем справочник ингредиентов
+    if ingredient_db and ingredient_prices_file:
+        ingredient_prices_file.parent.mkdir(parents=True, exist_ok=True)
+        ingredient_prices_file.write_text(
+            json.dumps(ingredient_db, ensure_ascii=False, indent=2),
+            encoding='utf-8'
+        )
+        messages.append(f"📦 Справочник ингредиентов: {len(ingredient_db)} позиций")
 
     return all_ok, "\n".join(messages)

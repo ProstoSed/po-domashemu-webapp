@@ -164,6 +164,10 @@ export async function fetchIngredients() {
     return apiFetch('/api/admin/ingredients', { headers: adminHeaders() })
 }
 
+export async function fetchIngredientPrices() {
+    return apiFetch('/api/admin/ingredient-prices', { headers: adminHeaders() })
+}
+
 export async function syncPrices() {
     return apiFetch('/api/admin/sync-prices', {
         method: 'POST',

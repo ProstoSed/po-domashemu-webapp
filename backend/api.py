@@ -53,7 +53,7 @@ from config import (PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE,
                      BANQUET_PRICES_FILE, BANQUET_SHEET_GID,
                      KIDS_PRICES_FILE, KIDS_SHEET_GID,
                      REVIEWS_FILE, GOOGLE_APPS_SCRIPT_URL,
-                     FEATURED_FILE, WEBAPP_URL)
+                     FEATURED_FILE, WEBAPP_URL, INGREDIENT_PRICES_FILE)
 
 log = logging.getLogger(__name__)
 app = FastAPI(title='По-домашнему API', version='1.3')
@@ -1535,14 +1535,25 @@ async def admin_get_stats(x_init_data: str | None = Header(default=None)) -> dic
     )
     avg_items_per_order = round(total_items_in_orders / len(orders), 1) if orders else 0
 
-    # Себестоимость и прибыль (из prices.json cost_price)
+    # Себестоимость и прибыль (из prices.json cost_price + авто-расчёт из справочника)
     cost_map: dict[str, float] = {}
     try:
         prices = json.loads(PRICES_FILE.read_text(encoding='utf-8'))
+        # Загружаем справочник ингредиентов для авто-расчёта
+        ingredient_db = []
+        try:
+            ingredient_db = json.loads(INGREDIENT_PRICES_FILE.read_text(encoding='utf-8'))
+        except Exception:
+            pass
+        from sheets_sync import _calc_cost_from_ingredients
         for cat in prices.get('categories', []):
             for item in cat.get('items', []):
                 if 'cost_price' in item:
                     cost_map[item['name']] = item['cost_price']
+                elif item.get('ingredients') and ingredient_db:
+                    auto_cost = _calc_cost_from_ingredients(item['ingredients'], ingredient_db)
+                    if auto_cost is not None:
+                        cost_map[item['name']] = auto_cost
     except Exception:
         pass
 
@@ -1692,6 +1703,21 @@ async def admin_reject_photo(
     save_photo_requests(requests)
 
     return {'ok': True, 'req_id': req_id}
+
+
+# ──────────────────────────────────────────────
+# Админ: Справочник цен ингредиентов
+# ──────────────────────────────────────────────
+
+@app.get('/api/admin/ingredient-prices')
+async def admin_ingredient_prices(x_init_data: str | None = Header(default=None)) -> dict:
+    """Справочник цен ингредиентов (из Google Sheets)."""
+    require_admin(x_init_data)
+    try:
+        db = json.loads(INGREDIENT_PRICES_FILE.read_text(encoding='utf-8'))
+    except Exception:
+        db = []
+    return {'items': db}
 
 
 # ──────────────────────────────────────────────
@@ -1936,6 +1962,7 @@ async def admin_sync_prices(x_init_data: str | None = Header(default=None)) -> d
     success, message = await do_sync(
         GOOGLE_SHEET_ID, PRICES_FILE, PHOTOS_DIR,
         extra_menus=extra_menus,
+        ingredient_prices_file=INGREDIENT_PRICES_FILE,
     )
     return {'ok': success, 'message': message}
 
