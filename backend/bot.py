@@ -532,17 +532,8 @@ def _build_daily_summary(now: datetime) -> str | None:
         if day_orders:
             week_orders[day.strftime('%d.%m')] = day_orders
 
-    # ── Заказы на завтра ──
-    tomorrow = today_date + timedelta(days=1)
-    tomorrow_str = tomorrow.strftime('%d.%m.%Y')
-    tomorrow_count = sum(
-        1 for o in orders
-        if o.get('schedule', {}).get('date', '') == tomorrow_str
-        and o.get('status') not in ('cancelled', 'closed', 'completed')
-    )
-
     # ── Нечего отправлять? ──
-    if today_new == 0 and today_closed == 0 and new_clients == 0 and not week_orders and tomorrow_count == 0:
+    if today_new == 0 and today_closed == 0 and new_clients == 0 and not week_orders:
         return None
 
     # ── Формируем сообщение ──
@@ -567,10 +558,7 @@ def _build_daily_summary(now: datetime) -> str | None:
     if new_clients:
         lines.append(f'\n👥 Новых клиентов: {new_clients}')
 
-    if tomorrow_count:
-        lines.append(f'\n📋 Активных заказов на завтра: {tomorrow_count}')
-
-    # Заказы на неделю
+    # Заказы на неделю (завтра = первый день)
     if week_orders:
         lines.append('\n📅 <b>Заказы на неделю:</b>')
         for d in range(1, 8):
