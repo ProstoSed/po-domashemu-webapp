@@ -1404,6 +1404,39 @@
     border-color: rgba(134, 239, 172, 0.6);
 }
 
+.feat-promo-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: var(--space-sm);
+    padding: 10px;
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.feat-promo-row {
+    display: flex;
+    gap: 10px;
+}
+
+.feat-promo-label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    flex: 1;
+}
+
+.feat-promo-input {
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-size: 0.85rem;
+}
+
 .feat-search-results {
     display: flex;
     flex-direction: column;

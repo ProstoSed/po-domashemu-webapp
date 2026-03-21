@@ -229,6 +229,14 @@ export async function addFeatured(type, item) {
     })
 }
 
+export async function addPromo(body) {
+    return apiFetch('/api/admin/promo', {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify(body),
+    })
+}
+
 export async function removeFeatured(type, itemId, source = 'main') {
     return apiFetch(`/api/admin/featured/${type}?item_id=${encodeURIComponent(itemId)}&source=${source}`, {
         method: 'DELETE',

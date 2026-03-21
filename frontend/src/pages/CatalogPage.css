@@ -175,6 +175,45 @@
 }
 .featured-wrap--popular .featured-title { color: #93c5fd; }
 
+/* Promo — зелёно-жёлтый градиент */
+.featured-wrap--promo {
+    background-image: linear-gradient(90deg, #065f46, #10b981, #fbbf24, #10b981, #065f46);
+    box-shadow: 0 0 20px rgba(6, 95, 70, 0.2);
+    animation-duration: 9s;
+}
+.featured-wrap--promo .featured-title { color: #6ee7b7; }
+
+.promo-card {
+    position: relative;
+}
+
+.promo-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px 6px;
+    flex-wrap: wrap;
+}
+
+.promo-discount-badge {
+    background: #ef4444;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.promo-countdown {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+}
+
+.promo-stock {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
 /* ── Light mode: тёмные заголовки ── */
 @media (prefers-color-scheme: light) {
     .featured-inner { background: #fff; }
@@ -185,6 +224,7 @@
     .featured-wrap--season-autumn .featured-title { color: #9a3412; }
     .featured-wrap--season-winter .featured-title { color: #0c4a6e; }
     .featured-wrap--popular .featured-title { color: #1e3a8a; }
+    .featured-wrap--promo .featured-title { color: #065f46; }
 }
 
 .catalog-list {

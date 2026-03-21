@@ -11,6 +11,33 @@ import CategoryCard from '../components/CategoryCard'
 import ProductCard from '../components/ProductCard'
 import './CatalogPage.css'
 
+/** Таймер обратного отсчёта до даты (DD.MM.YYYY). */
+function PromoCountdown({ endDate }) {
+    const [timeLeft, setTimeLeft] = useState('')
+    useEffect(() => {
+        const update = () => {
+            try {
+                const [d, m, y] = endDate.split('.')
+                const end = new Date(+y, +m - 1, +d, 23, 59, 59)
+                const diff = end - Date.now()
+                if (diff <= 0) { setTimeLeft('Завершена'); return }
+                const days = Math.floor(diff / 86400000)
+                const hours = Math.floor((diff % 86400000) / 3600000)
+                if (days > 0) setTimeLeft(`${days}д ${hours}ч`)
+                else {
+                    const mins = Math.floor((diff % 3600000) / 60000)
+                    setTimeLeft(`${hours}ч ${mins}м`)
+                }
+            } catch { setTimeLeft('') }
+        }
+        update()
+        const id = setInterval(update, 60000)
+        return () => clearInterval(id)
+    }, [endDate])
+    if (!timeLeft) return null
+    return <span className="promo-countdown">⏰ {timeLeft}</span>
+}
+
 const LOADING_PHRASES = [
     'Достаём пироги из печи',
     'Замешиваем тесто',
@@ -118,7 +145,7 @@ export default function CatalogPage() {
                 if (Date.now() - ts < 5 * 60 * 1000) return data
             }
         } catch {}
-        return { day: [], week: [], seasonal: [] }
+        return { day: [], week: [], seasonal: [], promo: [] }
     })
     useEffect(() => {
         fetchFeatured().then(d => {
@@ -149,6 +176,30 @@ export default function CatalogPage() {
     const dayItems = useMemo(() => resolveItems(featuredData.day || []), [featuredData.day, categories])
     const weekItems = useMemo(() => resolveItems(featuredData.week || []), [featuredData.week, categories])
     const seasonalItems = useMemo(() => resolveItems(featuredData.seasonal || []), [featuredData.seasonal, categories])
+
+    // Акции: резолвим + добавляем discount/endDate
+    const promoItems = useMemo(() => {
+        const promos = featuredData.promo || []
+        const result = []
+        for (const entry of promos) {
+            for (const cat of categories) {
+                if (cat.key !== entry.category_key) continue
+                const item = (cat.items || []).find(i => i.id === entry.item_id)
+                if (item) {
+                    result.push({
+                        ...item,
+                        categoryKey: cat.key,
+                        discount_percent: entry.discount_percent,
+                        end_date: entry.end_date,
+                        max_orders: entry.max_orders,
+                        ordered_count: entry.ordered_count || 0,
+                    })
+                    break
+                }
+            }
+        }
+        return result
+    }, [featuredData.promo, categories])
 
     const currentSeason = featuredData.current_season || 'весна'
     const seasonClass = SEASON_CLASS[currentSeason] || 'spring'
@@ -256,6 +307,38 @@ export default function CatalogPage() {
                         {seasonalItems.map((item, i) => (
                             <ProductCard key={item.id} item={item} categoryKey={item.categoryKey} index={i} />
                         ))}
+                    </div>
+                </motion.div>
+            )}
+
+            {/* ── Акции ── */}
+            {promoItems.length > 0 && (
+                <motion.div
+                    className="featured-wrap featured-wrap--promo"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                >
+                    <div className="featured-inner">
+                        <h3 className="featured-title">🏷️ Акции</h3>
+                        {promoItems.map((item, i) => {
+                            const oldPrice = item.price_kg || item.price_kg_min || item.price_item || item.price_item_min || 0
+                            const newPrice = Math.round(oldPrice * (100 - item.discount_percent) / 100)
+                            return (
+                                <div key={item.id} className="promo-card">
+                                    <ProductCard item={{ ...item, _promoOldPrice: oldPrice, _promoNewPrice: newPrice }} categoryKey={item.categoryKey} index={i} />
+                                    <div className="promo-badge-row">
+                                        <span className="promo-discount-badge">-{item.discount_percent}%</span>
+                                        <PromoCountdown endDate={item.end_date} />
+                                        {item.max_orders != null && (
+                                            <span className="promo-stock">
+                                                Осталось: {item.max_orders - item.ordered_count}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )
+                        })}
                     </div>
                 </motion.div>
             )}

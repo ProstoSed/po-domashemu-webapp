@@ -29,6 +29,7 @@ FastAPI сервер.
   POST /api/admin/remind-sleeping             — напомнить спящим
   POST /api/admin/broadcast
 """
+import asyncio
 import hashlib
 import hmac
 import json
@@ -52,10 +53,35 @@ from config import (PRICES_FILE, ORDERS_FILE, BOT_TOKEN, ADMIN_IDS, USERS_FILE,
                      BANQUET_PRICES_FILE, BANQUET_SHEET_GID,
                      KIDS_PRICES_FILE, KIDS_SHEET_GID,
                      REVIEWS_FILE, GOOGLE_APPS_SCRIPT_URL,
-                     FEATURED_FILE)
+                     FEATURED_FILE, WEBAPP_URL)
 
 log = logging.getLogger(__name__)
 app = FastAPI(title='По-домашнему API', version='1.3')
+
+
+async def _schedule_review_reminder(user_id: int, order_id: str, delay_seconds: int = 7200) -> None:
+    """Через 2 часа после закрытия заказа отправить клиенту предложение оставить отзыв."""
+    await asyncio.sleep(delay_seconds)
+    try:
+        from bot import bot
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+        reviews_url = f'{WEBAPP_URL}#/reviews'
+        kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(
+                text='⭐ Оставить отзыв',
+                web_app=WebAppInfo(url=reviews_url)
+            )
+        ]])
+        await bot.send_message(
+            user_id,
+            f'🙏 <b>Спасибо за заказ {order_id}!</b>\n\n'
+            f'Будем рады вашему отзыву — это помогает нам становиться лучше! 💛',
+            parse_mode='HTML',
+            reply_markup=kb,
+        )
+        log.info('Напоминание об отзыве отправлено: user_id=%s, order=%s', user_id, order_id)
+    except Exception as exc:
+        log.warning('Не удалось отправить напоминание об отзыве: %s', exc)
 
 app.add_middleware(
     CORSMiddleware,
@@ -1402,15 +1428,22 @@ async def admin_close_order(
 ) -> dict:
     require_admin(x_init_data)
     orders = load_orders()
-    found = False
+    closed_order = None
     for order in orders:
         if order.get('order_id') == order_id:
             order['status'] = 'closed'
-            found = True
+            order['closed_at'] = datetime.now(timezone(timedelta(hours=3))).strftime('%Y-%m-%d %H:%M:%S')
+            closed_order = order
             break
-    if not found:
+    if not closed_order:
         raise HTTPException(status_code=404, detail='Заказ не найден')
     save_orders(orders)
+
+    # Напоминание об отзыве через 2 часа
+    customer_id = closed_order.get('customer', {}).get('user_id')
+    if customer_id:
+        asyncio.create_task(_schedule_review_reminder(customer_id, order_id))
+
     return {'ok': True, 'order_id': order_id, 'status': 'closed'}
 
 
@@ -1502,6 +1535,33 @@ async def admin_get_stats(x_init_data: str | None = Header(default=None)) -> dic
     )
     avg_items_per_order = round(total_items_in_orders / len(orders), 1) if orders else 0
 
+    # Себестоимость и прибыль (из prices.json cost_price)
+    cost_map: dict[str, float] = {}
+    try:
+        prices = json.loads(PRICES_FILE.read_text(encoding='utf-8'))
+        for cat in prices.get('categories', []):
+            for item in cat.get('items', []):
+                if 'cost_price' in item:
+                    cost_map[item['name']] = item['cost_price']
+    except Exception:
+        pass
+
+    total_cost = 0
+    for o in closed:
+        for it in o.get('items', []):
+            name = it.get('name', '')
+            qty = it.get('quantity', 1)
+            weight = it.get('weight')
+            cp = cost_map.get(name, 0)
+            if cp:
+                if weight:
+                    total_cost += cp * weight * qty
+                else:
+                    total_cost += cp * qty
+    total_cost = round(total_cost)
+    total_profit = total_revenue - total_cost
+    margin_percent = round(total_profit / total_revenue * 100) if total_revenue else 0
+
     return {
         'total_orders': len(orders),
         'total_revenue': total_revenue,
@@ -1518,6 +1578,9 @@ async def admin_get_stats(x_init_data: str | None = Header(default=None)) -> dic
         'repeat_customers': repeat_customers,
         'repeat_rate': repeat_rate,
         'avg_items_per_order': avg_items_per_order,
+        'total_cost': total_cost,
+        'total_profit': total_profit,
+        'margin_percent': margin_percent,
     }
 
 
@@ -2137,7 +2200,7 @@ def _load_featured() -> dict:
     try:
         return json.loads(FEATURED_FILE.read_text(encoding='utf-8'))
     except Exception:
-        return {'day': [], 'week': [], 'seasonal': []}
+        return {'day': [], 'week': [], 'seasonal': [], 'promo': []}
 
 
 def _save_featured(data: dict) -> None:
@@ -2152,6 +2215,16 @@ class FeaturedItem(BaseModel):
     item_name: str
     source: str = 'main'  # main | lenten | banquet | kids
     seasons: list[str] | None = None  # только для seasonal
+
+
+class PromoItem(BaseModel):
+    category_key: str
+    item_id: str
+    item_name: str
+    source: str = 'main'
+    discount_percent: int  # скидка в %
+    end_date: str  # DD.MM.YYYY
+    max_orders: int | None = None  # None = безлимит
 
 
 @app.get('/api/featured')
@@ -2173,11 +2246,28 @@ async def get_featured():
         it for it in data.get('seasonal', [])
         if current_season in (it.get('seasons') or [])
     ]
+
+    # Фильтруем акции: убираем просроченные и распроданные
+    now_date = datetime.now(timezone(timedelta(hours=3))).date()
+    active_promos = []
+    for p in data.get('promo', []):
+        try:
+            end = datetime.strptime(p['end_date'], '%d.%m.%Y').date()
+            if end < now_date:
+                continue
+        except (ValueError, KeyError):
+            continue
+        max_o = p.get('max_orders')
+        if max_o is not None and p.get('ordered_count', 0) >= max_o:
+            continue
+        active_promos.append(p)
+
     return {
         'day': data.get('day', []),
         'week': data.get('week', []),
         'seasonal': seasonal_now,
         'current_season': current_season,
+        'promo': active_promos,
     }
 
 
@@ -2196,7 +2286,7 @@ async def admin_add_featured(
 ):
     """Добавить товар в день/неделю/сезон."""
     require_admin(x_init_data)
-    if feat_type not in ('day', 'week', 'seasonal'):
+    if feat_type not in ('day', 'week', 'seasonal', 'promo'):
         raise HTTPException(400, f'Неизвестный тип: {feat_type}')
 
     data = _load_featured()
@@ -2221,6 +2311,36 @@ async def admin_add_featured(
     return {'ok': True}
 
 
+@app.post('/api/admin/promo')
+async def admin_add_promo(
+    body: PromoItem,
+    x_init_data: str | None = Header(default=None),
+):
+    """Добавить акцию."""
+    require_admin(x_init_data)
+    data = _load_featured()
+    lst = data.setdefault('promo', [])
+
+    # Проверка дубликата
+    for existing in lst:
+        if existing.get('item_id') == body.item_id and existing.get('source') == body.source:
+            raise HTTPException(409, 'Акция для этого товара уже есть')
+
+    entry = {
+        'category_key': body.category_key,
+        'item_id': body.item_id,
+        'item_name': body.item_name,
+        'source': body.source,
+        'discount_percent': body.discount_percent,
+        'end_date': body.end_date,
+        'max_orders': body.max_orders,
+        'ordered_count': 0,
+    }
+    lst.append(entry)
+    _save_featured(data)
+    return {'ok': True}
+
+
 @app.delete('/api/admin/featured/{feat_type}')
 async def admin_remove_featured(
     feat_type: str,
@@ -2228,9 +2348,9 @@ async def admin_remove_featured(
     source: str = 'main',
     x_init_data: str | None = Header(default=None),
 ):
-    """Убрать товар из дня/недели/сезона. Query: ?item_id=...&source=main"""
+    """Убрать товар из дня/недели/сезона/акций. Query: ?item_id=...&source=main"""
     require_admin(x_init_data)
-    if feat_type not in ('day', 'week', 'seasonal'):
+    if feat_type not in ('day', 'week', 'seasonal', 'promo'):
         raise HTTPException(400, f'Неизвестный тип: {feat_type}')
 
     data = _load_featured()

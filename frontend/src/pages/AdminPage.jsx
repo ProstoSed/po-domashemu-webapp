@@ -13,7 +13,7 @@ import {
     fetchReminders, remindSleeping,
     syncPrices, fetchUserOrders, fetchIngredients,
     fetchAdmins, addAdmin, removeAdmin, restoreAdmin, searchUsers,
-    fetchAdminFeatured, addFeatured, removeFeatured,
+    fetchAdminFeatured, addFeatured, removeFeatured, addPromo,
 } from '../utils/api'
 import { usePrices } from '../hooks/usePrices'
 import { useLentenPrices } from '../hooks/useLentenPrices'
@@ -562,6 +562,7 @@ function StatsSection() {
         delivery_count = 0, pickup_count = 0,
         avg_daily_revenue = 0, repeat_customers = 0,
         repeat_rate = 0, avg_items_per_order = 0,
+        total_cost = 0, total_profit = 0, margin_percent = 0,
     } = stats
 
     return (
@@ -598,6 +599,29 @@ function StatsSection() {
                     <div className="stat-label">позиций/заказ</div>
                 </div>
             </div>
+
+            {/* Себестоимость и прибыль */}
+            {total_cost > 0 && (
+                <div className="stats-grid" style={{ marginTop: 'var(--space-sm)' }}>
+                    <div className="stat-card glass-card">
+                        <div className="stat-icon">📉</div>
+                        <div className="stat-value">{total_cost.toLocaleString('ru')} ₽</div>
+                        <div className="stat-label">себестоимость</div>
+                    </div>
+                    <div className="stat-card glass-card">
+                        <div className="stat-icon">📈</div>
+                        <div className="stat-value" style={{ color: total_profit >= 0 ? '#10b981' : '#ef4444' }}>
+                            {total_profit.toLocaleString('ru')} ₽
+                        </div>
+                        <div className="stat-label">прибыль</div>
+                    </div>
+                    <div className="stat-card glass-card">
+                        <div className="stat-icon">📊</div>
+                        <div className="stat-value">{margin_percent}%</div>
+                        <div className="stat-label">маржа</div>
+                    </div>
+                </div>
+            )}
 
             {/* Доставка vs Самовывоз */}
             <div className="stats-row glass-card">
@@ -1120,6 +1144,7 @@ const FEAT_TYPES = [
     { key: 'day', label: '⭐ Товар дня', emoji: '⭐' },
     { key: 'week', label: '🔥 Товар недели', emoji: '🔥' },
     { key: 'seasonal', label: '🌿 Сезонное', emoji: '🌿' },
+    { key: 'promo', label: '🏷️ Акции', emoji: '🏷️' },
 ]
 
 const SEASONS = ['весна', 'лето', 'осень', 'зима']
@@ -1132,7 +1157,7 @@ const SOURCES = [
 ]
 
 function FeaturedSection() {
-    const [featData, setFeatData] = useState({ day: [], week: [], seasonal: [] })
+    const [featData, setFeatData] = useState({ day: [], week: [], seasonal: [], promo: [] })
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [activeType, setActiveType] = useState('day')
@@ -1141,6 +1166,10 @@ function FeaturedSection() {
     const [selectedCategory, setSelectedCategory] = useState('all')
     const [selectedSeasons, setSelectedSeasons] = useState([])
     const [adding, setAdding] = useState(null) // item_id that's being added
+    // Promo fields
+    const [promoDiscount, setPromoDiscount] = useState(10)
+    const [promoEndDate, setPromoEndDate] = useState('')
+    const [promoMaxOrders, setPromoMaxOrders] = useState('')
 
     // Load all menus for search
     const { categories: mainCats } = usePrices()
@@ -1205,18 +1234,37 @@ function FeaturedSection() {
             alert('Выберите хотя бы один сезон')
             return
         }
+        if (activeType === 'promo') {
+            if (!promoEndDate) { alert('Укажите дату окончания акции'); return }
+            if (promoDiscount < 1 || promoDiscount > 99) { alert('Скидка от 1% до 99%'); return }
+        }
         setAdding(item.id)
         try {
-            const body = {
-                category_key: item.categoryKey,
-                item_id: item.id,
-                item_name: item.name,
-                source: item.source,
+            if (activeType === 'promo') {
+                // Parse date from input (YYYY-MM-DD) to DD.MM.YYYY
+                const [y, m, d] = promoEndDate.split('-')
+                const body = {
+                    category_key: item.categoryKey,
+                    item_id: item.id,
+                    item_name: item.name,
+                    source: item.source,
+                    discount_percent: promoDiscount,
+                    end_date: `${d}.${m}.${y}`,
+                    max_orders: promoMaxOrders ? parseInt(promoMaxOrders) : null,
+                }
+                await addPromo(body)
+            } else {
+                const body = {
+                    category_key: item.categoryKey,
+                    item_id: item.id,
+                    item_name: item.name,
+                    source: item.source,
+                }
+                if (activeType === 'seasonal') {
+                    body.seasons = selectedSeasons
+                }
+                await addFeatured(activeType, body)
             }
-            if (activeType === 'seasonal') {
-                body.seasons = selectedSeasons
-            }
-            await addFeatured(activeType, body)
             loadFeatured()
         } catch (e) {
             alert(e.message)
@@ -1283,6 +1331,10 @@ function FeaturedSection() {
                                 <span className="feat-item-meta">
                                     {SOURCES.find(s => s.key === (item.source || 'main'))?.label}
                                     {item.seasons && ` · ${item.seasons.map(s => SEASON_EMOJI[s]).join('')}`}
+                                    {item.discount_percent && ` · -${item.discount_percent}%`}
+                                    {item.end_date && ` · до ${item.end_date}`}
+                                    {item.max_orders != null && ` · ${item.ordered_count || 0}/${item.max_orders}`}
+                                    {item.max_orders == null && item.discount_percent && ' · безлимит'}
                                 </span>
                             </div>
                             <button
@@ -1354,6 +1406,44 @@ function FeaturedSection() {
                                 {SEASON_EMOJI[s]} {s}
                             </button>
                         ))}
+                    </div>
+                )}
+
+                {/* Настройки акции (для типа promo) */}
+                {activeType === 'promo' && (
+                    <div className="feat-promo-fields">
+                        <div className="feat-promo-row">
+                            <label className="feat-promo-label">
+                                Скидка %
+                                <input
+                                    type="number"
+                                    min="1" max="99"
+                                    className="feat-promo-input"
+                                    value={promoDiscount}
+                                    onChange={e => setPromoDiscount(parseInt(e.target.value) || 0)}
+                                />
+                            </label>
+                            <label className="feat-promo-label">
+                                До даты
+                                <input
+                                    type="date"
+                                    className="feat-promo-input"
+                                    value={promoEndDate}
+                                    onChange={e => setPromoEndDate(e.target.value)}
+                                />
+                            </label>
+                        </div>
+                        <label className="feat-promo-label">
+                            Макс. заказов (пусто = безлимит)
+                            <input
+                                type="number"
+                                min="1"
+                                className="feat-promo-input"
+                                placeholder="Безлимит"
+                                value={promoMaxOrders}
+                                onChange={e => setPromoMaxOrders(e.target.value)}
+                            />
+                        </label>
                     </div>
                 )}
 

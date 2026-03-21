@@ -38,6 +38,10 @@ HEADER_MAP = {
     "описание категории": "category_description",
     "ингредиенты": "ingredients",
     "состав": "ingredients",
+    "себестоимость": "cost_ingredients",
+    "стоимость ингредиентов": "cost_ingredients",
+    "ингредиенты (стоимость)": "cost_ingredients",
+    "цена ингредиентов": "cost_ingredients",
     # Английские заголовки (обратная совместимость)
     "category_key": "category_key",
     "category_name": "category_name",
@@ -51,6 +55,7 @@ HEADER_MAP = {
     "description": "description",
     "category_description": "category_description",
     "ingredients": "ingredients",
+    "cost_ingredients": "cost_ingredients",
 }
 
 
@@ -148,6 +153,56 @@ def _parse_ingredients(raw: str) -> list[dict] | None:
             # Если формат не распознан — сохраняем как есть
             items.append({'name': part.strip().capitalize(), 'amount': 0, 'unit': ''})
     return items if items else None
+
+
+def _parse_cost_price(raw: str) -> dict | None:
+    """
+    Парсит строку себестоимости ингредиентов.
+    Формат: 'мука 500г - 150 р., яйца 3шт - 100, сахар 200г - 50'
+    Разделитель позиций: запятая или точка с запятой.
+    Разделитель цены: тире (-).
+    Цена может быть: '150', '150р', '150 р.', '150 руб', '150 рублей', просто число.
+    Возвращает: { 'items': [...], 'total': сумма }
+    """
+    import re
+    if not raw or not raw.strip():
+        return None
+
+    items = []
+    total = 0
+
+    for part in re.split(r'[,;]', raw):
+        part = part.strip()
+        if not part:
+            continue
+
+        # Разделяем по последнему тире (- или —)
+        pieces = re.split(r'\s*[-—]\s*', part)
+        if len(pieces) >= 2:
+            name_part = ' - '.join(pieces[:-1]).strip()  # всё до последнего тире
+            price_part = pieces[-1].strip()
+            # Извлекаем число из цены: "150 р.", "150руб", "150"
+            m = re.search(r'(\d+(?:[.,]\d+)?)', price_part)
+            if m:
+                price = float(m.group(1).replace(',', '.'))
+                items.append({'name': name_part, 'price': price})
+                total += price
+            else:
+                items.append({'name': name_part, 'price': 0})
+        else:
+            # Нет тире — попробовать найти число в конце
+            m = re.search(r'(\d+(?:[.,]\d+)?)\s*(?:р\.?|руб\.?|рублей)?\s*$', part)
+            if m:
+                price = float(m.group(1).replace(',', '.'))
+                name_part = part[:m.start()].strip()
+                items.append({'name': name_part or part, 'price': price})
+                total += price
+            else:
+                items.append({'name': part, 'price': 0})
+
+    if not items:
+        return None
+    return {'items': items, 'total': round(total, 2)}
 
 
 def _parse_price(price_str: str, unit: str) -> dict:
@@ -291,6 +346,10 @@ def _csv_to_prices_json(csv_text: str) -> dict:
         ingredients = _parse_ingredients(normalized.get("ingredients", ""))
         if ingredients:
             item['ingredients'] = ingredients
+        cost_data = _parse_cost_price(normalized.get("cost_ingredients", ""))
+        if cost_data:
+            item['cost_price'] = cost_data['total']
+            item['cost_ingredients'] = cost_data['items']
         if photo_url:
             item["photo_url"] = photo_url
 
