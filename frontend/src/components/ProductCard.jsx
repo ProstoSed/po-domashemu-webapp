@@ -9,7 +9,7 @@ import './ProductCard.css'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
-export default function ProductCard({ item, categoryKey, index, highlight }) {
+export default function ProductCard({ item, categoryKey, index, highlight, promoExtra }) {
     const { addItem } = useCart()
     const { haptic } = useTelegram()
     const [added, setAdded] = useState(false)
@@ -63,6 +63,7 @@ export default function ProductCard({ item, categoryKey, index, highlight }) {
                             <span className="price-tag">{formatItemPrice(item)}</span>
                         )}
                     </div>
+                    {promoExtra && <div className="promo-info-row">{promoExtra}</div>}
                     <div className="product-btns-row">
                         {hasPhoto && (
                             <button

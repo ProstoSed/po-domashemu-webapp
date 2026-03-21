@@ -113,6 +113,25 @@
 }
 
 
+/* ── Промо-строка (скидка + таймер) ── */
+.promo-info-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 0.78rem;
+}
+
+.promo-discount-badge {
+    background: #ef4444;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
 /* ── Кнопки фото/описание ── */
 .product-btns-row {
     display: flex;

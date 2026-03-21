@@ -187,24 +187,6 @@
     position: relative;
 }
 
-.promo-info-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 2px 10px 8px;
-    font-size: 0.78rem;
-}
-
-.promo-discount-badge {
-    background: #ef4444;
-    color: #fff;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 0.78rem;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
 .promo-countdown {
     color: var(--color-text-secondary);
     white-space: nowrap;

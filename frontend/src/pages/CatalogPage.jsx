@@ -326,16 +326,20 @@ export default function CatalogPage() {
                             const newPrice = Math.round(oldPrice * (100 - item.discount_percent) / 100)
                             return (
                                 <div key={item.id} className="promo-card">
-                                    <ProductCard item={{ ...item, _promoOldPrice: oldPrice, _promoNewPrice: newPrice, discount_percent: item.discount_percent }} categoryKey={item.categoryKey} index={i} />
-                                    <div className="promo-info-row">
-                                        <span className="promo-discount-badge">-{item.discount_percent}%</span>
-                                        <PromoCountdown endDate={item.end_date} />
-                                        {item.max_orders != null && (
-                                            <span className="promo-stock">
-                                                · Осталось: {item.max_orders - item.ordered_count}
-                                            </span>
-                                        )}
-                                    </div>
+                                    <ProductCard
+                                        item={{ ...item, _promoOldPrice: oldPrice, _promoNewPrice: newPrice, discount_percent: item.discount_percent }}
+                                        categoryKey={item.categoryKey}
+                                        index={i}
+                                        promoExtra={<>
+                                            <span className="promo-discount-badge">-{item.discount_percent}%</span>
+                                            <PromoCountdown endDate={item.end_date} />
+                                            {item.max_orders != null && (
+                                                <span className="promo-stock">
+                                                    · Осталось: {item.max_orders - item.ordered_count}
+                                                </span>
+                                            )}
+                                        </>}
+                                    />
                                 </div>
                             )
                         })}
