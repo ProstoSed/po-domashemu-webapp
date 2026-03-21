@@ -65,15 +65,6 @@
     color: #ef4444;
 }
 
-.price-tag--discount {
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: #fff;
-    background: #ef4444;
-    padding: 1px 6px;
-    border-radius: 8px;
-    line-height: 1.4;
-}
 
 .product-actions {
     display: flex;

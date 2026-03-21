@@ -187,12 +187,12 @@
     position: relative;
 }
 
-.promo-badge-row {
+.promo-info-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0 10px 6px;
-    flex-wrap: wrap;
+    padding: 2px 10px 8px;
+    font-size: 0.78rem;
 }
 
 .promo-discount-badge {
@@ -200,18 +200,19 @@
     color: #fff;
     padding: 2px 8px;
     border-radius: 10px;
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     font-weight: 700;
+    white-space: nowrap;
 }
 
 .promo-countdown {
-    font-size: 0.75rem;
     color: var(--color-text-secondary);
+    white-space: nowrap;
 }
 
 .promo-stock {
-    font-size: 0.75rem;
     color: var(--color-text-muted);
+    white-space: nowrap;
 }
 
 /* ── Light mode: тёмные заголовки ── */

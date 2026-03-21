@@ -58,7 +58,6 @@ export default function ProductCard({ item, categoryKey, index, highlight }) {
                                 <span className="price-tag price-tag--new">
                                     {formatPrice(item._promoNewPrice)}{item.unit === 'кг' ? '/кг' : ''}
                                 </span>
-                                <span className="price-tag--discount">-{item.discount_percent}%</span>
                             </>
                         ) : (
                             <span className="price-tag">{formatItemPrice(item)}</span>
