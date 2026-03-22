@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../hooks/useCart'
 import { useTelegram } from '../hooks/useTelegram'
@@ -13,6 +14,8 @@ export default function ProductCard({ item, categoryKey, index, highlight, promo
     const { addItem } = useCart()
     const { haptic } = useTelegram()
     const [added, setAdded] = useState(false)
+    const [flyAnim, setFlyAnim] = useState(null)
+    const btnRef = useRef(null)
 
     const isKg = item.unit === 'кг'
     const minOrder = item.min_order || null
@@ -36,6 +39,22 @@ export default function ProductCard({ item, categoryKey, index, highlight, promo
         setAdded(true)
         setTimeout(() => setAdded(false), 1200)
         setQty(minQty)
+
+        // Анимация «улетания» к корзине
+        const cartEl = document.querySelector('.cart-fab')
+        const btnEl = btnRef.current
+        if (cartEl && btnEl) {
+            const from = btnEl.getBoundingClientRect()
+            const to = cartEl.getBoundingClientRect()
+            setFlyAnim({
+                startX: from.left + from.width / 2,
+                startY: from.top + from.height / 2,
+                endX: to.left + to.width / 2,
+                endY: to.top + to.height / 2,
+                name: item.name,
+            })
+            setTimeout(() => setFlyAnim(null), 600)
+        }
     }
 
     const photoUrl = hasPhoto ? `${API_URL}/api/photos/${item.photo_filename}` : null
@@ -97,6 +116,7 @@ export default function ProductCard({ item, categoryKey, index, highlight, promo
                                 max={20}
                             />
                             <motion.button
+                                ref={btnRef}
                                 className={`btn-add ${added ? 'btn-add--success' : ''}`}
                                 onClick={handleAdd}
                                 whileTap={{ scale: 0.9 }}
@@ -145,6 +165,18 @@ export default function ProductCard({ item, categoryKey, index, highlight, promo
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {flyAnim && createPortal(
+                <motion.div
+                    className="fly-to-cart"
+                    initial={{ x: flyAnim.startX, y: flyAnim.startY, scale: 1, opacity: 1 }}
+                    animate={{ x: flyAnim.endX, y: flyAnim.endY, scale: 0.3, opacity: 0 }}
+                    transition={{ duration: 0.55, ease: [0.32, 0, 0.67, 0] }}
+                >
+                    🛒
+                </motion.div>,
+                document.body
+            )}
         </div>
     )
 }

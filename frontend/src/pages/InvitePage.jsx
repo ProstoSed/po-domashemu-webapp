@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { QRCodeSVG } from 'qrcode.react'
 import { useTelegram } from '../hooks/useTelegram'
 import { fetchMyReferral } from '../utils/api'
 import './InvitePage.css'
@@ -95,6 +96,16 @@ export default function InvitePage() {
                 <div className="invite-link-label">🔗 Ваша ссылка:</div>
                 <div className="invite-link-box">
                     <span className="invite-link-text">{refLink}</span>
+                </div>
+                <div className="invite-qr">
+                    <QRCodeSVG
+                        value={refLink}
+                        size={180}
+                        bgColor="transparent"
+                        fgColor="#4a3728"
+                        level="M"
+                        includeMargin={false}
+                    />
                 </div>
                 <div className="invite-actions">
                     <button className="btn btn-primary invite-btn" onClick={handleCopy}>

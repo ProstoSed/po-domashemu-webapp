@@ -134,6 +134,8 @@ function Pagination({ page, totalPages, onPageChange }) {
 function OrderCard({ order, onStatusChange, onDelete }) {
     const [expanded, setExpanded] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [confirmDelete, setConfirmDelete] = useState(false)
+    const [copied, setCopied] = useState(false)
 
     const status = order.status || 'new'
     const statusInfo = STATUS_LABEL[status] || { text: status, cls: '' }
@@ -153,6 +155,32 @@ function OrderCard({ order, onStatusChange, onDelete }) {
     const username = customer.username || order.user?.username || null
     const phone = order.phone || customer.phone || '—'
     const orderDate = order.schedule?.date || order.date || null
+
+    const handleCopy = async () => {
+        const itemsText = (order.items || []).map(it => {
+            const qty = it.quantity ?? 1
+            const w = it.weight ? ` ${it.weight}кг` : ''
+            return `  ${it.name} ×${qty}${w}`
+        }).join('\n')
+        const text = [
+            `${order.order_id}`,
+            `Клиент: ${clientName}${username ? ` @${username}` : ''}`,
+            phone !== '—' ? `Тел: ${phone}` : null,
+            order.delivery?.type === 'delivery' ? `Доставка: ${order.delivery.address || ''}` : 'Самовывоз',
+            orderDate ? `Дата: ${orderDate}` : null,
+            `Состав:\n${itemsText}`,
+            `Итого: ${totalStr}`,
+        ].filter(Boolean).join('\n')
+        try {
+            await navigator.clipboard.writeText(text)
+        } catch {
+            const ta = document.createElement('textarea')
+            ta.value = text; document.body.appendChild(ta); ta.select()
+            document.execCommand('copy'); document.body.removeChild(ta)
+        }
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+    }
 
     return (
         <motion.div
@@ -295,15 +323,47 @@ function OrderCard({ order, onStatusChange, onDelete }) {
                                 </button>
                             )}
                             <button
+                                className="btn btn-outline btn-sm"
+                                onClick={handleCopy}
+                                disabled={loading}>
+                                {copied ? '✅' : '📋'}
+                            </button>
+                            <button
                                 className="btn btn-danger btn-sm"
-                                onClick={() => {
-                                    if (window.confirm(`Удалить заказ ${order.order_id}?`))
-                                        act(() => onDelete(order.order_id))
-                                }}
+                                onClick={() => setConfirmDelete(true)}
                                 disabled={loading}>
                                 🗑
                             </button>
                         </div>
+
+                        {/* Модалка подтверждения удаления */}
+                        <AnimatePresence>
+                            {confirmDelete && (
+                                <motion.div
+                                    className="delete-confirm"
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                >
+                                    <p className="delete-confirm-text">Удалить заказ <b>{order.order_id}</b>?</p>
+                                    <div className="delete-confirm-btns">
+                                        <button
+                                            className="btn btn-danger btn-sm"
+                                            onClick={() => act(() => onDelete(order.order_id))}
+                                            disabled={loading}
+                                        >
+                                            Да, удалить
+                                        </button>
+                                        <button
+                                            className="btn btn-outline btn-sm"
+                                            onClick={() => setConfirmDelete(false)}
+                                        >
+                                            Отмена
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -1821,6 +1881,9 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [filter, setFilter] = useState('active')
+    const [statusFilter, setStatusFilter] = useState('')
+    const [dateFrom, setDateFrom] = useState('')
+    const [dateTo, setDateTo] = useState('')
     const [ordersPage, setOrdersPage] = useState(1)
     const [syncing, setSyncing] = useState(false)
     const [syncResult, setSyncResult] = useState(null)
@@ -1877,10 +1940,20 @@ export default function AdminPage() {
     }
 
     const filtered = useMemo(() => orders.filter(o => {
-        if (filter === 'active') return o.status !== 'closed'
-        if (filter === 'closed') return o.status === 'closed'
+        if (filter === 'active') { if (o.status === 'closed') return false }
+        else if (filter === 'closed') { if (o.status !== 'closed') return false }
+        if (statusFilter && o.status !== statusFilter) return false
+        // Фильтр по дате заказа (schedule.date — формат DD.MM.YYYY)
+        const rawDate = o.schedule?.date || o.date || ''
+        if (dateFrom || dateTo) {
+            const parts = rawDate.match(/(\d{2})\.(\d{2})\.(\d{4})/)
+            if (!parts) return false
+            const orderDate = `${parts[3]}-${parts[2]}-${parts[1]}`
+            if (dateFrom && orderDate < dateFrom) return false
+            if (dateTo && orderDate > dateTo) return false
+        }
         return true
-    }), [orders, filter])
+    }), [orders, filter, statusFilter, dateFrom, dateTo])
     const activeCount = orders.filter(o => o.status !== 'closed').length
     const ordersTotalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
     const safePage = Math.min(ordersPage, ordersTotalPages)
@@ -1976,6 +2049,40 @@ export default function AdminPage() {
                         <button className="admin-tab admin-tab-refresh" onClick={loadOrders}>
                             ↻
                         </button>
+                    </div>
+
+                    {/* Расширенные фильтры */}
+                    <div className="orders-filters">
+                        <select
+                            className="orders-filter-select"
+                            value={statusFilter}
+                            onChange={e => { setStatusFilter(e.target.value); setOrdersPage(1) }}
+                        >
+                            <option value="">Все статусы</option>
+                            {Object.entries(STATUS_LABEL).map(([k, v]) => (
+                                <option key={k} value={k}>{v.text}</option>
+                            ))}
+                        </select>
+                        <input
+                            type="date"
+                            className="orders-filter-date"
+                            value={dateFrom}
+                            onChange={e => { setDateFrom(e.target.value); setOrdersPage(1) }}
+                            placeholder="От"
+                        />
+                        <input
+                            type="date"
+                            className="orders-filter-date"
+                            value={dateTo}
+                            onChange={e => { setDateTo(e.target.value); setOrdersPage(1) }}
+                            placeholder="До"
+                        />
+                        {(statusFilter || dateFrom || dateTo) && (
+                            <button
+                                className="orders-filter-clear"
+                                onClick={() => { setStatusFilter(''); setDateFrom(''); setDateTo(''); setOrdersPage(1) }}
+                            >✕</button>
+                        )}
                     </div>
 
                     {loading && <Spinner text="Загружаем заказы..." />}

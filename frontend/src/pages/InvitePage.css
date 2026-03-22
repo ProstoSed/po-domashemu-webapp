@@ -71,6 +71,12 @@
     user-select: all;
 }
 
+.invite-qr {
+    display: flex;
+    justify-content: center;
+    padding: 0.5rem 0;
+}
+
 .invite-actions {
     display: flex;
     gap: 0.5rem;

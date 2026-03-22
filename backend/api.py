@@ -1418,6 +1418,11 @@ async def admin_update_order_status(
     if not found:
         raise HTTPException(status_code=404, detail='Заказ не найден')
     save_orders(orders)
+    # Обновляем статус в Google Sheets
+    asyncio.create_task(_export_to_sheets('update_order_status', {
+        'order_id': order_id,
+        'status': body.status,
+    }))
     return {'ok': True, 'order_id': order_id, 'status': body.status}
 
 
@@ -1438,6 +1443,12 @@ async def admin_close_order(
     if not closed_order:
         raise HTTPException(status_code=404, detail='Заказ не найден')
     save_orders(orders)
+
+    # Обновляем статус в Google Sheets
+    asyncio.create_task(_export_to_sheets('update_order_status', {
+        'order_id': order_id,
+        'status': 'closed',
+    }))
 
     # Напоминание об отзыве через 2 часа
     customer_id = closed_order.get('customer', {}).get('user_id')

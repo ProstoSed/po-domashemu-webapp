@@ -210,6 +210,27 @@
     line-height: 1.5;
 }
 
+/* ── Анимация «улетания» в корзину ── */
+.fly-to-cart {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 36px;
+    height: 36px;
+    margin-left: -18px;
+    margin-top: -18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    background: var(--color-primary);
+    color: #fff;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    box-shadow: 0 2px 12px rgba(212, 163, 115, 0.5);
+}
+
 /* ── Мобильная адаптивность (Samsung Galaxy A12 и т.п.) ── */
 @media (max-width: 374px) {
     .product-card {
