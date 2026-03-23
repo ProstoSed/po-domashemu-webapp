@@ -331,7 +331,6 @@ export default function CatalogPage() {
                                         categoryKey={item.categoryKey}
                                         index={i}
                                         promoExtra={<>
-                                            <span className="promo-discount-badge">-{item.discount_percent}%</span>
                                             <PromoCountdown endDate={item.end_date} />
                                             {item.max_orders != null && (
                                                 <span className="promo-stock">

@@ -1421,7 +1421,7 @@ async def admin_update_order_status(
     # Обновляем статус в Google Sheets
     asyncio.create_task(_export_to_sheets('update_order_status', {
         'order_id': order_id,
-        'status': body.status,
+        'new_status': body.status,
     }))
     return {'ok': True, 'order_id': order_id, 'status': body.status}
 
@@ -1447,7 +1447,7 @@ async def admin_close_order(
     # Обновляем статус в Google Sheets
     asyncio.create_task(_export_to_sheets('update_order_status', {
         'order_id': order_id,
-        'status': 'closed',
+        'new_status': 'closed',
     }))
 
     # Напоминание об отзыве через 2 часа

@@ -45,7 +45,7 @@
 
 .product-price-row {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: var(--space-xs);
     flex-wrap: wrap;
 }
