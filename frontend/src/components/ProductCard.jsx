@@ -10,13 +10,26 @@ import './ProductCard.css'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
-/** Парсит варианты из скобок в конце названия: "Пирожки (мясо, яблоко)" → { base: "Пирожки", variants: ["мясо", "яблоко"] } */
-function parseVariants(name) {
-    const m = name.match(/^(.+?)\s*\(([^)]+)\)\s*$/)
-    if (!m) return null
-    const base = m[1].trim()
-    const variants = m[2].split(',').map(v => v.trim()).filter(Boolean)
-    return variants.length > 0 ? { base, variants } : null
+/**
+ * Парсит название товара:
+ * - "Пирожки [(мясо, яблоко)]" → { base: "Пирожки", variants: [...], info: null }  — кликабельный выбор
+ * - "Пирожки (мясо, яблоко)"   → { base: "Пирожки", variants: null, info: "мясо, яблоко" }  — текст-описание
+ * - "Хлеб белый"                → null  — обычный товар
+ */
+function parseNameParts(name) {
+    // Формат [(...)]: кликабельный выбор
+    const mSq = name.match(/^(.+?)\s*\[\(([^)]+)\)\]\s*$/)
+    if (mSq) {
+        const base = mSq[1].trim()
+        const variants = mSq[2].split(',').map(v => v.trim()).filter(Boolean)
+        if (variants.length > 0) return { base, variants, info: null }
+    }
+    // Формат (...): текст-описание
+    const mRound = name.match(/^(.+?)\s*\(([^)]+)\)\s*$/)
+    if (mRound) {
+        return { base: mRound[1].trim(), variants: null, info: mRound[2].trim() }
+    }
+    return null
 }
 
 export default function ProductCard({ item, categoryKey, index, highlight, promoExtra }) {
@@ -37,19 +50,20 @@ export default function ProductCard({ item, categoryKey, index, highlight, promo
     const [photoError, setPhotoError] = useState(false)
     const [showDesc, setShowDesc] = useState(false)
 
-    // Варианты начинок из скобок
-    const parsed = useMemo(() => parseVariants(item.name), [item.name])
+    // Парсинг названия: варианты [(...)], инфо (...) или обычное
+    const nameParts = useMemo(() => parseNameParts(item.name), [item.name])
+    const hasVariants = nameParts?.variants?.length > 0
     const [selectedVariant, setSelectedVariant] = useState(null)
 
     const hasPrice = !item.price_note  // не «индивидуально»
     const hasPhoto = !!item.photo_filename
-    const hasDesc = !!item.description
-    const needsVariant = parsed && !selectedVariant
+    const hasDesc = !!item.description || !!nameParts?.info
+    const needsVariant = hasVariants && !selectedVariant
 
     const handleAdd = () => {
         if (!hasPrice || needsVariant) return
-        const cartItem = parsed && selectedVariant
-            ? { ...item, name: `${parsed.base} (${selectedVariant})`, id: `${item.id}__${selectedVariant}` }
+        const cartItem = hasVariants && selectedVariant
+            ? { ...item, name: `${nameParts.base} (${selectedVariant})`, id: `${item.id}__${selectedVariant}` }
             : item
         addItem({ ...cartItem, categoryKey }, qty, isKg ? weight : null)
         haptic('medium')
@@ -85,18 +99,22 @@ export default function ProductCard({ item, categoryKey, index, highlight, promo
                 transition={{ delay: index * 0.05, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             >
                 <div className="product-info">
-                    <h4 className="product-name">{parsed ? parsed.base : item.name}</h4>
+                    <h4 className="product-name">{nameParts ? nameParts.base : item.name}</h4>
                     {item.note && <span className="product-note">{item.note}</span>}
-                    {parsed && (
+                    {hasVariants && (
                         <div className="variant-chips">
-                            {parsed.variants.map(v => (
-                                <button
+                            {nameParts.variants.map((v, vi) => (
+                                <motion.button
                                     key={v}
                                     className={`variant-chip ${selectedVariant === v ? 'variant-chip--active' : ''}`}
                                     onClick={() => setSelectedVariant(prev => prev === v ? null : v)}
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: vi * 0.06, duration: 0.3 }}
+                                    style={{ '--chip-index': vi }}
                                 >
                                     {v}
-                                </button>
+                                </motion.button>
                             ))}
                         </div>
                     )}
@@ -125,7 +143,7 @@ export default function ProductCard({ item, categoryKey, index, highlight, promo
                                 {showPhoto ? '🖼 Скрыть' : '🖼 Фото'}
                             </button>
                         )}
-                        {hasDesc && (
+                        {(item.description || nameParts?.info) && (
                             <button
                                 className="btn-show-desc"
                                 onClick={() => setShowDesc(d => !d)}
@@ -186,7 +204,7 @@ export default function ProductCard({ item, categoryKey, index, highlight, promo
             </AnimatePresence>
 
             <AnimatePresence>
-                {showDesc && hasDesc && (
+                {showDesc && (item.description || nameParts?.info) && (
                     <motion.div
                         className="product-desc-expand"
                         initial={{ height: 0, opacity: 0 }}
@@ -194,7 +212,8 @@ export default function ProductCard({ item, categoryKey, index, highlight, promo
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.3 }}
                     >
-                        <p className="product-desc-text">{item.description}</p>
+                        {nameParts?.info && <p className="product-desc-text product-desc-info">{nameParts.info}</p>}
+                        {item.description && <p className="product-desc-text">{item.description}</p>}
                     </motion.div>
                 )}
             </AnimatePresence>
