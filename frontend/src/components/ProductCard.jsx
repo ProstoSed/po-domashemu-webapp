@@ -99,7 +99,7 @@ export default function ProductCard({ item, categoryKey, index, highlight, promo
                 transition={{ delay: index * 0.05, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             >
                 <div className="product-info">
-                    <h4 className="product-name">{nameParts ? nameParts.base : item.name}</h4>
+                    <h4 className="product-name">{hasVariants ? nameParts.base : item.name}</h4>
                     {item.note && <span className="product-note">{item.note}</span>}
                     {hasVariants && (
                         <div className="variant-chips">
