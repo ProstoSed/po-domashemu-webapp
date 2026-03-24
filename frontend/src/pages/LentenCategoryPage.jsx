@@ -47,7 +47,7 @@ export default function LentenCategoryPage() {
                 animate={{ opacity: 1, x: 0 }}
                 whileTap={{ scale: 0.95 }}
             >
-                <span className="back-arrow">←</span> Постное меню
+                <span className="back-arrow">←</span> Постная выпечка
             </motion.button>
 
             <motion.div

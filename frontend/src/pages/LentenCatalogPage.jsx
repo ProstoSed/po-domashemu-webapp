@@ -65,7 +65,7 @@ export default function LentenCatalogPage() {
         return (
             <div className="empty-state">
                 <span className="empty-state-emoji">🌿</span>
-                <p className="empty-state-title">Постное меню пока пусто</p>
+                <p className="empty-state-title">Постная выпечка пока пусто</p>
                 <p className="empty-state-text">Скоро здесь появятся постные блюда</p>
                 <button className="btn btn-primary" onClick={() => navigate('/')}>
                     Вернуться в меню
@@ -86,7 +86,7 @@ export default function LentenCatalogPage() {
                 <span className="back-arrow">←</span> Наше меню
             </motion.button>
 
-            <h2 className="catalog-title">🌿 Постное меню</h2>
+            <h2 className="catalog-title">🌿 Постная выпечка</h2>
             <p className="catalog-subtitle">
                 {categories.length} категорий — вкусно и без компромиссов
             </p>

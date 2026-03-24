@@ -244,7 +244,7 @@ export default function CatalogPage() {
                             <span className="welcome-emoji">🥧</span>
                             <h2 className="welcome-title">Добро пожаловать!</h2>
                             <p className="welcome-text">
-                                Домашняя пекарня <b>«По-домашнему»</b> — выпечка с любовью и заботой от Надежды из д. Зимёнки.
+                                Домашняя пекарня <b>«По-домашнему»</b> — выпечка с любовью и заботой от Надежды.
                             </p>
                             <p className="welcome-text">
                                 Здесь вы можете выбрать любимую выпечку, оформить заказ и задать вопросы нашему помощнику.
@@ -357,7 +357,7 @@ export default function CatalogPage() {
             >
                 <span className="lenten-card-icon">🌿</span>
                 <div className="lenten-card-info">
-                    <h3 className="lenten-card-title">Постное меню</h3>
+                    <h3 className="lenten-card-title">Постная выпечка</h3>
                     <span className="lenten-card-desc">Вкусно и без компромиссов</span>
                 </div>
                 <span className="category-arrow">›</span>

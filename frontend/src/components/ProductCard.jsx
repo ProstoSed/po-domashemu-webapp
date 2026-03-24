@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../hooks/useCart'
@@ -9,6 +9,15 @@ import WeightPicker from './WeightPicker'
 import './ProductCard.css'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
+
+/** Парсит варианты из скобок в конце названия: "Пирожки (мясо, яблоко)" → { base: "Пирожки", variants: ["мясо", "яблоко"] } */
+function parseVariants(name) {
+    const m = name.match(/^(.+?)\s*\(([^)]+)\)\s*$/)
+    if (!m) return null
+    const base = m[1].trim()
+    const variants = m[2].split(',').map(v => v.trim()).filter(Boolean)
+    return variants.length > 0 ? { base, variants } : null
+}
 
 export default function ProductCard({ item, categoryKey, index, highlight, promoExtra }) {
     const { addItem } = useCart()
@@ -28,13 +37,21 @@ export default function ProductCard({ item, categoryKey, index, highlight, promo
     const [photoError, setPhotoError] = useState(false)
     const [showDesc, setShowDesc] = useState(false)
 
+    // Варианты начинок из скобок
+    const parsed = useMemo(() => parseVariants(item.name), [item.name])
+    const [selectedVariant, setSelectedVariant] = useState(null)
+
     const hasPrice = !item.price_note  // не «индивидуально»
     const hasPhoto = !!item.photo_filename
     const hasDesc = !!item.description
+    const needsVariant = parsed && !selectedVariant
 
     const handleAdd = () => {
-        if (!hasPrice) return
-        addItem({ ...item, categoryKey }, qty, isKg ? weight : null)
+        if (!hasPrice || needsVariant) return
+        const cartItem = parsed && selectedVariant
+            ? { ...item, name: `${parsed.base} (${selectedVariant})`, id: `${item.id}__${selectedVariant}` }
+            : item
+        addItem({ ...cartItem, categoryKey }, qty, isKg ? weight : null)
         haptic('medium')
         setAdded(true)
         setTimeout(() => setAdded(false), 1200)
@@ -68,8 +85,21 @@ export default function ProductCard({ item, categoryKey, index, highlight, promo
                 transition={{ delay: index * 0.05, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             >
                 <div className="product-info">
-                    <h4 className="product-name">{item.name}</h4>
+                    <h4 className="product-name">{parsed ? parsed.base : item.name}</h4>
                     {item.note && <span className="product-note">{item.note}</span>}
+                    {parsed && (
+                        <div className="variant-chips">
+                            {parsed.variants.map(v => (
+                                <button
+                                    key={v}
+                                    className={`variant-chip ${selectedVariant === v ? 'variant-chip--active' : ''}`}
+                                    onClick={() => setSelectedVariant(prev => prev === v ? null : v)}
+                                >
+                                    {v}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                     <div className="product-price-row">
                         {item._promoNewPrice ? (
                             <>
@@ -120,9 +150,9 @@ export default function ProductCard({ item, categoryKey, index, highlight, promo
                             />
                             <motion.button
                                 ref={btnRef}
-                                className={`btn-add ${added ? 'btn-add--success' : ''}`}
+                                className={`btn-add ${added ? 'btn-add--success' : ''} ${needsVariant ? 'btn-add--disabled' : ''}`}
                                 onClick={handleAdd}
-                                whileTap={{ scale: 0.9 }}
+                                whileTap={needsVariant ? {} : { scale: 0.9 }}
                             >
                                 {added ? '✓' : '+'}
                             </motion.button>
