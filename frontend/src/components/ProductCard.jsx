@@ -44,8 +44,11 @@ export default function ProductCard({ item, categoryKey, index, highlight, promo
     const minQty = (!isKg && minOrder) ? minOrder : 1
     const minWeight = (isKg && minOrder) ? minOrder : 0.5
 
+    const customWeights = item.custom_weights
+    const defaultWeight = customWeights ? customWeights[0] : Math.max(1, minWeight)
+
     const [qty, setQty] = useState(minQty)
-    const [weight, setWeight] = useState(isKg ? Math.max(1, minWeight) : 1)
+    const [weight, setWeight] = useState(isKg ? defaultWeight : 1)
     const [showPhoto, setShowPhoto] = useState(false)
     const [photoError, setPhotoError] = useState(false)
     const [showDesc, setShowDesc] = useState(false)
@@ -157,7 +160,7 @@ export default function ProductCard({ item, categoryKey, index, highlight, promo
                 {hasPrice && (
                     <div className={`product-actions ${isKg ? 'product-actions--kg' : ''}`}>
                         {isKg && (
-                            <WeightPicker value={weight} onChange={setWeight} minWeight={minWeight} />
+                            <WeightPicker value={weight} onChange={setWeight} minWeight={minWeight} options={item.custom_weights} />
                         )}
                         <div className="product-actions-row">
                             <QuantityPicker

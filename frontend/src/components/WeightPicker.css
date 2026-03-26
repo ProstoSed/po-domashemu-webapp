@@ -3,6 +3,8 @@
     align-items: center;
     gap: 4px;
     flex-wrap: wrap;
+    max-width: 180px;
+    justify-content: flex-end;
 }
 
 .weight-chip {

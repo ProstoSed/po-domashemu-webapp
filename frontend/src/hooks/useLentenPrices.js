@@ -30,7 +30,7 @@ export function useLentenPrices() {
                 const data = await fetchWithTimeout(`${API_URL}/api/lenten-prices`, 5000)
                 setCategories(data.categories || [])
             } catch {
-                setError('Не удалось загрузить постное меню')
+                setError('Не удалось загрузить постную выпечку')
             } finally {
                 setLoading(false)
             }

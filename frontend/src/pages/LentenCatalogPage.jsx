@@ -52,7 +52,7 @@ export default function LentenCatalogPage() {
         return (
             <div className="empty-state">
                 <span className="empty-state-emoji">😔</span>
-                <p className="empty-state-title">Не удалось загрузить постное меню</p>
+                <p className="empty-state-title">Не удалось загрузить постную выпечку</p>
                 <p className="empty-state-text">Проверьте подключение к интернету</p>
                 <button className="btn btn-primary" onClick={() => navigate('/')}>
                     Вернуться в меню

@@ -29,7 +29,7 @@ export default function LentenCategoryPage() {
                 <span className="empty-state-emoji">🤔</span>
                 <p className="empty-state-title">Категория не найдена</p>
                 <button className="btn btn-primary" onClick={() => navigate('/lenten')}>
-                    Вернуться в постное меню
+                    Вернуться в постную выпечку
                 </button>
             </div>
         )

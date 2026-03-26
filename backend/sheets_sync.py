@@ -83,10 +83,34 @@ def _parse_min_order(note: str, unit: str) -> int | float | None:
     return None
 
 
+def _parse_custom_weights(note: str) -> list[float] | None:
+    """
+    Извлекает кастомные веса из примечания.
+    Формат: 'веса: 1,2,3,4,5,6' или 'вес: 0.5, 1, 1.5, 2'
+    Возвращает отсортированный список или None.
+    """
+    import re
+    if not note:
+        return None
+    m = re.search(r'вес[аы]?\s*:\s*([\d.,\s]+)', note, re.IGNORECASE)
+    if not m:
+        return None
+    raw = m.group(1)
+    weights = []
+    for part in raw.split(','):
+        part = part.strip().replace(',', '.')
+        if part:
+            try:
+                weights.append(float(part))
+            except ValueError:
+                pass
+    return sorted(weights) if weights else None
+
+
 def _clean_note(note: str) -> str:
     """
     Убирает служебные пометки из примечания, чтобы они не показывались в карточке товара.
-    Убирает: 'от Xшт', 'от Xкг', 'товар дня', 'сезон: весна' и т.п.
+    Убирает: 'от Xшт', 'от Xкг', 'товар дня', 'сезон: весна', 'веса: ...' и т.п.
     """
     import re
     if not note:
@@ -98,6 +122,8 @@ def _clean_note(note: str) -> str:
     cleaned = re.sub(r'товар\s+дня\s*', '', cleaned, flags=re.IGNORECASE)
     # Убираем "сезон: весна/лето/осень/зима" (с возможными запятыми между сезонами)
     cleaned = re.sub(r'сезон\s*:\s*[\w\s,]+', '', cleaned, flags=re.IGNORECASE)
+    # Убираем "веса: 1,2,3,4,5,6"
+    cleaned = re.sub(r'вес[аы]?\s*:\s*[\d.,\s]+', '', cleaned, flags=re.IGNORECASE)
     # Убираем лишние разделители
     cleaned = re.sub(r'[,;]\s*[,;]', ',', cleaned)
     cleaned = re.sub(r'^[,;\s]+|[,;\s]+$', '', cleaned)
@@ -485,6 +511,7 @@ def _csv_to_prices_json(csv_text: str) -> tuple[dict, list[dict]]:
         item_desc = normalized.get("description", "").strip()
         note_val = normalized.get("note", "")
         min_order = _parse_min_order(note_val, unit_val)
+        custom_weights = _parse_custom_weights(note_val)
         display_note = _clean_note(note_val)
         item = {
             "id": item_id,
@@ -495,6 +522,8 @@ def _csv_to_prices_json(csv_text: str) -> tuple[dict, list[dict]]:
             "note": display_note,
             "description": item_desc if item_desc else "",
         }
+        if custom_weights:
+            item['custom_weights'] = custom_weights
         ingredients = _parse_ingredients(normalized.get("ingredients", ""))
         if ingredients:
             item['ingredients'] = ingredients
