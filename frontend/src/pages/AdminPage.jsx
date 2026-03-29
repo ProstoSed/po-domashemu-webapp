@@ -1959,6 +1959,51 @@ export default function AdminPage() {
     const safePage = Math.min(ordersPage, ordersTotalPages)
     const pagedOrders = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
+    const groupedOrders = useMemo(() => {
+        const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
+        const now = new Date()
+        // МСК: UTC+3
+        const mskNow = new Date(now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60000)
+        const fmt = d => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`
+        const todayStr = fmt(mskNow)
+        const tom = new Date(mskNow); tom.setDate(tom.getDate() + 1)
+        const tomorrowStr = fmt(tom)
+        const yest = new Date(mskNow); yest.setDate(yest.getDate() - 1)
+        const yesterdayStr = fmt(yest)
+
+        const groups = new Map()
+        for (const order of pagedOrders) {
+            const dateStr = order.schedule?.date || order.date || ''
+            const key = dateStr || '__none__'
+            if (!groups.has(key)) groups.set(key, [])
+            groups.get(key).push(order)
+        }
+
+        const result = []
+        for (const [key, orders] of groups) {
+            let label
+            if (key === '__none__') {
+                label = 'Без даты'
+            } else if (key === todayStr) {
+                label = 'Сегодня'
+            } else if (key === tomorrowStr) {
+                label = 'Завтра'
+            } else if (key === yesterdayStr) {
+                label = 'Вчера'
+            } else {
+                const parts = key.match(/(\d{2})\.(\d{2})\.(\d{4})/)
+                if (parts) {
+                    const d = new Date(+parts[3], +parts[2] - 1, +parts[1])
+                    label = `${WEEKDAYS[d.getDay()]} ${parts[1]}.${parts[2]}`
+                } else {
+                    label = key
+                }
+            }
+            result.push({ key, label, orders })
+        }
+        return result
+    }, [pagedOrders])
+
     return (
         <div className="admin-page">
             <motion.button
@@ -2094,13 +2139,21 @@ export default function AdminPage() {
                         <>
                             <div className="orders-list">
                                 <AnimatePresence>
-                                    {pagedOrders.map(order => (
-                                        <OrderCard
-                                            key={order.order_id}
-                                            order={order}
-                                            onStatusChange={handleStatusChange}
-                                            onDelete={handleDelete}
-                                        />
+                                    {groupedOrders.map(group => (
+                                        <div key={group.key}>
+                                            <div className="orders-date-group">
+                                                <span className="orders-date-label">{group.label}</span>
+                                                <span className="orders-date-count">{group.orders.length}</span>
+                                            </div>
+                                            {group.orders.map(order => (
+                                                <OrderCard
+                                                    key={order.order_id}
+                                                    order={order}
+                                                    onStatusChange={handleStatusChange}
+                                                    onDelete={handleDelete}
+                                                />
+                                            ))}
+                                        </div>
                                     ))}
                                 </AnimatePresence>
                             </div>
