@@ -1962,14 +1962,25 @@ export default function AdminPage() {
     const groupedOrders = useMemo(() => {
         const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
         const now = new Date()
-        // МСК: UTC+3
         const mskNow = new Date(now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60000)
-        const fmt = d => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`
-        const todayStr = fmt(mskNow)
+        const fmtDot = d => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`
+        const fmtIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
         const tom = new Date(mskNow); tom.setDate(tom.getDate() + 1)
-        const tomorrowStr = fmt(tom)
         const yest = new Date(mskNow); yest.setDate(yest.getDate() - 1)
-        const yesterdayStr = fmt(yest)
+        // Наборы строк для сравнения в обоих форматах
+        const todaySet = new Set([fmtDot(mskNow), fmtIso(mskNow)])
+        const tomorrowSet = new Set([fmtDot(tom), fmtIso(tom)])
+        const yesterdaySet = new Set([fmtDot(yest), fmtIso(yest)])
+
+        // Нормализация даты → { day, month, year, dateObj }
+        const parseDate = (str) => {
+            let m = str.match(/^(\d{2})\.(\d{2})\.(\d{4})$/)
+            if (m) return { day: m[1], month: m[2], year: m[3], dateObj: new Date(+m[3], +m[2] - 1, +m[1]) }
+            m = str.match(/^(\d{4})-(\d{2})-(\d{2})/)
+            if (m) return { day: m[3], month: m[2], year: m[1], dateObj: new Date(+m[1], +m[2] - 1, +m[3]) }
+            return null
+        }
 
         const groups = new Map()
         for (const order of pagedOrders) {
@@ -1984,17 +1995,16 @@ export default function AdminPage() {
             let label
             if (key === '__none__') {
                 label = 'Без даты'
-            } else if (key === todayStr) {
+            } else if (todaySet.has(key)) {
                 label = 'Сегодня'
-            } else if (key === tomorrowStr) {
+            } else if (tomorrowSet.has(key)) {
                 label = 'Завтра'
-            } else if (key === yesterdayStr) {
+            } else if (yesterdaySet.has(key)) {
                 label = 'Вчера'
             } else {
-                const parts = key.match(/(\d{2})\.(\d{2})\.(\d{4})/)
-                if (parts) {
-                    const d = new Date(+parts[3], +parts[2] - 1, +parts[1])
-                    label = `${WEEKDAYS[d.getDay()]} ${parts[1]}.${parts[2]}`
+                const parsed = parseDate(key)
+                if (parsed) {
+                    label = `${WEEKDAYS[parsed.dateObj.getDay()]} ${parsed.day}.${parsed.month}`
                 } else {
                     label = key
                 }
@@ -2139,11 +2149,11 @@ export default function AdminPage() {
                         <>
                             <div className="orders-list">
                                 <AnimatePresence>
-                                    {groupedOrders.map(group => (
+                                    {groupedOrders.map((group, gi) => (
                                         <div key={group.key}>
-                                            <div className="orders-date-group">
+                                            <div className="orders-date-group" style={{ '--group-idx': gi }}>
                                                 <span className="orders-date-label">{group.label}</span>
-                                                <span className="orders-date-count">{group.orders.length}</span>
+                                                <span className="orders-date-count">заказов: {group.orders.length}</span>
                                             </div>
                                             {group.orders.map(order => (
                                                 <OrderCard
