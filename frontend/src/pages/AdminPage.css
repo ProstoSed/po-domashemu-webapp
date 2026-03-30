@@ -87,9 +87,25 @@
     max-width: 130px;
 }
 
+.orders-filter-date::-webkit-datetime-edit,
+.orders-filter-date::-webkit-datetime-edit-fields-wrapper,
+.orders-filter-date::-webkit-datetime-edit-text,
+.orders-filter-date::-webkit-datetime-edit-month-field,
+.orders-filter-date::-webkit-datetime-edit-day-field,
+.orders-filter-date::-webkit-datetime-edit-year-field {
+    color: var(--color-text);
+}
+
+.orders-filter-date::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+}
+
 @media (prefers-color-scheme: light) {
     .orders-filter-date {
         color-scheme: light;
+    }
+    .orders-filter-date::-webkit-calendar-picker-indicator {
+        filter: none;
     }
 }
 .orders-filter-clear {
@@ -156,8 +172,15 @@
 }
 
 @keyframes count-shimmer {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.65; filter: brightness(1.3); }
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.08); filter: brightness(0.75); }
+}
+
+@media (prefers-color-scheme: light) {
+    @keyframes count-shimmer {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.55; transform: scale(1.08); filter: brightness(0.7); }
+    }
 }
 
 /* Карточка заказа */
