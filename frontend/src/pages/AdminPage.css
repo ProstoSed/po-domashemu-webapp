@@ -81,7 +81,8 @@
     font-size: 0.8rem;
     font-family: var(--font-family);
     color: var(--color-text);
-    color-scheme: light dark;
+    -webkit-appearance: none;
+    appearance: none;
     min-width: 0;
     flex: 1;
     max-width: 130px;
@@ -93,12 +94,18 @@
 .orders-filter-date::-webkit-datetime-edit-month-field,
 .orders-filter-date::-webkit-datetime-edit-day-field,
 .orders-filter-date::-webkit-datetime-edit-year-field {
-    color: var(--color-text);
+    color: var(--color-text) !important;
+    -webkit-text-fill-color: var(--color-text);
 }
 
-@media (prefers-color-scheme: dark) {
+.orders-filter-date::-webkit-calendar-picker-indicator {
+    opacity: 0.6;
+    filter: invert(0.85);
+}
+
+@media (prefers-color-scheme: light) {
     .orders-filter-date::-webkit-calendar-picker-indicator {
-        filter: invert(0.8);
+        filter: none;
     }
 }
 .orders-filter-clear {
