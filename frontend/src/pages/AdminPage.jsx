@@ -2124,7 +2124,8 @@ export default function AdminPage() {
                             value={dateFrom}
                             placeholder="От"
                             readOnly={!dateFrom}
-                            onFocus={e => { e.target.type = 'date'; e.target.readOnly = false; e.target.showPicker?.() }}
+                            onClick={e => { if (e.target.type !== 'date') { e.target.type = 'date'; e.target.readOnly = false; setTimeout(() => e.target.showPicker?.(), 50) } }}
+                            onFocus={e => { if (e.target.type !== 'date') { e.target.type = 'date'; e.target.readOnly = false; setTimeout(() => e.target.showPicker?.(), 50) } }}
                             onChange={e => { setDateFrom(e.target.value); setOrdersPage(1) }}
                             onBlur={e => { if (!e.target.value) e.target.type = 'text' }}
                         />
@@ -2134,7 +2135,8 @@ export default function AdminPage() {
                             value={dateTo}
                             placeholder="До"
                             readOnly={!dateTo}
-                            onFocus={e => { e.target.type = 'date'; e.target.readOnly = false; e.target.showPicker?.() }}
+                            onClick={e => { if (e.target.type !== 'date') { e.target.type = 'date'; e.target.readOnly = false; setTimeout(() => e.target.showPicker?.(), 50) } }}
+                            onFocus={e => { if (e.target.type !== 'date') { e.target.type = 'date'; e.target.readOnly = false; setTimeout(() => e.target.showPicker?.(), 50) } }}
                             onChange={e => { setDateTo(e.target.value); setOrdersPage(1) }}
                             onBlur={e => { if (!e.target.value) e.target.type = 'text' }}
                         />
