@@ -2119,18 +2119,24 @@ export default function AdminPage() {
                             ))}
                         </select>
                         <input
-                            type="date"
+                            type={dateFrom ? 'date' : 'text'}
                             className="orders-filter-date"
                             value={dateFrom}
-                            onChange={e => { setDateFrom(e.target.value); setOrdersPage(1) }}
                             placeholder="От"
+                            readOnly={!dateFrom}
+                            onFocus={e => { e.target.type = 'date'; e.target.readOnly = false; e.target.showPicker?.() }}
+                            onChange={e => { setDateFrom(e.target.value); setOrdersPage(1) }}
+                            onBlur={e => { if (!e.target.value) e.target.type = 'text' }}
                         />
                         <input
-                            type="date"
+                            type={dateTo ? 'date' : 'text'}
                             className="orders-filter-date"
                             value={dateTo}
-                            onChange={e => { setDateTo(e.target.value); setOrdersPage(1) }}
                             placeholder="До"
+                            readOnly={!dateTo}
+                            onFocus={e => { e.target.type = 'date'; e.target.readOnly = false; e.target.showPicker?.() }}
+                            onChange={e => { setDateTo(e.target.value); setOrdersPage(1) }}
+                            onBlur={e => { if (!e.target.value) e.target.type = 'text' }}
                         />
                         {(statusFilter || dateFrom || dateTo) && (
                             <button
