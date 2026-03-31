@@ -301,6 +301,7 @@
 .order-item-qty {
     color: var(--color-text-secondary);
     font-weight: 500;
+    white-space: nowrap;
 }
 
 /* Кнопки */

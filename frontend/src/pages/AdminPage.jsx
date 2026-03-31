@@ -276,8 +276,8 @@ function OrderCard({ order, onStatusChange, onDelete }) {
                                             ) : (
                                                 <>{qty} <span className={isKg ? 'order-item-weight' : ''}>{item.unit || 'шт'}</span></>
                                             )}
-                                            {ppu > 0 && ` × ${ppu.toLocaleString('ru')} ₽`}
-                                            {lineTotal > 0 && ` = ${lineTotal.toLocaleString('ru')} ₽`}
+                                            {ppu > 0 && <> × {ppu.toLocaleString('ru')}{'\u00A0'}₽</>}
+                                            {lineTotal > 0 && <> = {lineTotal.toLocaleString('ru')}{'\u00A0'}₽</>}
                                         </span>
                                     </div>
                                 )
