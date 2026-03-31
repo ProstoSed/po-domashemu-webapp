@@ -81,31 +81,19 @@
     font-size: 0.8rem;
     font-family: var(--font-family);
     color: var(--color-text);
-    -webkit-appearance: none;
-    appearance: none;
+    color-scheme: dark;
     min-width: 0;
     flex: 1;
     max-width: 130px;
 }
 
-.orders-filter-date::-webkit-datetime-edit,
-.orders-filter-date::-webkit-datetime-edit-fields-wrapper,
-.orders-filter-date::-webkit-datetime-edit-text,
-.orders-filter-date::-webkit-datetime-edit-month-field,
-.orders-filter-date::-webkit-datetime-edit-day-field,
-.orders-filter-date::-webkit-datetime-edit-year-field {
-    color: var(--color-text) !important;
-    -webkit-text-fill-color: var(--color-text);
-}
-
 .orders-filter-date::-webkit-calendar-picker-indicator {
     opacity: 0.6;
-    filter: invert(0.85);
 }
 
 @media (prefers-color-scheme: light) {
-    .orders-filter-date::-webkit-calendar-picker-indicator {
-        filter: none;
+    .orders-filter-date {
+        color-scheme: light;
     }
 }
 .orders-filter-clear {
