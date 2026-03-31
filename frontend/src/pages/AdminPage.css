@@ -85,6 +85,11 @@
     min-width: 0;
     flex: 1;
     max-width: 120px;
+    outline: none;
+}
+
+.orders-filter-date:focus {
+    border-color: var(--color-primary);
 }
 
 .orders-filter-date::-webkit-calendar-picker-indicator {
