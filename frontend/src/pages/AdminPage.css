@@ -81,7 +81,7 @@
     font-size: 0.8rem;
     font-family: var(--font-family);
     color: var(--color-text);
-    color-scheme: dark;
+    color-scheme: light dark;
     min-width: 0;
     flex: 1;
     max-width: 130px;
@@ -96,16 +96,9 @@
     color: var(--color-text);
 }
 
-.orders-filter-date::-webkit-calendar-picker-indicator {
-    filter: invert(0.8);
-}
-
-@media (prefers-color-scheme: light) {
-    .orders-filter-date {
-        color-scheme: light;
-    }
+@media (prefers-color-scheme: dark) {
     .orders-filter-date::-webkit-calendar-picker-indicator {
-        filter: none;
+        filter: invert(0.8);
     }
 }
 .orders-filter-clear {
@@ -161,8 +154,8 @@
 .orders-date-count {
     font-size: 0.8rem;
     font-weight: 700;
-    color: var(--color-primary);
-    background: var(--color-surface);
+    color: #fff;
+    background: var(--color-primary);
     padding: 0.15rem 0.55rem;
     border-radius: 10px;
     min-width: 1.4rem;
@@ -172,15 +165,8 @@
 }
 
 @keyframes count-shimmer {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.7; transform: scale(1.08); filter: brightness(0.75); }
-}
-
-@media (prefers-color-scheme: light) {
-    @keyframes count-shimmer {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.55; transform: scale(1.08); filter: brightness(0.7); }
-    }
+    0%, 100% { transform: scale(1); background-color: var(--color-primary); }
+    50% { transform: scale(1.1); background-color: var(--color-primary-dark); }
 }
 
 /* Карточка заказа */
