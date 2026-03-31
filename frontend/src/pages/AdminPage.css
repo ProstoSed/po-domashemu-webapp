@@ -62,33 +62,37 @@
     flex-wrap: wrap;
 }
 .orders-filter-select {
-    padding: 0.4rem 0.6rem;
-    border-radius: 10px;
-    border: 1.5px solid var(--color-border);
-    background: var(--color-surface);
-    font-size: 0.82rem;
-    font-family: var(--font-family);
-    color: var(--color-text);
-    min-width: 0;
-    flex: 1;
-    max-width: 140px;
-}
-.orders-filter-date {
     padding: 0.35rem 0.5rem;
     border-radius: 10px;
     border: 1.5px solid var(--color-border);
     background: var(--color-surface);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
+    font-family: var(--font-family);
+    color: var(--color-text);
+    min-width: 0;
+    flex: 1;
+    max-width: 130px;
+}
+.orders-filter-date {
+    padding: 0.3rem 0.4rem;
+    border-radius: 10px;
+    border: 1.5px solid var(--color-border);
+    background: var(--color-surface);
+    font-size: 0.7rem;
     font-family: var(--font-family);
     color: var(--color-text);
     color-scheme: dark;
     min-width: 0;
     flex: 1;
-    max-width: 130px;
+    max-width: 120px;
 }
 
 .orders-filter-date::-webkit-calendar-picker-indicator {
     opacity: 0.6;
+    padding: 0;
+    margin: 0;
+    width: 14px;
+    height: 14px;
 }
 
 @media (prefers-color-scheme: light) {
