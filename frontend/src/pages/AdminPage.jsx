@@ -272,12 +272,12 @@ function OrderCard({ order, onStatusChange, onDelete }) {
                                         <span className="order-item-name">{item.name}</span>
                                         <span className="order-item-qty">
                                             {isKg && item.weight ? (
-                                                <><span className="order-item-weight">{item.weight} кг</span> × {qty} шт</>
+                                                <><span className="order-item-unit">{item.weight} кг</span> × {qty} <span className="order-item-unit">шт</span></>
                                             ) : (
-                                                <>{qty} <span className={isKg ? 'order-item-weight' : ''}>{item.unit || 'шт'}</span></>
+                                                <>{qty} <span className="order-item-unit">{item.unit || 'шт'}</span></>
                                             )}
-                                            {ppu > 0 && <> × {ppu.toLocaleString('ru')}{'\u00A0'}₽</>}
-                                            {lineTotal > 0 && <> = {lineTotal.toLocaleString('ru')}{'\u00A0'}₽</>}
+                                            {ppu > 0 && <> × {ppu.toLocaleString('ru')}{'\u00A0'}<span className="order-item-unit">₽</span></>}
+                                            {lineTotal > 0 && <> = {lineTotal.toLocaleString('ru')}{'\u00A0'}<span className="order-item-unit">₽</span></>}
                                         </span>
                                     </div>
                                 )

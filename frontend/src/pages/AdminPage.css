@@ -226,7 +226,8 @@
     font-weight: 500;
 }
 
-.order-item-weight {
+.order-item-weight,
+.order-item-unit {
     font-weight: 700;
     color: var(--color-primary-dark);
 }
